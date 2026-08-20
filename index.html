@@ -240,6 +240,84 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
 .build{ color:var(--red); }
 
 /* ============================================================
+   MODE SELECT
+   ============================================================ */
+.modes{
+  display:grid; place-items:center;
+  padding:0 clamp(28px,5vw,80px); min-height:0;
+}
+.modes[hidden]{ display:none; }
+.modes-inner{ width:100%; max-width:1080px; }
+
+.modes-head{
+  display:flex; align-items:flex-end; justify-content:space-between;
+  gap:24px; margin-bottom:26px;
+}
+.modes-head h2{
+  font-family:var(--f-display); font-weight:700;
+  font-size:clamp(38px,5vw,62px); line-height:.88;
+  text-transform:uppercase; color:var(--ink);
+}
+.legend{
+  display:flex; gap:18px; flex-shrink:0;
+  font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-dim);
+}
+.legend span{ display:flex; align-items:center; gap:7px; }
+.legend svg{ width:13px; height:13px; }
+
+.mode-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+
+.mode{
+  padding:24px 22px 20px; text-align:left;
+  background:var(--char);
+  border:1px solid var(--char-line);
+  border-top:2px solid var(--char-line);
+  transition:border-color .16s var(--ease), transform .16s var(--ease), background-color .12s var(--ease);
+}
+.mode:hover, .mode:focus-visible{ border-color:var(--blue); transform:translateY(-3px); }
+.mode:active{ background:var(--yellow); border-color:var(--yellow); transform:none; }
+
+/* roster diagram — solid token is a person, outline is the CPU */
+.roster{ display:flex; gap:6px; margin-bottom:20px; }
+.tok{ width:19px; height:19px; }
+.tok polygon{ stroke-width:1.5; }
+.tok.human polygon{ fill:var(--blue); stroke:var(--blue); }
+.tok.cpu polygon{ fill:none; stroke:var(--ink-dim); }
+.mode:hover .tok.cpu polygon, .mode:focus-visible .tok.cpu polygon{ stroke:var(--ink); }
+.mode:active .tok.human polygon{ fill:var(--char-deep); stroke:var(--char-deep); }
+.mode:active .tok.cpu polygon{ stroke:var(--char-deep); }
+
+.mode b{
+  display:block; font-family:var(--f-display); font-weight:700;
+  font-size:clamp(24px,2.3vw,31px); line-height:1.05;
+  text-transform:uppercase; color:var(--ink);
+}
+.mode:hover b, .mode:focus-visible b{ color:var(--blue-hi); }
+.mode:active b{ color:var(--char-deep); }
+
+.mode-desc{
+  display:block; margin-top:10px;
+  font-size:12px; font-weight:400; line-height:1.6;
+  letter-spacing:.02em; color:var(--ink-dim);
+}
+.mode:active .mode-desc{ color:var(--char-deep); }
+
+.mode-tag{
+  display:block; margin-top:16px; padding-top:13px;
+  border-top:1px solid var(--char-line);
+  font-size:10px; font-weight:600; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--ink-dim);
+}
+.mode:hover .mode-tag, .mode:focus-visible .mode-tag{ color:var(--blue); border-top-color:var(--blue-dim); }
+.mode:active .mode-tag{ color:var(--char-deep); border-top-color:rgba(10,12,14,.3); }
+
+.modes-foot{
+  margin-top:24px;
+  font-size:10px; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--ink-dim);
+}
+
+/* ============================================================
    STAGE (placeholder for the next build step)
    ============================================================ */
 .stage{
@@ -255,6 +333,12 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
   margin-top:16px; font-size:12px; letter-spacing:.24em;
   text-transform:uppercase; color:var(--ink-dim);
 }
+.stage p.stage-mode{
+  display:flex; align-items:center; justify-content:center; gap:12px;
+  margin-top:0; margin-bottom:18px;
+  font-size:11px; font-weight:600; letter-spacing:.3em; color:var(--blue);
+}
+.stage p.stage-mode::before{ content:""; width:26px; height:1px; background:var(--red); }
 .back{
   margin-top:38px; padding:13px 30px;
   border:1px solid var(--char-line); color:var(--ink);
@@ -500,12 +584,79 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
       </div>
     </section>
 
+    <!-- ---------- MODE SELECT ---------- -->
+    <section class="modes" id="modes" hidden>
+      <div class="modes-inner">
+
+        <div class="modes-head">
+          <h2 data-i18n="modesTitle">Choose a mode</h2>
+          <div class="legend">
+            <span>
+              <svg class="tok human" viewBox="0 0 24 24" aria-hidden="true"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
+              <em style="font-style:normal" data-i18n="legendPlayer">Player</em>
+            </span>
+            <span>
+              <svg class="tok cpu" viewBox="0 0 24 24" aria-hidden="true"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
+              <em style="font-style:normal" data-i18n="legendCpu">CPU</em>
+            </span>
+          </div>
+        </div>
+
+        <div class="mode-grid">
+
+          <button class="mode" data-mode="bots">
+            <span class="roster" aria-hidden="true">
+              <svg class="tok human" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
+              <svg class="tok cpu" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
+              <svg class="tok cpu" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
+              <svg class="tok cpu" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
+            </span>
+            <b data-i18n="modeBots">Play against bots</b>
+            <span class="mode-desc" data-i18n="modeBotsDesc">You against three CPU fighters.</span>
+            <span class="mode-tag" data-i18n="modeBotsTag">1 player — 3 CPU</span>
+          </button>
+
+          <button class="mode" data-mode="local">
+            <span class="roster" aria-hidden="true">
+              <svg class="tok human" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
+              <svg class="tok human" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
+              <svg class="tok human" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
+              <svg class="tok human" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
+            </span>
+            <b data-i18n="modeLocal">Local play</b>
+            <span class="mode-desc" data-i18n="modeLocalDesc">Up to four people on one keyboard.</span>
+            <span class="mode-tag" data-i18n="modeLocalTag">2 to 4 players</span>
+          </button>
+
+          <button class="mode" data-mode="spectate">
+            <span class="roster" aria-hidden="true">
+              <svg class="tok cpu" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
+              <svg class="tok cpu" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
+              <svg class="tok cpu" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
+              <svg class="tok cpu" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
+            </span>
+            <b data-i18n="modeSpectate">Spectate</b>
+            <span class="mode-desc" data-i18n="modeSpectateDesc">Watch four CPU fighters settle it.</span>
+            <span class="mode-tag" data-i18n="modeSpectateTag">0 players — 4 CPU</span>
+          </button>
+
+        </div>
+
+        <p class="modes-foot">
+          <span class="key">←</span><span class="key">→</span>
+          <span data-i18n="modesFoot">Move — Enter to select — Escape to go back</span>
+        </p>
+
+      </div>
+    </section>
+
     <!-- ---------- STAGE PLACEHOLDER ---------- -->
     <section class="stage" id="stage" hidden>
       <div>
+        <p class="stage-mode" id="stageMode">—</p>
         <h2 data-i18n="stageTitle">Match setup</h2>
         <p data-i18n="stageBody">Character select is the next build step.</p>
-        <button class="back" id="btnBack" data-i18n="back">Back to menu</button>
+        <button class="back" id="btnBack" data-i18n="back">Back to modes</button>
       </div>
     </section>
 
@@ -565,13 +716,26 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
      ========================================================== */
   var STRINGS = {
     en: {
-      eyebrow:   "Local versus",
+      eyebrow:   "Single screen",
       tagline:   "Four fighters. One stage. Knock them off it.",
       play:      "Play",
       hint:      "Start",
+      modesTitle:"Choose a mode",
+      modesFoot: "Move — Enter to select — Escape to go back",
+      legendPlayer:"Player",
+      legendCpu: "CPU",
+      modeBots:  "Play against bots",
+      modeBotsDesc:"You against three CPU fighters.",
+      modeBotsTag: "1 player — 3 CPU",
+      modeLocal: "Local play",
+      modeLocalDesc:"Up to four people on one keyboard.",
+      modeLocalTag: "2 to 4 players",
+      modeSpectate:"Spectate",
+      modeSpectateDesc:"Watch four CPU fighters settle it.",
+      modeSpectateTag: "0 players — 4 CPU",
       stageTitle:"Match setup",
       stageBody: "Character select is the next build step.",
-      back:      "Back to menu",
+      back:      "Back to modes",
       langTitle: "Choose your language",
       langSub:   "Change it any time from the menu rail.",
       langFoot:  "Move — Enter to confirm",
@@ -582,13 +746,26 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
       gateSizeBody:   "Make the window bigger to fit the arena."
     },
     fr: {
-      eyebrow:   "Duel local",
+      eyebrow:   "Écran unique",
       tagline:   "Quatre combattants. Une arène. Éjectez-les.",
       play:      "Jouer",
       hint:      "Démarrer",
+      modesTitle:"Choisissez un mode",
+      modesFoot: "Déplacer — Entrée pour choisir — Échap pour revenir",
+      legendPlayer:"Joueur",
+      legendCpu: "IA",
+      modeBots:  "Affronter des bots",
+      modeBotsDesc:"Vous contre trois combattants IA.",
+      modeBotsTag: "1 joueur — 3 IA",
+      modeLocal: "Jeu local",
+      modeLocalDesc:"Jusqu'à quatre personnes sur un clavier.",
+      modeLocalTag: "2 à 4 joueurs",
+      modeSpectate:"Mode spectateur",
+      modeSpectateDesc:"Regardez quatre IA en découdre.",
+      modeSpectateTag: "0 joueur — 4 IA",
       stageTitle:"Préparation du match",
       stageBody: "La sélection des personnages arrive à la prochaine étape.",
-      back:      "Retour au menu",
+      back:      "Retour aux modes",
       langTitle: "Choisissez votre langue",
       langSub:   "Modifiable à tout moment depuis le menu latéral.",
       langFoot:  "Déplacer — Entrée pour confirmer",
@@ -621,18 +798,26 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
   var $ = function(id){ return document.getElementById(id); };
   var splash   = $("splash"),
       home     = $("home"),
+      modes    = $("modes"),
       stage    = $("stage"),
       arena    = $("arena"),
       scrim    = $("langScrim"),
       flash    = $("flash"),
       langTag  = $("langTag"),
+      stageMode= $("stageMode"),
       btnPlay  = $("btnPlay"),
       btnBack  = $("btnBack"),
       btnLang  = $("btnLang");
 
   var langButtons = Array.prototype.slice.call(document.querySelectorAll(".lang"));
+  var modeButtons = Array.prototype.slice.call(document.querySelectorAll(".mode"));
   var lang = "en";
   var focusIndex = 0;
+  var modeIndex = 0;
+
+  /* which STRINGS key names each mode, for the stage label */
+  var MODE_KEY = { bots:"modeBots", local:"modeLocal", spectate:"modeSpectate" };
+  var chosenMode = null;
 
   $("wmA").textContent = CONFIG.titleTop;
   $("wmB").textContent = CONFIG.titleBottom;
@@ -649,6 +834,8 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
       var k = el.getAttribute("data-i18n");
       if (dict[k]) el.textContent = dict[k];
     });
+    // the stage label is set from state, not from a data-i18n key
+    if (chosenMode) stageMode.textContent = dict[MODE_KEY[chosenMode]];
   }
 
   function openLangDialog(){
@@ -685,26 +872,56 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
     flash.classList.add("go");
   }
 
-  function startMatch(){
+  var SCREENS = { home:home, modes:modes, stage:stage };
+  var screen = "home";
+
+  function show(name){
+    for (var k in SCREENS) SCREENS[k].hidden = (k !== name);
+    screen = name;
+  }
+
+  function openModes(){
     pressFlash();
     arena.classList.add("is-hit");
     setTimeout(function(){ arena.classList.remove("is-hit"); }, 180);
     setTimeout(function(){
-      home.hidden = true;
-      stage.hidden = false;
+      show("modes");
+      modeIndex = 0;
+      modeButtons[0].focus();
+    }, 200);
+  }
+
+  function chooseMode(id){
+    chosenMode = id;
+    stageMode.textContent = STRINGS[lang][MODE_KEY[id]];
+    pressFlash();
+    setTimeout(function(){
+      show("stage");
       btnBack.focus();
     }, 200);
   }
 
-  function backToMenu(){
+  function backToModes(){
     pressFlash();
-    stage.hidden = true;
-    home.hidden = false;
+    show("modes");
+    modeButtons[modeIndex].focus();
+  }
+
+  function backToHome(){
+    pressFlash();
+    show("home");
     btnPlay.focus();
   }
 
-  btnPlay.addEventListener("click", startMatch);
-  btnBack.addEventListener("click", backToMenu);
+  btnPlay.addEventListener("click", openModes);
+  btnBack.addEventListener("click", backToModes);
+
+  modeButtons.forEach(function(btn, i){
+    btn.addEventListener("click", function(){
+      modeIndex = i;
+      chooseMode(btn.getAttribute("data-mode"));
+    });
+  });
 
   /* ==========================================================
      7. KEYBOARD
@@ -725,11 +942,35 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
     }
     if (!splash.hidden) return;
 
-    if ((e.key === "Enter" || e.key === " ") && !home.hidden && document.activeElement === document.body){
-      e.preventDefault();
-      startMatch();
+    if (screen === "home"){
+      if ((e.key === "Enter" || e.key === " ") && document.activeElement === document.body){
+        e.preventDefault();
+        openModes();
+      }
+      return;
     }
-    if (e.key === "Escape" && !stage.hidden) backToMenu();
+
+    if (screen === "modes"){
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft"){
+        e.preventDefault();
+        modeIndex = e.key === "ArrowRight"
+          ? (modeIndex + 1) % modeButtons.length
+          : (modeIndex - 1 + modeButtons.length) % modeButtons.length;
+        modeButtons[modeIndex].focus();
+        return;
+      }
+      if ((e.key === "Enter" || e.key === " ") && document.activeElement === document.body){
+        e.preventDefault();
+        chooseMode(modeButtons[modeIndex].getAttribute("data-mode"));
+        return;
+      }
+      if (e.key === "Escape") backToHome();
+      return;
+    }
+
+    if (screen === "stage"){
+      if (e.key === "Escape") backToModes();
+    }
   });
 
   /* ==========================================================
