@@ -85,6 +85,8 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
   letter-spacing:.34em; text-transform:lowercase;
   color:var(--ink-dim);
   opacity:0;
+}
+#splash.is-live .splash-byline{
   animation:bylineIn 1.1s var(--ease) .45s forwards;
 }
 .splash-byline span{ color:var(--ink); }
@@ -373,7 +375,7 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
-  .splash-byline{ opacity:1; }
+  #splash.is-live .splash-byline{ opacity:1; }
 }
 </style>
 </head>
@@ -783,18 +785,38 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
 
   window.addEventListener("resize", checkGate);
 
-  /* --- splash -> home ------------------------------------- */
+  /* --- splash -> home -------------------------------------
+     The hold is measured on a clock that only advances while
+     the page is actually visible and ungated. A plain
+     setTimeout burns down in background tabs and inside
+     Google Sites iframes that load below the fold, which is
+     how the splash ends up already finished before anyone
+     has seen it. */
+  var SKIP_GRACE = 800;   // ms of splash you must see before skip arms
+  var SKIP_KEYS  = { "Enter":1, " ":1, "Spacebar":1, "Escape":1 };
+
   var splashStarted = false, booted = false;
+  var shown = 0, lastTick = 0, ticker = null;
 
   function startSplash(){
-    if (splashStarted) return;
+    if (splashStarted || document.hidden) return;
     splashStarted = true;
-    setTimeout(boot, CONFIG.splashHold);
+    splash.classList.add("is-live");   // byline fades in now, not at load
+    lastTick = Date.now();
+    ticker = setInterval(tick, 80);
+  }
+
+  function tick(){
+    var now = Date.now();
+    if (!document.hidden && !gated) shown += now - lastTick;
+    lastTick = now;
+    if (shown >= CONFIG.splashHold) boot();
   }
 
   function boot(){
-    if (booted || gated) return;
+    if (booted || gated || document.hidden) return;
     booted = true;
+    clearInterval(ticker);
     splash.classList.add("is-out");
     setTimeout(function(){
       splash.hidden = true;
@@ -804,11 +826,24 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
     }, 560);
   }
 
-  splash.addEventListener("click", boot);            // click to skip
-  window.addEventListener("keydown", function skip(){
-    if (gated) return;
-    if (!booted){ boot(); return; }
-    window.removeEventListener("keydown", skip);
+  document.addEventListener("visibilitychange", function(){
+    lastTick = Date.now();               // discard time spent hidden
+    if (!document.hidden) checkGate();   // starts or resumes the splash
+  });
+
+  /* Skip, but only on purpose. The first click into an embedded
+     iframe is a focus click, and a held Enter from a reload can
+     land on the fresh page — neither should eat the splash. */
+  splash.addEventListener("click", function(){
+    if (shown >= SKIP_GRACE) boot();
+  });
+
+  window.addEventListener("keydown", function(e){
+    if (booted || gated) return;
+    if (e.repeat || !SKIP_KEYS[e.key]) return;
+    if (shown < SKIP_GRACE) return;
+    e.preventDefault();
+    boot();
   });
 
   checkGate();
