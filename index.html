@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   OVERCLASH — shell build 0.1
+   OVERCLASH — shell build 0.2
    Palette is locked to the brief. Change values here only.
    ============================================================ */
 :root{
@@ -24,6 +24,12 @@
   --yellow:    #FFD60A;   /* Bright Yellow   — press only         */
   --ink:       #C9D4DE;   /* Cool White-Gray — icons + text       */
   --ink-dim:   #6E7A87;
+
+  /* fighter colors — the roster reads from these */
+  --fig-white: #FFFFFF;
+  --fig-black: #131619;
+  --fig-line:  #000000;
+  --fig-rim:   rgba(201,212,222,.26);  /* keeps the black model off the background */
 
   --rail: 68px;
   --f-display: "Big Shoulders Display", "Arial Narrow", sans-serif;
@@ -317,30 +323,216 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
   text-transform:uppercase; color:var(--ink-dim);
 }
 
-/* ============================================================
-   STAGE (placeholder for the next build step)
-   ============================================================ */
-.stage{
-  display:grid; place-items:center; text-align:center; padding:0 40px;
+/* two-card grid, for the bots formats */
+.mode-grid.two{ grid-template-columns:repeat(2,1fr); max-width:720px; }
+
+/* format diagram — the shape of the match itself */
+.diagram{ display:flex; align-items:center; height:42px; margin-bottom:20px; }
+.diagram svg{ height:40px; width:auto; }
+.diagram .d-line{ fill:none; stroke:var(--ink-dim); stroke-width:1.4; }
+.diagram .d-tok{ fill:none; stroke:var(--ink-dim); stroke-width:1.5; }
+.diagram .d-fill{ fill:var(--blue); stroke:var(--blue); stroke-width:1.5; }
+.diagram .d-slash{ stroke:var(--red); stroke-width:1.6; }
+.mode:hover .d-line, .mode:focus-visible .d-line,
+.mode:hover .d-tok,  .mode:focus-visible .d-tok{ stroke:var(--ink); }
+.mode:active .d-line, .mode:active .d-tok, .mode:active .d-slash{ stroke:var(--char-deep); }
+.mode:active .d-fill{ fill:var(--char-deep); stroke:var(--char-deep); }
+
+/* breadcrumb — says which branch you are standing in */
+.crumb{
+  display:inline-flex; align-items:center; gap:12px;
+  margin-bottom:14px;
+  font-size:11px; font-weight:600; letter-spacing:.3em;
+  text-transform:uppercase; color:var(--blue);
 }
-.stage[hidden]{ display:none; }
-.stage h2{
+.crumb::before{ content:""; width:26px; height:1px; background:var(--red); }
+
+/* ============================================================
+   CHARACTER PICK — icon grid, rule, live preview
+   ============================================================ */
+.chars{
+  display:grid; place-items:center;
+  padding:0 clamp(28px,5vw,80px); min-height:0;
+}
+.chars[hidden]{ display:none; }
+.chars-inner{ width:100%; max-width:1080px; }
+
+.chars-body{
+  display:grid;
+  grid-template-columns:minmax(220px,300px) 1px minmax(0,1fr);
+  gap:clamp(22px,4vw,54px);
+  align-items:stretch;
+}
+.chars-rule{ background:var(--char-line); }
+
+.char-side{ display:flex; flex-direction:column; align-items:flex-start; }
+.char-grid{
+  width:100%;
+  display:grid; grid-template-columns:repeat(2,1fr);
+  gap:12px; align-content:start;
+}
+
+.char-cell{
+  padding:16px 16px 14px; text-align:left;
+  background:var(--char);
+  border:1px solid var(--char-line);
+  border-top:2px solid var(--char-line);
+  transition:border-color .16s var(--ease), transform .16s var(--ease), background-color .12s var(--ease);
+}
+.char-cell:hover, .char-cell:focus-visible{ border-color:var(--blue); transform:translateY(-3px); }
+.char-cell:active{ background:var(--yellow); border-color:var(--yellow); transform:none; }
+.char-cell.is-picked{ border-color:var(--blue); border-top-color:var(--blue); }
+
+/* the icon is the whole idea: one solid square */
+.chip{
+  display:block; width:100%; aspect-ratio:1 / 1; min-height:56px;
+  border:1px solid var(--fig-line);
+}
+.chip.white{ background:var(--fig-white); }
+.chip.black{ background:var(--fig-black); box-shadow:0 0 0 1px var(--fig-rim); }
+
+.char-cell b{
+  display:block; margin-top:13px;
   font-family:var(--f-display); font-weight:700;
-  font-size:clamp(46px,7vw,92px); line-height:.9;
+  font-size:22px; line-height:1; text-transform:uppercase; color:var(--ink);
+}
+.char-cell.is-picked b{ color:var(--blue-hi); }
+.char-cell:active b{ color:var(--char-deep); }
+
+.char-go{
+  margin-top:18px;
+  padding:15px 44px 15px 30px;
+  background:var(--red); color:#fff;
+  font-size:14px; font-weight:700;
+  letter-spacing:.24em; text-transform:uppercase;
+  clip-path:polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+  transition:background-color .12s var(--ease), transform .16s var(--ease), color .12s var(--ease);
+}
+.char-go:hover{ background:#ff4258; transform:translate(-2px,-2px); }
+.char-go:active{ background:var(--yellow); color:var(--char-deep); transform:translate(2px,2px); }
+
+.preview{
+  display:grid; grid-template-rows:minmax(0,1fr) auto;
+  justify-items:center; align-items:center;
+  min-height:clamp(240px,40vh,440px);
+}
+.stage{ display:grid; place-items:center; width:100%; height:100%; }
+.preview-foot{
+  width:100%; margin-top:16px; padding-top:13px;
+  border-top:1px solid var(--char-line);
+  display:flex; align-items:baseline; justify-content:space-between; gap:18px;
+}
+.preview-name{
+  font-family:var(--f-display); font-weight:800;
+  font-size:clamp(30px,4vw,48px); line-height:.9;
+  letter-spacing:.01em; text-transform:uppercase; color:var(--ink);
+}
+.preview-tag{
+  font-size:10px; font-weight:600; letter-spacing:.24em;
+  text-transform:uppercase; color:var(--blue);
+}
+
+/* ------------------------------------------------------------
+   THE FIGHTER MODEL
+   Blocks only. Every part is a solid fill with a thin black
+   outline; the gaps between parts are what read as the body.
+   All measurements are in --u so one variable resizes it.
+   ------------------------------------------------------------ */
+.fig{
+  --u: min(2.6px, .30vh);
+  position:relative;
+  width:calc(120 * var(--u));
+  height:calc(152 * var(--u));
+}
+.fig .rig, .fig .upper{ position:absolute; inset:0; }
+.fig .p{
+  position:absolute;
+  background:var(--body);
+  border:1px solid var(--fig-line);
+}
+.fig .head  { left:calc(43*var(--u)); top:calc(4*var(--u));   width:calc(34*var(--u)); height:calc(34*var(--u)); }
+.fig .torso { left:calc(38*var(--u)); top:calc(44*var(--u));  width:calc(44*var(--u)); height:calc(58*var(--u)); }
+.fig .limb  { position:absolute; top:calc(48*var(--u)); width:calc(14*var(--u)); height:calc(60*var(--u)); transform-origin:50% 0; }
+.fig .limb-l{ left:calc(19*var(--u)); }
+.fig .limb-r{ left:calc(87*var(--u)); }
+.fig .arm   { left:calc(1*var(--u));  top:0;                  width:calc(12*var(--u)); height:calc(46*var(--u)); }
+.fig .hand  { left:0;                 top:calc(46*var(--u));  width:calc(14*var(--u)); height:calc(14*var(--u)); }
+.fig .leg   { top:calc(102*var(--u));                         width:calc(18*var(--u)); height:calc(46*var(--u)); }
+.fig .leg-l { left:calc(38*var(--u)); }
+.fig .leg-r { left:calc(64*var(--u)); }
+
+.fig[data-char="white"]{ --body:var(--fig-white); }
+.fig[data-char="black"]{ --body:var(--fig-black); }
+/* the black model keeps its black outline; a hairline rim outside it
+   is what separates the silhouette from the charcoal background */
+.fig[data-char="black"] .p{ box-shadow:0 0 0 1px var(--fig-rim); }
+
+/* WHITE — floats. A slow rise and fall, arms drifting outward. */
+.fig[data-char="white"] .rig  { animation:wFloat 2.8s ease-in-out infinite; }
+.fig[data-char="white"] .upper{ animation:wLift  2.8s ease-in-out infinite; animation-delay:.08s; }
+.fig[data-char="white"] .head { animation:wHead  2.8s ease-in-out infinite; animation-delay:.16s; }
+.fig[data-char="white"] .limb-l{ animation:wArmL 2.8s ease-in-out infinite; animation-delay:.12s; }
+.fig[data-char="white"] .limb-r{ animation:wArmR 2.8s ease-in-out infinite; animation-delay:.12s; }
+@keyframes wFloat{ 0%,100%{ transform:translateY(0); }              50%{ transform:translateY(calc(var(--u) * -1.8)); } }
+@keyframes wLift { 0%,100%{ transform:translateY(0); }              50%{ transform:translateY(calc(var(--u) * -1.1)); } }
+@keyframes wHead { 0%,100%{ transform:translateY(0); }              50%{ transform:translateY(calc(var(--u) * -1.0)); } }
+@keyframes wArmL { 0%,100%{ transform:rotate(0deg); }               50%{ transform:rotate(-2.6deg); } }
+@keyframes wArmR { 0%,100%{ transform:rotate(0deg); }               50%{ transform:rotate(2.6deg); } }
+
+/* BLACK — shifts its weight. Hips pivot side to side, the whole
+   frame dips onto each planted leg, arms lag half a beat behind. */
+.fig[data-char="black"] .rig  { animation:bDrop 1.8s ease-in-out infinite; }
+.fig[data-char="black"] .upper{
+  animation:bSway 3.6s ease-in-out infinite;
+  transform-origin:calc(60*var(--u)) calc(102*var(--u));
+}
+.fig[data-char="black"] .head { animation:bHead 3.6s ease-in-out infinite; transform-origin:50% 100%; }
+.fig[data-char="black"] .limb-l{ animation:bArmL 3.6s ease-in-out infinite; animation-delay:.22s; }
+.fig[data-char="black"] .limb-r{ animation:bArmR 3.6s ease-in-out infinite; animation-delay:.22s; }
+@keyframes bSway{ 0%,100%{ transform:rotate(-1.2deg); }             50%{ transform:rotate(1.2deg); } }
+@keyframes bHead{ 0%,100%{ transform:rotate(.9deg); }               50%{ transform:rotate(-.9deg); } }
+@keyframes bDrop{ 0%,100%{ transform:translateY(calc(var(--u)*.7)); } 50%{ transform:translateY(0); } }
+@keyframes bArmL{ 0%,100%{ transform:rotate(2.2deg); }              50%{ transform:rotate(-1.4deg); } }
+@keyframes bArmR{ 0%,100%{ transform:rotate(-1.4deg); }             50%{ transform:rotate(2.2deg); } }
+
+/* ============================================================
+   CHARACTER SELECT — roster lands here
+   ============================================================ */
+.select{
+  display:grid; place-items:center; text-align:center;
+  padding:0 clamp(28px,5vw,80px);
+}
+.select[hidden]{ display:none; }
+.select h2{
+  font-family:var(--f-display); font-weight:700;
+  font-size:clamp(40px,5.5vw,66px); line-height:.9;
   text-transform:uppercase; color:var(--ink);
 }
-.stage p{
-  margin-top:16px; font-size:12px; letter-spacing:.24em;
+.slot-row{ display:flex; justify-content:center; gap:14px; margin-top:32px; }
+.slot{ width:clamp(84px,10vw,118px); }
+.slot svg{ display:block; width:100%; height:auto; }
+.slot polygon{
+  fill:rgba(20,23,26,.55);
+  stroke:var(--char-line); stroke-width:1.5; stroke-dasharray:5 6;
+}
+.slot.is-player polygon{ stroke:rgba(31,122,255,.5); }
+/* a filled slot carries the fighter that was picked */
+.slot[data-char] polygon{ stroke-dasharray:none; stroke:var(--blue); }
+.slot[data-char="white"] polygon{ fill:var(--fig-white); }
+.slot[data-char="black"] polygon{ fill:var(--fig-black); }
+.slot span{
+  display:block; margin-top:12px;
+  font-size:10px; font-weight:600; letter-spacing:.24em;
   text-transform:uppercase; color:var(--ink-dim);
 }
-.stage p.stage-mode{
-  display:flex; align-items:center; justify-content:center; gap:12px;
-  margin-top:0; margin-bottom:18px;
-  font-size:11px; font-weight:600; letter-spacing:.3em; color:var(--blue);
+.slot.is-player span{ color:var(--blue); }
+.select-body{
+  margin-top:30px;
+  font-size:12px; letter-spacing:.24em;
+  text-transform:uppercase; color:var(--ink-dim);
 }
-.stage p.stage-mode::before{ content:""; width:26px; height:1px; background:var(--red); }
 .back{
-  margin-top:38px; padding:13px 30px;
+  margin-top:34px; padding:13px 30px;
   border:1px solid var(--char-line); color:var(--ink);
   font-size:12px; font-weight:600; letter-spacing:.24em; text-transform:uppercase;
   transition:border-color .16s var(--ease), color .16s var(--ease), background-color .12s var(--ease);
@@ -650,13 +842,101 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
       </div>
     </section>
 
-    <!-- ---------- STAGE PLACEHOLDER ---------- -->
-    <section class="stage" id="stage" hidden>
+    <!-- ---------- BOTS: CHARACTER PICK ---------- -->
+    <section class="chars" id="chars" hidden>
+      <div class="chars-inner">
+
+        <div class="modes-head">
+          <div>
+            <p class="crumb" data-i18n="modeBots">Play against bots</p>
+            <h2 data-i18n="charsTitle">Choose your fighter</h2>
+          </div>
+        </div>
+
+        <div class="chars-body">
+
+          <div class="char-side">
+            <div class="char-grid" id="charGrid"></div>
+            <button class="char-go" id="btnCharGo" data-i18n="charsConfirm">Confirm</button>
+          </div>
+
+          <div class="chars-rule" aria-hidden="true"></div>
+
+          <div class="preview">
+            <div class="stage" id="charStage" aria-hidden="true"></div>
+            <div class="preview-foot">
+              <span class="preview-name" id="charName">—</span>
+              <span class="preview-tag" data-i18n="charsIdle">Idle</span>
+            </div>
+          </div>
+
+        </div>
+
+        <p class="modes-foot">
+          <span class="key">←</span><span class="key">→</span>
+          <span data-i18n="charsFoot">Move — Enter to confirm — Escape to go back</span>
+        </p>
+
+      </div>
+    </section>
+
+    <!-- ---------- BOTS: FORMAT ---------- -->
+    <section class="modes" id="formats" hidden>
+      <div class="modes-inner">
+
+        <div class="modes-head">
+          <div>
+            <p class="crumb" id="fmtCrumb">Play against bots</p>
+            <h2 data-i18n="fmtTitle">Choose a format</h2>
+          </div>
+        </div>
+
+        <div class="mode-grid two">
+
+          <button class="mode" data-format="quick">
+            <span class="diagram" aria-hidden="true">
+              <svg viewBox="0 0 72 42">
+                <polygon class="d-fill" points="18.5,23.7 14.7,27.5 9.3,27.5 5.5,23.7 5.5,18.3 9.3,14.5 14.7,14.5 18.5,18.3"/>
+                <path class="d-line" d="M21 21H32M40 21H51"/>
+                <path class="d-slash" d="M34 26 38 16"/>
+                <polygon class="d-tok" points="66.5,23.7 62.7,27.5 57.3,27.5 53.5,23.7 53.5,18.3 57.3,14.5 62.7,14.5 66.5,18.3"/>
+              </svg>
+            </span>
+            <b data-i18n="fmtQuick">Quick battle</b>
+            <span class="mode-desc" data-i18n="fmtQuickDesc">One match, straight into it.</span>
+            <span class="mode-tag" data-i18n="fmtQuickTag">Single match</span>
+          </button>
+
+          <button class="mode" data-format="tournament">
+            <span class="diagram" aria-hidden="true">
+              <svg viewBox="0 0 64 42">
+                <path class="d-line" d="M4 6H18V16H4M18 11H30M4 26H18V36H4M18 31H30M30 11V31M30 21H44"/>
+                <polygon class="d-fill" points="60.5,23.7 56.7,27.5 51.3,27.5 47.5,23.7 47.5,18.3 51.3,14.5 56.7,14.5 60.5,18.3"/>
+              </svg>
+            </span>
+            <b data-i18n="fmtTournament">Tournament</b>
+            <span class="mode-desc" data-i18n="fmtTournamentDesc">A bracket of matches. Last fighter standing wins.</span>
+            <span class="mode-tag" data-i18n="fmtTournamentTag">Bracket — 4 fighters</span>
+          </button>
+
+        </div>
+
+        <p class="modes-foot">
+          <span class="key">←</span><span class="key">→</span>
+          <span data-i18n="modesFoot">Move — Enter to select — Escape to go back</span>
+        </p>
+
+      </div>
+    </section>
+
+    <!-- ---------- CHARACTER SELECT (empty until the roster exists) ---------- -->
+    <section class="select" id="select" hidden>
       <div>
-        <p class="stage-mode" id="stageMode">—</p>
-        <h2 data-i18n="stageTitle">Match setup</h2>
-        <p data-i18n="stageBody">Character select is the next build step.</p>
-        <button class="back" id="btnBack" data-i18n="back">Back to modes</button>
+        <p class="crumb" id="selectCrumb">—</p>
+        <h2 data-i18n="selectTitle">Character select</h2>
+        <div class="slot-row" id="slotRow"></div>
+        <p class="select-body" data-i18n="selectBody">The roster is the next build step.</p>
+        <button class="back" id="btnBack" data-i18n="back">Back</button>
       </div>
     </section>
 
@@ -666,7 +946,7 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
       <div class="footer-right">
         <span data-i18n="inputTag">Keyboard + mouse</span>
         <span id="langTag">EN</span>
-        <span class="build">Build 0.1 — Pre-alpha</span>
+        <span class="build">Build 0.2 — Pre-alpha</span>
       </div>
     </footer>
 
@@ -733,9 +1013,22 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
       modeSpectate:"Spectate",
       modeSpectateDesc:"Watch four CPU fighters settle it.",
       modeSpectateTag: "0 players — 4 CPU",
-      stageTitle:"Match setup",
-      stageBody: "Character select is the next build step.",
-      back:      "Back to modes",
+      charsTitle:"Choose your fighter",
+      charsFoot: "Move — Enter to confirm — Escape to go back",
+      charsConfirm:"Confirm",
+      charsIdle: "Idle",
+      charWhite: "White",
+      charBlack: "Black",
+      fmtTitle:  "Choose a format",
+      fmtQuick:  "Quick battle",
+      fmtQuickDesc:"One match, straight into it.",
+      fmtQuickTag: "Single match",
+      fmtTournament:"Tournament",
+      fmtTournamentDesc:"A bracket of matches. Last fighter standing wins.",
+      fmtTournamentTag:"Bracket — 4 fighters",
+      selectTitle:"Character select",
+      selectBody:"The roster is the next build step.",
+      back:      "Back",
       langTitle: "Choose your language",
       langSub:   "Change it any time from the menu rail.",
       langFoot:  "Move — Enter to confirm",
@@ -763,9 +1056,22 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
       modeSpectate:"Mode spectateur",
       modeSpectateDesc:"Regardez quatre IA en découdre.",
       modeSpectateTag: "0 joueur — 4 IA",
-      stageTitle:"Préparation du match",
-      stageBody: "La sélection des personnages arrive à la prochaine étape.",
-      back:      "Retour aux modes",
+      charsTitle:"Choisissez votre combattant",
+      charsFoot: "Déplacer — Entrée pour confirmer — Échap pour revenir",
+      charsConfirm:"Confirmer",
+      charsIdle: "Repos",
+      charWhite: "Blanc",
+      charBlack: "Noir",
+      fmtTitle:  "Choisissez un format",
+      fmtQuick:  "Combat rapide",
+      fmtQuickDesc:"Un match, sans détour.",
+      fmtQuickTag: "Match unique",
+      fmtTournament:"Tournoi",
+      fmtTournamentDesc:"Un tableau de matchs. Le dernier debout l'emporte.",
+      fmtTournamentTag:"Tableau — 4 combattants",
+      selectTitle:"Sélection des personnages",
+      selectBody:"Le roster arrive à la prochaine étape.",
+      back:      "Retour",
       langTitle: "Choisissez votre langue",
       langSub:   "Modifiable à tout moment depuis le menu latéral.",
       langFoot:  "Déplacer — Entrée pour confirmer",
@@ -799,25 +1105,42 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
   var splash   = $("splash"),
       home     = $("home"),
       modes    = $("modes"),
-      stage    = $("stage"),
+      chars    = $("chars"),
+      formats  = $("formats"),
+      select   = $("select"),
       arena    = $("arena"),
       scrim    = $("langScrim"),
       flash    = $("flash"),
       langTag  = $("langTag"),
-      stageMode= $("stageMode"),
+      fmtCrumb = $("fmtCrumb"),
+      selectCrumb = $("selectCrumb"),
+      slotRow  = $("slotRow"),
+      charGrid = $("charGrid"),
+      charStage= $("charStage"),
+      charName = $("charName"),
       btnPlay  = $("btnPlay"),
       btnBack  = $("btnBack"),
+      btnCharGo= $("btnCharGo"),
       btnLang  = $("btnLang");
 
   var langButtons = Array.prototype.slice.call(document.querySelectorAll(".lang"));
-  var modeButtons = Array.prototype.slice.call(document.querySelectorAll(".mode"));
+  var modeButtons = Array.prototype.slice.call(document.querySelectorAll("[data-mode]"));
+  var fmtButtons  = Array.prototype.slice.call(document.querySelectorAll("[data-format]"));
   var lang = "en";
   var focusIndex = 0;
   var modeIndex = 0;
+  var fmtIndex = 0;
 
-  /* which STRINGS key names each mode, for the stage label */
+  /* STRINGS keys for the breadcrumb, and who fills each slot */
   var MODE_KEY = { bots:"modeBots", local:"modeLocal", spectate:"modeSpectate" };
-  var chosenMode = null;
+  var FMT_KEY  = { quick:"fmtQuick", tournament:"fmtTournament" };
+  var CHAR_KEY = { white:"charWhite", black:"charBlack" };
+  var ROSTER   = {
+    bots:     ["P1","CPU","CPU","CPU"],
+    local:    ["P1","P2","P3","P4"],
+    spectate: ["CPU","CPU","CPU","CPU"]
+  };
+  var chosenMode = null, chosenFormat = null, chosenChar = null;
 
   $("wmA").textContent = CONFIG.titleTop;
   $("wmB").textContent = CONFIG.titleBottom;
@@ -834,8 +1157,10 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
       var k = el.getAttribute("data-i18n");
       if (dict[k]) el.textContent = dict[k];
     });
-    // the stage label is set from state, not from a data-i18n key
-    if (chosenMode) stageMode.textContent = dict[MODE_KEY[chosenMode]];
+    // these screens are built from state, not from data-i18n keys
+    refreshCharText();
+    fmtCrumb.textContent = dict.modeBots;
+    if (chosenMode) renderSelect();
   }
 
   function openLangDialog(){
@@ -848,7 +1173,7 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
   function closeLangDialog(){
     scrim.hidden = true;
     btnLang.classList.remove("is-on");
-    btnPlay.focus();
+    focusScreen(screen);   // the dialog can be opened from any screen
   }
 
   langButtons.forEach(function(btn, i){
@@ -864,7 +1189,91 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
   btnLang.addEventListener("click", openLangDialog);
 
   /* ==========================================================
-     6. SCREENS
+     6. THE ROSTER
+     Add a fighter by adding a line here: the icon grid, the
+     preview and the idle animation all read from this list.
+     The CSS block .fig[data-char="…"] carries the color and
+     the idle; everything else is shared.
+     ========================================================== */
+  var CHARS = [
+    { id:"white", key:"charWhite" },
+    { id:"black", key:"charBlack" }
+  ];
+  var CHAR_COLS = 2;              // columns in the icon grid
+  var charIndex = 0;
+  var charCells = [];
+  var stagedChar = null;
+
+  /* Blocks only: head, body, two arms with hands, two legs.
+     The gaps between the parts are the whole silhouette. */
+  function figureHTML(id){
+    return '<div class="fig" data-char="' + id + '">' +
+             '<div class="rig">' +
+               '<div class="upper">' +
+                 '<div class="p head"></div>' +
+                 '<div class="p torso"></div>' +
+                 '<div class="limb limb-l"><div class="p arm"></div><div class="p hand"></div></div>' +
+                 '<div class="limb limb-r"><div class="p arm"></div><div class="p hand"></div></div>' +
+               '</div>' +
+               '<div class="p leg leg-l"></div>' +
+               '<div class="p leg leg-r"></div>' +
+             '</div>' +
+           '</div>';
+  }
+
+  function buildCharGrid(){
+    charGrid.innerHTML = "";
+    charCells = [];
+    CHARS.forEach(function(c, i){
+      var cell = document.createElement("button");
+      cell.className = "char-cell" + (i === charIndex ? " is-picked" : "");
+      cell.setAttribute("data-char", c.id);
+      cell.innerHTML = '<span class="chip ' + c.id + '"></span><b>' + STRINGS[lang][c.key] + '</b>';
+      cell.addEventListener("click", function(){ pickChar(i); });
+      charGrid.appendChild(cell);
+      charCells.push(cell);
+    });
+    renderPreview(true);
+  }
+
+  /* The preview is rebuilt only when the fighter changes, so the
+     idle restarts on a real switch and never on a repeat click. */
+  function renderPreview(force){
+    var id = CHARS[charIndex].id;
+    if (!force && stagedChar === id) return;
+    stagedChar = id;
+    charStage.innerHTML = figureHTML(id);
+  }
+
+  function pickChar(i){
+    if (i < 0 || i >= CHARS.length) return;
+    charIndex = i;
+    charCells.forEach(function(el, n){
+      if (n === i) el.classList.add("is-picked"); else el.classList.remove("is-picked");
+    });
+    charName.textContent = STRINGS[lang][CHARS[i].key];
+    renderPreview(false);
+    charCells[i].focus();
+  }
+
+  function refreshCharText(){
+    if (!charCells.length) return;
+    charCells.forEach(function(el, i){
+      el.querySelector("b").textContent = STRINGS[lang][CHARS[i].key];
+    });
+    charName.textContent = STRINGS[lang][CHARS[charIndex].key];
+  }
+
+  function confirmChar(){
+    chosenChar = CHARS[charIndex].id;
+    pressFlash();
+    setTimeout(function(){ fmtIndex = 0; go("formats"); }, 200);
+  }
+
+  btnCharGo.addEventListener("click", confirmChar);
+
+  /* ==========================================================
+     7. SCREENS
      ========================================================== */
   function pressFlash(){
     flash.classList.remove("go");
@@ -872,49 +1281,83 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
     flash.classList.add("go");
   }
 
-  var SCREENS = { home:home, modes:modes, stage:stage };
+  var SCREENS = { home:home, modes:modes, chars:chars, formats:formats, select:select };
   var screen = "home";
+  var trail  = [];          // where Escape and Back retreat to
 
   function show(name){
     for (var k in SCREENS) SCREENS[k].hidden = (k !== name);
     screen = name;
+    focusScreen(name);
   }
 
+  function focusScreen(name){
+    if (name === "home")         btnPlay.focus();
+    else if (name === "modes")   modeButtons[modeIndex].focus();
+    else if (name === "chars")   { if (charCells[charIndex]) charCells[charIndex].focus(); }
+    else if (name === "formats") fmtButtons[fmtIndex].focus();
+    else if (name === "select")  btnBack.focus();
+  }
+
+  function go(name){ trail.push(screen); show(name); }
+
+  function goBack(){
+    pressFlash();
+    show(trail.pop() || "home");
+  }
+
+  /* --- home -> modes --- */
   function openModes(){
     pressFlash();
     arena.classList.add("is-hit");
     setTimeout(function(){ arena.classList.remove("is-hit"); }, 180);
-    setTimeout(function(){
-      show("modes");
-      modeIndex = 0;
-      modeButtons[0].focus();
-    }, 200);
+    setTimeout(function(){ modeIndex = 0; go("modes"); }, 200);
   }
 
+  /* --- modes -> fighter pick (bots) or straight to select --- */
   function chooseMode(id){
     chosenMode = id;
-    stageMode.textContent = STRINGS[lang][MODE_KEY[id]];
+    chosenFormat = null;
+    chosenChar = null;
     pressFlash();
     setTimeout(function(){
-      show("stage");
-      btnBack.focus();
+      if (id === "bots"){ renderPreview(true); go("chars"); }
+      else { renderSelect(); go("select"); }
     }, 200);
   }
 
-  function backToModes(){
+  /* --- formats -> select --- */
+  function chooseFormat(id){
+    chosenFormat = id;
     pressFlash();
-    show("modes");
-    modeButtons[modeIndex].focus();
+    setTimeout(function(){ renderSelect(); go("select"); }, 200);
   }
 
-  function backToHome(){
-    pressFlash();
-    show("home");
-    btnPlay.focus();
+  /* Builds the empty roster slots from whichever mode got picked,
+     so the four frames already say who will fill them. The player
+     slot carries the fighter chosen on the pick screen. */
+  function renderSelect(){
+    var dict = STRINGS[lang];
+    var label = dict[MODE_KEY[chosenMode]];
+    if (chosenFormat) label += "  \u2014  " + dict[FMT_KEY[chosenFormat]];
+    if (chosenChar)   label += "  \u2014  " + dict[CHAR_KEY[chosenChar]];
+    selectCrumb.textContent = label;
+
+    slotRow.innerHTML = "";
+    ROSTER[chosenMode].forEach(function(who){
+      var slot = document.createElement("div");
+      slot.className = "slot" + (who === "CPU" ? "" : " is-player");
+      if (chosenChar && who === "P1") slot.setAttribute("data-char", chosenChar);
+      slot.innerHTML =
+        '<svg viewBox="0 0 100 100" aria-hidden="true"><polygon points="' +
+        '92.5,67.6 67.6,92.5 32.4,92.5 7.5,67.6 7.5,32.4 32.4,7.5 67.6,7.5 92.5,32.4' +
+        '"/></svg><span>' + who + '</span>';
+      slotRow.appendChild(slot);
+    });
   }
 
   btnPlay.addEventListener("click", openModes);
-  btnBack.addEventListener("click", backToModes);
+  btnBack.addEventListener("click", goBack);
 
   modeButtons.forEach(function(btn, i){
     btn.addEventListener("click", function(){
@@ -923,8 +1366,15 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
     });
   });
 
+  fmtButtons.forEach(function(btn, i){
+    btn.addEventListener("click", function(){
+      fmtIndex = i;
+      chooseFormat(btn.getAttribute("data-format"));
+    });
+  });
+
   /* ==========================================================
-     7. KEYBOARD
+     8. KEYBOARD
      ========================================================== */
   document.addEventListener("keydown", function(e){
     if (gated) return;
@@ -950,33 +1400,68 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
       return;
     }
 
-    if (screen === "modes"){
+    /* fighter pick: arrows move the pick, so the preview follows
+       the focus; Enter locks it in. */
+    if (screen === "chars"){
       if (e.key === "ArrowRight" || e.key === "ArrowLeft"){
         e.preventDefault();
-        modeIndex = e.key === "ArrowRight"
-          ? (modeIndex + 1) % modeButtons.length
-          : (modeIndex - 1 + modeButtons.length) % modeButtons.length;
-        modeButtons[modeIndex].focus();
+        pickChar(e.key === "ArrowRight"
+          ? (charIndex + 1) % CHARS.length
+          : (charIndex - 1 + CHARS.length) % CHARS.length);
+        return;
+      }
+      if (e.key === "ArrowDown" || e.key === "ArrowUp"){
+        e.preventDefault();
+        var n = charIndex + (e.key === "ArrowDown" ? CHAR_COLS : -CHAR_COLS);
+        if (n >= 0 && n < CHARS.length) pickChar(n);
+        return;
+      }
+      if (e.key === "Enter" || e.key === " "){
+        if (document.activeElement === btnCharGo) return;   // the button's own click handles it
+        e.preventDefault();
+        confirmChar();
+        return;
+      }
+      if (e.key === "Escape") goBack();
+      return;
+    }
+
+    /* both card screens navigate the same way */
+    if (screen === "modes" || screen === "formats"){
+      var onModes = screen === "modes";
+      var list    = onModes ? modeButtons : fmtButtons;
+      var idx     = onModes ? modeIndex : fmtIndex;
+
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft"){
+        e.preventDefault();
+        idx = e.key === "ArrowRight"
+          ? (idx + 1) % list.length
+          : (idx - 1 + list.length) % list.length;
+        if (onModes) modeIndex = idx; else fmtIndex = idx;
+        list[idx].focus();
         return;
       }
       if ((e.key === "Enter" || e.key === " ") && document.activeElement === document.body){
         e.preventDefault();
-        chooseMode(modeButtons[modeIndex].getAttribute("data-mode"));
+        if (onModes) chooseMode(list[idx].getAttribute("data-mode"));
+        else         chooseFormat(list[idx].getAttribute("data-format"));
         return;
       }
-      if (e.key === "Escape") backToHome();
+      if (e.key === "Escape") goBack();
       return;
     }
 
-    if (screen === "stage"){
-      if (e.key === "Escape") backToModes();
+    if (screen === "select"){
+      if (e.key === "Escape") goBack();
     }
   });
 
   /* ==========================================================
-     8. BOOT
+     9. BOOT
      ========================================================== */
   applyLang(save.get(KEY_LANG) || "en");
+  buildCharGrid();
+  charName.textContent = STRINGS[lang][CHARS[charIndex].key];
 
   /* --- desktop gate ---------------------------------------
      Primary pointer coarse + no hover means phone or tablet.
