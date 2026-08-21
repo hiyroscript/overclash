@@ -29,7 +29,7 @@
   --fig-white: #FFFFFF;
   --fig-black: #131619;
   --fig-line:  #000000;
-  --fig-rim:   rgba(201,212,222,.26);  /* keeps the black model off the background */
+  --fig-rim:   rgba(201,212,222,.34);  /* keeps the black model off the background */
 
   --rail: 68px;
   --f-display: "Big Shoulders Display", "Arial Narrow", sans-serif;
@@ -443,12 +443,13 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
 
 /* ------------------------------------------------------------
    THE FIGHTER MODEL — side view, facing right
-   Blocks only: head, torso, two arms (upper arm, forearm, hand),
-   two legs. Every part is a solid fill with a thin black outline.
-   The arm bends at the elbow, because a guard held with one rigid
-   rectangle just points at the floor. Legs stagger front and back
-   the way a stance does when you look at it from the side.
-   All measurements are in --u so one variable resizes it.
+   Depth comes from stacking, not from spreading the limbs out:
+   the far arm is drawn behind the torso and the near arm in front
+   of it, so what you see of the far one is whatever clears the
+   body. Two fully visible arms side by side is a front view.
+   An arm is three blocks that read as one limb, so its outline is
+   drawn around the union instead of around each block — no seam
+   at the elbow or the wrist. All sizes are in --u.
    ------------------------------------------------------------ */
 .fig{
   --u: min(2.05px, .20vh);
@@ -456,29 +457,37 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
   width:calc(120 * var(--u));
   height:calc(196 * var(--u));
 }
-.fig .rig, .fig .upper{ position:absolute; inset:0; }
-.fig .p{
-  position:absolute;
-  background:var(--body);
-  border:1px solid var(--fig-line);
+.fig .sway, .fig .rig, .fig .upper{ position:absolute; inset:0; }
+.fig .p{ position:absolute; background:var(--body); }
+/* single-block parts carry their own hairline */
+.fig .head, .fig .torso, .fig .leg{ border:1px solid var(--fig-line); }
+/* the limb is outlined as a whole */
+.fig .arm{
+  filter:
+    drop-shadow( 1px 0 0 var(--fig-line))
+    drop-shadow(-1px 0 0 var(--fig-line))
+    drop-shadow(0  1px 0 var(--fig-line))
+    drop-shadow(0 -1px 0 var(--fig-line));
 }
+
 /* head 30..60 — gap 6 — torso 66..124 — gap 8 — legs 132..192.
    The empty band above the head is where a raised arm goes; the
    ground line stays put so both fighters stand the same height. */
 .fig .head     { left:calc(48*var(--u)); top:calc(30*var(--u)); width:calc(30*var(--u)); height:calc(30*var(--u)); }
 .fig .torso    { left:calc(45*var(--u)); top:calc(66*var(--u)); width:calc(30*var(--u)); height:calc(58*var(--u)); }
 
-/* shoulder pivot — the near arm sits forward of the far one, which
-   is what separates the two in profile */
+/* both shoulders sit close to the middle of the torso, the way they
+   do in profile — the near one only 8 forward of the far one */
 .fig .arm      { position:absolute; top:calc(72*var(--u)); width:calc(12*var(--u)); height:calc(24*var(--u)); transform-origin:50% 0; }
-.fig .arm-b    { left:calc(48*var(--u)); }
-.fig .arm-f    { left:calc(62*var(--u)); }
+.fig .arm-b    { left:calc(50*var(--u)); }
+.fig .arm-f    { left:calc(58*var(--u)); }
 .fig .upperarm { left:0; top:0; width:calc(12*var(--u)); height:calc(24*var(--u)); }
 
-/* elbow pivot */
-.fig .fore     { position:absolute; left:0; top:calc(24*var(--u)); width:calc(12*var(--u)); height:calc(34*var(--u)); transform-origin:50% 0; }
+/* elbow pivot; the fist flares wider than the forearm so it still
+   reads as a fist without a line drawn across the wrist */
+.fig .fore     { position:absolute; left:0; top:calc(24*var(--u)); width:calc(12*var(--u)); height:calc(36*var(--u)); transform-origin:50% 0; }
 .fig .forearm  { left:0; top:0; width:calc(12*var(--u)); height:calc(20*var(--u)); }
-.fig .hand     { left:calc(-1*var(--u)); top:calc(20*var(--u)); width:calc(14*var(--u)); height:calc(14*var(--u)); }
+.fig .hand     { left:calc(-2*var(--u)); top:calc(20*var(--u)); width:calc(16*var(--u)); height:calc(16*var(--u)); }
 
 /* hip pivot is the top of each leg */
 .fig .leg      { top:calc(132*var(--u)); width:calc(13*var(--u)); height:calc(60*var(--u)); transform-origin:50% 0; }
@@ -487,56 +496,72 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
 
 .fig[data-char="white"]{ --body:var(--fig-white); }
 .fig[data-char="black"]{ --body:var(--fig-black); }
-/* the black model keeps its black outline; a hairline rim outside it
-   is what separates the silhouette from the charcoal background */
-.fig[data-char="black"] .p{ box-shadow:0 0 0 1px var(--fig-rim); }
+/* on the black model a black line is invisible, so the hairline that
+   does the work is the pale rim — same job, one shade up */
+.fig[data-char="black"] .head,
+.fig[data-char="black"] .torso,
+.fig[data-char="black"] .leg{ box-shadow:0 0 0 1px var(--fig-rim); }
+.fig[data-char="black"] .arm{
+  filter:
+    drop-shadow( 1px 0 0 var(--fig-rim))
+    drop-shadow(-1px 0 0 var(--fig-rim))
+    drop-shadow(0  1px 0 var(--fig-rim))
+    drop-shadow(0 -1px 0 var(--fig-rim));
+}
 
-/* WHITE — ready to fight. Both fists up in front of the chest, lead
-   hand higher and further out, weight on a staggered stance. The idle
-   is a boxer's bounce: everything moves up-down and fore-aft, nothing
-   moves sideways, because sideways does not exist in profile. */
-.fig[data-char="white"] .rig       { animation:wBob  1.5s ease-in-out infinite; }
-.fig[data-char="white"] .upper     { animation:wLean 3s   ease-in-out infinite;
-                                     transform-origin:calc(60*var(--u)) calc(124*var(--u)); }
-.fig[data-char="white"] .head      { animation:wHead 1.5s ease-in-out infinite; animation-delay:.06s; }
-.fig[data-char="white"] .arm-f     { animation:wArmF 1.5s ease-in-out infinite; animation-delay:.07s; }
-.fig[data-char="white"] .arm-f .fore{ animation:wForeF 1.5s ease-in-out infinite; animation-delay:.11s; }
-.fig[data-char="white"] .arm-b     { animation:wArmB 1.5s ease-in-out infinite; animation-delay:.07s; }
-.fig[data-char="white"] .arm-b .fore{ animation:wForeB 1.5s ease-in-out infinite; animation-delay:.11s; }
-.fig[data-char="white"] .leg-f     { transform:rotate(-4deg); }
-.fig[data-char="white"] .leg-b     { transform:rotate(6deg); }
-@keyframes wBob  { 0%,100%{ transform:translate(0,0); }
-                   50%{ transform:translate(calc(var(--u)*.5), calc(var(--u)*-2.2)); } }
-@keyframes wLean { 0%,100%{ transform:rotate(3.2deg); }  50%{ transform:rotate(1.4deg); } }
-@keyframes wHead { 0%,100%{ transform:translateY(0); }   50%{ transform:translateY(calc(var(--u)*.7)); } }
-@keyframes wArmF { 0%,100%{ transform:rotate(12deg); }   50%{ transform:rotate(8deg); } }
-@keyframes wForeF{ 0%,100%{ transform:rotate(-150deg); } 50%{ transform:rotate(-155deg); } }
-@keyframes wArmB { 0%,100%{ transform:rotate(6deg); }    50%{ transform:rotate(3deg); } }
-@keyframes wForeB{ 0%,100%{ transform:rotate(-134deg); } 50%{ transform:rotate(-139deg); } }
+/* WHITE — ready to fight. Lead arm up and out in front of the chest;
+   the rear arm is tucked behind the body with only the elbow clearing
+   the back. The idle is a boxer's bounce, and everything in it runs
+   in the plane you are looking at: up-down, fore-aft, never sideways.
+   The bounce peaks at 42% so it snaps up and settles down. */
+.fig[data-char="white"] .sway       { animation:wShift 3.4s ease-in-out infinite; }
+.fig[data-char="white"] .rig        { animation:wBounce 1.5s ease-in-out infinite; }
+.fig[data-char="white"] .upper      { animation:wLean 1.5s ease-in-out infinite;
+                                      transform-origin:calc(60*var(--u)) calc(124*var(--u)); }
+.fig[data-char="white"] .head       { animation:wHead 1.5s ease-in-out infinite; animation-delay:.07s; }
+.fig[data-char="white"] .arm-f      { animation:wGuardF 1.5s ease-in-out infinite; animation-delay:.09s; }
+.fig[data-char="white"] .arm-f .fore{ animation:wForeF 1.5s ease-in-out infinite; animation-delay:.13s; }
+.fig[data-char="white"] .arm-b      { animation:wGuardB 1.5s ease-in-out infinite; animation-delay:.09s; }
+.fig[data-char="white"] .arm-b .fore{ animation:wForeB 1.5s ease-in-out infinite; animation-delay:.13s; }
+.fig[data-char="white"] .leg-f      { animation:wLegF 1.5s ease-in-out infinite; }
+.fig[data-char="white"] .leg-b      { animation:wLegB 1.5s ease-in-out infinite; }
+@keyframes wShift { 0%,100%{ transform:translateX(0); } 50%{ transform:translateX(calc(var(--u)*1.4)); } }
+@keyframes wBounce{ 0%,100%{ transform:translateY(0); } 42%{ transform:translateY(calc(var(--u)*-2.4)); } }
+@keyframes wLean  { 0%,100%{ transform:rotate(3.4deg); }   42%{ transform:rotate(1.6deg); } }
+@keyframes wHead  { 0%,100%{ transform:translateY(0); }    42%{ transform:translateY(calc(var(--u)*.8)); } }
+@keyframes wGuardF{ 0%,100%{ transform:rotate(-2deg); }    42%{ transform:rotate(-6deg); } }
+@keyframes wForeF { 0%,100%{ transform:rotate(-143deg); }  42%{ transform:rotate(-138deg); } }
+@keyframes wGuardB{ 0%,100%{ transform:rotate(40deg); }    42%{ transform:rotate(37deg); } }
+@keyframes wForeB { 0%,100%{ transform:rotate(-145deg); }  42%{ transform:rotate(-140deg); } }
+@keyframes wLegF  { 0%,100%{ transform:rotate(-4deg); }    42%{ transform:rotate(-6deg); } }
+@keyframes wLegB  { 0%,100%{ transform:rotate(6deg); }     42%{ transform:rotate(8deg); } }
 
-/* BLACK — near arm straight up, far arm hanging. The breath runs at
-   about 140 a minute: a short shallow pulse through the chest and head,
-   with the raised arm drifting on a much slower cycle so the two never
-   line up and the idle never reads as a metronome. */
-.fig[data-char="black"] .rig       { animation:bSettle 3.2s ease-in-out infinite; }
-.fig[data-char="black"] .upper     { animation:bBreath .42s ease-in-out infinite;
-                                     transform-origin:calc(60*var(--u)) calc(124*var(--u)); }
-.fig[data-char="black"] .head      { animation:bHeadFast .42s ease-in-out infinite; animation-delay:.05s; }
-.fig[data-char="black"] .arm-f     { animation:bArmUp .42s ease-in-out infinite; animation-delay:.05s; }
-.fig[data-char="black"] .arm-f .fore{ animation:bForeUp 1.7s ease-in-out infinite; }
-.fig[data-char="black"] .arm-b     { animation:bArmDown .42s ease-in-out infinite; animation-delay:.08s; }
-.fig[data-char="black"] .arm-b .fore{ animation:bForeDown 1.7s ease-in-out infinite; }
-.fig[data-char="black"] .leg-f     { transform:rotate(-2deg); }
-.fig[data-char="black"] .leg-b     { transform:rotate(3deg); }
-@keyframes bSettle  { 0%,100%{ transform:translate(0,0); }
-                      50%{ transform:translate(calc(var(--u)*-.4), calc(var(--u)*.7)); } }
-@keyframes bBreath  { 0%,100%{ transform:rotate(1.6deg) translateY(0); }
-                      50%{ transform:rotate(1.6deg) translateY(calc(var(--u)*-1)); } }
-@keyframes bHeadFast{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(calc(var(--u)*-.5)); } }
-@keyframes bArmUp   { 0%,100%{ transform:rotate(188deg); } 50%{ transform:rotate(186.4deg); } }
-@keyframes bForeUp  { 0%,100%{ transform:rotate(-6deg); }  50%{ transform:rotate(-11deg); } }
-@keyframes bArmDown { 0%,100%{ transform:rotate(-8deg); }  50%{ transform:rotate(-6.2deg); } }
-@keyframes bForeDown{ 0%,100%{ transform:rotate(-6deg); }  50%{ transform:rotate(-1.5deg); } }
+/* BLACK — far arm raised, rising behind the head; near arm hanging
+   down the front of the body. The breath runs at about 150 a minute:
+   a short sharp pulse through chest and head, the body light on its
+   feet with it. Both hands drift on a slow 2.1s cycle that never
+   lines up with the breath, so the idle never ticks like a metronome. */
+.fig[data-char="black"] .sway       { animation:bDrift 2.6s ease-in-out infinite; }
+.fig[data-char="black"] .rig        { animation:bLift .4s cubic-bezier(.4,0,.3,1) infinite; }
+.fig[data-char="black"] .upper      { animation:bBreath .4s cubic-bezier(.4,0,.3,1) infinite;
+                                      transform-origin:calc(60*var(--u)) calc(124*var(--u)); }
+.fig[data-char="black"] .head       { animation:bHead .4s cubic-bezier(.4,0,.3,1) infinite; animation-delay:.04s; }
+.fig[data-char="black"] .arm-b      { animation:bUpArm .4s cubic-bezier(.4,0,.3,1) infinite; animation-delay:.04s; }
+.fig[data-char="black"] .arm-b .fore{ animation:bUpFore 2.1s ease-in-out infinite; }
+.fig[data-char="black"] .arm-f      { animation:bLowArm .4s cubic-bezier(.4,0,.3,1) infinite; animation-delay:.07s; }
+.fig[data-char="black"] .arm-f .fore{ animation:bLowFore 2.1s ease-in-out infinite; }
+.fig[data-char="black"] .leg-f      { transform:rotate(-2deg); }
+.fig[data-char="black"] .leg-b      { transform:rotate(3deg); }
+@keyframes bDrift  { 0%,100%{ transform:translate(0,0); }
+                     50%{ transform:translate(calc(var(--u)*-.6), calc(var(--u)*.5)); } }
+@keyframes bLift   { 0%,100%{ transform:translateY(0); } 55%{ transform:translateY(calc(var(--u)*-.6)); } }
+@keyframes bBreath { 0%,100%{ transform:rotate(2deg) translateY(0); }
+                     55%{ transform:rotate(2deg) translateY(calc(var(--u)*-1.2)); } }
+@keyframes bHead   { 0%,100%{ transform:translateY(0); }  55%{ transform:translateY(calc(var(--u)*-.5)); } }
+@keyframes bUpArm  { 0%,100%{ transform:rotate(168deg); } 55%{ transform:rotate(166.6deg); } }
+@keyframes bUpFore { 0%,100%{ transform:rotate(-6deg); }  50%{ transform:rotate(-12deg); } }
+@keyframes bLowArm { 0%,100%{ transform:rotate(-8deg); }  55%{ transform:rotate(-6.4deg); } }
+@keyframes bLowFore{ 0%,100%{ transform:rotate(-6deg); }  50%{ transform:rotate(-1deg); } }
 
 /* ============================================================
    CHARACTER SELECT — roster lands here
@@ -1259,10 +1284,9 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
   var charCells = [];
   var stagedChar = null;
 
-  /* Blocks only. Drawn back to front: torso, head, far arm, near arm,
-     then the legs. Both arms sit over the torso — a guard tucked behind
-     it would simply vanish — and the near arm covers the far one, which
-     is the layering that sells the profile. */
+  /* Stacked back to front: far arm, torso, near arm, head, then the
+     legs. The far arm going behind the torso is the whole trick — in
+     front of it, the two arms read as one shoulder carrying both. */
   function figureHTML(id){
     var arm = function(side){
       return '<div class="arm arm-' + side + '">' +
@@ -1271,16 +1295,16 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
              '</div>';
     };
     return '<div class="fig" data-char="' + id + '">' +
-             '<div class="rig">' +
+             '<div class="sway"><div class="rig">' +
                '<div class="upper">' +
-                 '<div class="p torso"></div>' +
-                 '<div class="p head"></div>' +
                  arm("b") +
+                 '<div class="p torso"></div>' +
                  arm("f") +
+                 '<div class="p head"></div>' +
                '</div>' +
                '<div class="p leg leg-b"></div>' +
                '<div class="p leg leg-f"></div>' +
-             '</div>' +
+             '</div></div>' +
            '</div>';
   }
 
