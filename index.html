@@ -347,6 +347,19 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
 }
 .crumb::before{ content:""; width:26px; height:1px; background:var(--red); }
 
+/* back — one control, same spot on every screen */
+.nav-back{
+  display:inline-flex; align-items:center; gap:10px;
+  margin-bottom:18px; padding:9px 18px 9px 13px;
+  border:1px solid var(--char-line);
+  color:var(--ink-dim);
+  font-size:10px; font-weight:600; letter-spacing:.24em; text-transform:uppercase;
+  transition:border-color .16s var(--ease), color .16s var(--ease), background-color .12s var(--ease);
+}
+.nav-back svg{ width:13px; height:13px; }
+.nav-back:hover, .nav-back:focus-visible{ border-color:var(--blue); color:var(--blue-hi); }
+.nav-back:active{ background:var(--yellow); border-color:var(--yellow); color:var(--char-deep); }
+
 /* ============================================================
    CHARACTER PICK — icon grid, rule, live preview
    ============================================================ */
@@ -420,16 +433,12 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
 .preview-foot{
   width:100%; margin-top:16px; padding-top:13px;
   border-top:1px solid var(--char-line);
-  display:flex; align-items:baseline; justify-content:space-between; gap:18px;
 }
 .preview-name{
+  display:block;
   font-family:var(--f-display); font-weight:800;
   font-size:clamp(30px,4vw,48px); line-height:.9;
   letter-spacing:.01em; text-transform:uppercase; color:var(--ink);
-}
-.preview-tag{
-  font-size:10px; font-weight:600; letter-spacing:.24em;
-  text-transform:uppercase; color:var(--blue);
 }
 
 /* ------------------------------------------------------------
@@ -439,10 +448,10 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
    All measurements are in --u so one variable resizes it.
    ------------------------------------------------------------ */
 .fig{
-  --u: min(2.6px, .30vh);
+  --u: min(2.3px, .26vh);
   position:relative;
   width:calc(120 * var(--u));
-  height:calc(152 * var(--u));
+  height:calc(174 * var(--u));
 }
 .fig .rig, .fig .upper{ position:absolute; inset:0; }
 .fig .p{
@@ -450,15 +459,16 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
   background:var(--body);
   border:1px solid var(--fig-line);
 }
+/* head 4..38 — gap 6 — torso 44..102 — gap 8 — legs 110..170 */
 .fig .head  { left:calc(43*var(--u)); top:calc(4*var(--u));   width:calc(34*var(--u)); height:calc(34*var(--u)); }
-.fig .torso { left:calc(38*var(--u)); top:calc(44*var(--u));  width:calc(44*var(--u)); height:calc(58*var(--u)); }
+.fig .torso { left:calc(43*var(--u)); top:calc(44*var(--u));  width:calc(34*var(--u)); height:calc(58*var(--u)); }
 .fig .limb  { position:absolute; top:calc(48*var(--u)); width:calc(14*var(--u)); height:calc(60*var(--u)); transform-origin:50% 0; }
-.fig .limb-l{ left:calc(19*var(--u)); }
-.fig .limb-r{ left:calc(87*var(--u)); }
+.fig .limb-l{ left:calc(24*var(--u)); }
+.fig .limb-r{ left:calc(82*var(--u)); }
 .fig .arm   { left:calc(1*var(--u));  top:0;                  width:calc(12*var(--u)); height:calc(46*var(--u)); }
 .fig .hand  { left:0;                 top:calc(46*var(--u));  width:calc(14*var(--u)); height:calc(14*var(--u)); }
-.fig .leg   { top:calc(102*var(--u));                         width:calc(18*var(--u)); height:calc(46*var(--u)); }
-.fig .leg-l { left:calc(38*var(--u)); }
+.fig .leg   { top:calc(110*var(--u));                         width:calc(13*var(--u)); height:calc(60*var(--u)); }
+.fig .leg-l { left:calc(43*var(--u)); }
 .fig .leg-r { left:calc(64*var(--u)); }
 
 .fig[data-char="white"]{ --body:var(--fig-white); }
@@ -780,6 +790,11 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
     <section class="modes" id="modes" hidden>
       <div class="modes-inner">
 
+        <button class="nav-back" data-back type="button">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 4 6 10l6 6"/></svg>
+          <span data-i18n="back">Back</span>
+        </button>
+
         <div class="modes-head">
           <h2 data-i18n="modesTitle">Choose a mode</h2>
           <div class="legend">
@@ -846,6 +861,11 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
     <section class="chars" id="chars" hidden>
       <div class="chars-inner">
 
+        <button class="nav-back" data-back type="button">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 4 6 10l6 6"/></svg>
+          <span data-i18n="back">Back</span>
+        </button>
+
         <div class="modes-head">
           <div>
             <p class="crumb" data-i18n="modeBots">Play against bots</p>
@@ -866,7 +886,6 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
             <div class="stage" id="charStage" aria-hidden="true"></div>
             <div class="preview-foot">
               <span class="preview-name" id="charName">—</span>
-              <span class="preview-tag" data-i18n="charsIdle">Idle</span>
             </div>
           </div>
 
@@ -883,6 +902,11 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
     <!-- ---------- BOTS: FORMAT ---------- -->
     <section class="modes" id="formats" hidden>
       <div class="modes-inner">
+
+        <button class="nav-back" data-back type="button">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 4 6 10l6 6"/></svg>
+          <span data-i18n="back">Back</span>
+        </button>
 
         <div class="modes-head">
           <div>
@@ -1016,7 +1040,6 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
       charsTitle:"Choose your fighter",
       charsFoot: "Move — Enter to confirm — Escape to go back",
       charsConfirm:"Confirm",
-      charsIdle: "Idle",
       charWhite: "White",
       charBlack: "Black",
       fmtTitle:  "Choose a format",
@@ -1059,7 +1082,6 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
       charsTitle:"Choisissez votre combattant",
       charsFoot: "Déplacer — Entrée pour confirmer — Échap pour revenir",
       charsConfirm:"Confirmer",
-      charsIdle: "Repos",
       charWhite: "Blanc",
       charBlack: "Noir",
       fmtTitle:  "Choisissez un format",
@@ -1359,6 +1381,11 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
   btnPlay.addEventListener("click", openModes);
   btnBack.addEventListener("click", goBack);
 
+  /* every screen's back control retreats along the same trail */
+  Array.prototype.forEach.call(document.querySelectorAll("[data-back]"), function(btn){
+    btn.addEventListener("click", goBack);
+  });
+
   modeButtons.forEach(function(btn, i){
     btn.addEventListener("click", function(){
       modeIndex = i;
@@ -1417,7 +1444,9 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
         return;
       }
       if (e.key === "Enter" || e.key === " "){
-        if (document.activeElement === btnCharGo) return;   // the button's own click handles it
+        // Confirm and Back handle their own press; anywhere else, Enter locks the pick in
+        var on = document.activeElement;
+        if (on && on.tagName === "BUTTON" && charCells.indexOf(on) === -1) return;
         e.preventDefault();
         confirmChar();
         return;
