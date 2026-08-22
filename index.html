@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>OVERCLASH</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -48,6 +48,8 @@ body{
   -webkit-font-smoothing:antialiased;
   user-select:none;
   cursor:default;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
 }
 button{ font:inherit; color:inherit; background:none; border:none; cursor:pointer; }
 :focus{ outline:none; }
@@ -734,6 +736,85 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
 }
 .gate-foot strong{ color:var(--ink); font-weight:600; }
 
+/* ============================================================
+   MOBILE — portrait only
+   The desktop layout is a vertical rail standing beside a
+   two-column stage. In portrait there is no room beside
+   anything, so the rail lies down across the top and every
+   side-by-side pair stacks. Keyboard hints are dropped, since
+   there is no keyboard to hint at, and hover lifts are dropped
+   too, because on a touchscreen hover sticks after the tap.
+   Nothing in here can reach the desktop build: the class is
+   only ever set on a touch device.
+   ============================================================ */
+@supports (height:100dvh){ body.is-mobile #app{ height:100dvh; } }
+
+body.is-mobile #app{
+  grid-template-columns:minmax(0,1fr);
+  grid-template-rows:auto minmax(0,1fr);
+}
+body.is-mobile .rail{
+  flex-direction:row; align-items:center;
+  border-right:none; border-bottom:1px solid var(--char-line);
+  padding:10px clamp(16px,4vw,26px);
+  padding-top:calc(10px + env(safe-area-inset-top));
+}
+body.is-mobile .rail-tools{ flex-direction:row; }
+body.is-mobile .main{ min-height:0; grid-template-rows:minmax(0,1fr) auto; }
+
+body.is-mobile .home,
+body.is-mobile .modes,
+body.is-mobile .chars,
+body.is-mobile .select{
+  min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding:clamp(18px,4vh,34px) clamp(18px,5vw,34px);
+}
+
+/* home — wordmark first, arena under it */
+body.is-mobile .home{
+  grid-template-columns:minmax(0,1fr);
+  grid-template-rows:auto auto;
+  align-content:center; gap:clamp(18px,4vh,40px);
+}
+body.is-mobile .wordmark{ font-size:clamp(58px,17vw,104px); }
+body.is-mobile .arena{ height:auto; }
+body.is-mobile .arena svg{ width:min(62%,28vh); }
+body.is-mobile .play-row{ margin-top:30px; }
+body.is-mobile .play{ padding:17px 48px 17px 34px; font-size:17px; }
+
+/* card screens — one card per row */
+body.is-mobile .modes-head{ flex-direction:column; align-items:flex-start; gap:14px; }
+body.is-mobile .mode-grid,
+body.is-mobile .mode-grid.two{ grid-template-columns:minmax(0,1fr); max-width:none; }
+body.is-mobile .mode{ padding:18px 18px 16px; }
+body.is-mobile .mode:hover, body.is-mobile .mode:focus-visible{ transform:none; }
+
+/* fighter pick — preview on top, roster under it */
+body.is-mobile .chars-body{
+  grid-template-columns:minmax(0,1fr);
+  grid-template-rows:auto auto;
+  gap:22px;
+}
+body.is-mobile .chars-rule{ display:none; }
+body.is-mobile .preview{ order:-1; min-height:clamp(190px,30vh,300px); }
+body.is-mobile .fig{ --u:min(1.5px,.14vh); }
+body.is-mobile .char-side{ align-items:stretch; }
+body.is-mobile .char-go{ text-align:center; }
+body.is-mobile .char-cell:hover, body.is-mobile .char-cell:focus-visible{ transform:none; }
+
+body.is-mobile .slot-row{ flex-wrap:wrap; }
+body.is-mobile .footer{
+  flex-direction:column; align-items:flex-start; gap:7px;
+  padding:12px clamp(18px,5vw,34px);
+  padding-bottom:calc(12px + env(safe-area-inset-bottom));
+}
+body.is-mobile .footer-right{ flex-wrap:wrap; gap:14px; }
+
+/* no keyboard, so no keyboard legends */
+body.is-mobile .hint,
+body.is-mobile .modes-foot,
+body.is-mobile .dialog-foot{ display:none; }
+
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
   #splash.is-live .splash-byline{ opacity:1; }
@@ -774,6 +855,31 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
     <h2 data-i18n="gateSizeTitle">Window too small</h2>
     <p data-i18n="gateSizeBody">Make the window bigger to fit the arena.</p>
     <p class="gate-dims" id="gateDims">0 &times; 0</p>
+  </div>
+
+  <!-- computer, window taller than it is wide: clears on resize -->
+  <div id="gateShape" hidden>
+    <svg class="gate-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+      <rect x="17" y="8" width="14" height="32"/>
+      <path d="M4 24h7M44 24h-7"/>
+      <path d="M8 20 4 24l4 4"/>
+      <path d="M40 20l4 4-4 4"/>
+    </svg>
+    <h2 data-i18n="gateShapeTitle">Landscape required</h2>
+    <p data-i18n="gateShapeBody">The arena runs wide. Make the window wider than it is tall.</p>
+    <p class="gate-dims" id="gateShapeDims">0 &times; 0</p>
+  </div>
+
+  <!-- phone or tablet turned sideways: clears on rotation -->
+  <div id="gateRotate" hidden>
+    <svg class="gate-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+      <rect x="6" y="20" width="36" height="21"/>
+      <path d="M11 24v13"/>
+      <path d="M16 12a15 15 0 0 1 21 4"/>
+      <path d="M31 15h6V9"/>
+    </svg>
+    <h2 data-i18n="gateRotateTitle">Rotate to portrait</h2>
+    <p data-i18n="gateRotateBody">On a phone or tablet this game plays upright. Turn the device.</p>
   </div>
 
   <p class="gate-foot">A game by <strong>hiyroscript</strong></p>
@@ -1086,8 +1192,16 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
     titleTop: "Over",     // solid line
     titleBottom: "Clash", // outlined line
     splashHold: 2200,     // ms before the splash fades out
-    minWidth: 900,        // desktop gate — smallest playable window
-    minHeight: 540
+
+    /* The gate has two lanes. A computer plays in a landscape
+       window; a phone or tablet plays upright. Each lane carries
+       its own smallest playable size. Set allowMobile to false to
+       go back to turning touch devices away at the door. */
+    allowMobile: true,
+    minWidth: 900,        // computer — landscape
+    minHeight: 540,
+    mobileMinWidth: 320,  // phone or tablet — portrait
+    mobileMinHeight: 480
   };
 
   /* ==========================================================
@@ -1131,10 +1245,15 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
       langSub:   "Change it any time from the menu rail.",
       langFoot:  "Move — Enter to confirm",
       inputTag:  "Keyboard + mouse",
+      inputTagTouch:"Touch",
       gateDeviceTitle:"Computer required",
       gateDeviceBody: "This game runs on keyboard and mouse. Open it on a desktop or laptop.",
       gateSizeTitle:  "Window too small",
-      gateSizeBody:   "Make the window bigger to fit the arena."
+      gateSizeBody:   "Make the window bigger to fit the arena.",
+      gateShapeTitle: "Landscape required",
+      gateShapeBody:  "The arena runs wide. Make the window wider than it is tall.",
+      gateRotateTitle:"Rotate to portrait",
+      gateRotateBody: "On a phone or tablet this game plays upright. Turn the device."
     },
     fr: {
       eyebrow:   "Écran unique",
@@ -1173,10 +1292,15 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
       langSub:   "Modifiable à tout moment depuis le menu latéral.",
       langFoot:  "Déplacer — Entrée pour confirmer",
       inputTag:  "Clavier + souris",
+      inputTagTouch:"Tactile",
       gateDeviceTitle:"Ordinateur requis",
       gateDeviceBody: "Ce jeu se joue au clavier et à la souris. Ouvrez-le sur un ordinateur.",
       gateSizeTitle:  "Fenêtre trop petite",
-      gateSizeBody:   "Agrandissez la fenêtre pour afficher l'arène."
+      gateSizeBody:   "Agrandissez la fenêtre pour afficher l'arène.",
+      gateShapeTitle: "Format paysage requis",
+      gateShapeBody:  "L'arène est large. Rendez la fenêtre plus large que haute.",
+      gateRotateTitle:"Passez en portrait",
+      gateRotateBody: "Sur téléphone ou tablette, ce jeu se joue à la verticale. Tournez l'appareil."
     }
   };
 
@@ -1254,6 +1378,11 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
       var k = el.getAttribute("data-i18n");
       if (dict[k]) el.textContent = dict[k];
     });
+    // the footer names the input the player actually has
+    if (document.body.classList.contains("is-mobile")){
+      var tag = document.querySelector('[data-i18n="inputTag"]');
+      if (tag) tag.textContent = dict.inputTagTouch;
+    }
     // these screens are built from state, not from data-i18n keys
     refreshCharText();
     fmtCrumb.textContent = dict.modeBots;
@@ -1595,49 +1724,72 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
   /* ==========================================================
      9. BOOT
      ========================================================== */
-  applyLang(save.get(KEY_LANG) || "en");
-  buildCharGrid();
-  charName.textContent = STRINGS[lang][CHARS[charIndex].key];
-
-  /* --- desktop gate ---------------------------------------
-     Primary pointer coarse + no hover means phone or tablet.
-     Touchscreen laptops still report a fine primary pointer,
-     so they pass through correctly. */
-  var gate       = $("gate"),
-      gateDevice = $("gateDevice"),
-      gateSize   = $("gateSize"),
-      gateDims   = $("gateDims");
-
+  /* Primary pointer coarse + no hover means phone or tablet. A
+     touchscreen laptop still reports a fine primary pointer, so it
+     stays in the computer lane. This is read before the first
+     applyLang, so the layout and the copy agree from frame one. */
   var isTouchOnly = (function(){
     try {
       return window.matchMedia("(pointer: coarse)").matches &&
              window.matchMedia("(hover: none)").matches;
     } catch(e){ return false; }
   })();
+  if (isTouchOnly && CONFIG.allowMobile) document.body.classList.add("is-mobile");
 
+  applyLang(save.get(KEY_LANG) || "en");
+  buildCharGrid();
+  charName.textContent = STRINGS[lang][CHARS[charIndex].key];
+
+  /* --- the gate -------------------------------------------
+     Orientation first, then size. A computer plays in a window
+     that is wider than it is tall; a phone or tablet plays
+     upright. Both rules clear the moment the window is reshaped
+     or the device is turned — the only permanent stop left is a
+     touch device with CONFIG.allowMobile switched off. */
+  var gate       = $("gate"),
+      gateDevice = $("gateDevice"),
+      gateSize   = $("gateSize"),
+      gateShape  = $("gateShape"),
+      gateRotate = $("gateRotate"),
+      gateDims   = $("gateDims"),
+      shapeDims  = $("gateShapeDims");
+
+  var gatePanels = [gateDevice, gateSize, gateShape, gateRotate];
   var gated = true;
 
+  function raiseGate(panel){
+    for (var i = 0; i < gatePanels.length; i++){
+      gatePanels[i].hidden = (gatePanels[i] !== panel);
+    }
+    gate.hidden = false;
+    gated = true;
+  }
+
+  function sizeLine(minW, minH){
+    return window.innerWidth + " \u00D7 " + window.innerHeight + "   \u2014   " +
+           minW + " \u00D7 " + minH + " needed";
+  }
+
   function checkGate(){
-    var tooSmall = window.innerWidth  < CONFIG.minWidth ||
-                   window.innerHeight < CONFIG.minHeight;
+    var w = window.innerWidth, h = window.innerHeight;
+    var portrait = h >= w;          // a square window counts as portrait
 
     if (isTouchOnly){
-      gateDevice.hidden = false;
-      gateSize.hidden   = true;
-      gate.hidden       = false;
-      gated = true;
-      return;
-    }
-
-    if (tooSmall){
-      gateDevice.hidden = true;
-      gateSize.hidden   = false;
-      gate.hidden       = false;
-      gateDims.textContent =
-        window.innerWidth + " \u00D7 " + window.innerHeight + "   \u2014   " +
-        CONFIG.minWidth + " \u00D7 " + CONFIG.minHeight + " needed";
-      gated = true;
-      return;
+      if (!CONFIG.allowMobile){ raiseGate(gateDevice); return; }
+      if (!portrait){ raiseGate(gateRotate); return; }
+      if (w < CONFIG.mobileMinWidth || h < CONFIG.mobileMinHeight){
+        gateDims.textContent = sizeLine(CONFIG.mobileMinWidth, CONFIG.mobileMinHeight);
+        raiseGate(gateSize); return;
+      }
+    } else {
+      if (portrait){
+        shapeDims.textContent = w + " \u00D7 " + h;
+        raiseGate(gateShape); return;
+      }
+      if (w < CONFIG.minWidth || h < CONFIG.minHeight){
+        gateDims.textContent = sizeLine(CONFIG.minWidth, CONFIG.minHeight);
+        raiseGate(gateSize); return;
+      }
     }
 
     gate.hidden = true;
@@ -1646,6 +1798,9 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
   }
 
   window.addEventListener("resize", checkGate);
+  /* iOS still reports the old size for a beat after the turn, so
+     the orientation event is read one frame late on purpose */
+  window.addEventListener("orientationchange", function(){ setTimeout(checkGate, 140); });
 
   /* --- splash -> home -------------------------------------
      The hold is measured on a clock that only advances while
