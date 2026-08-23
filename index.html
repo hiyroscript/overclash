@@ -25,11 +25,14 @@
   --ink:       #C9D4DE;   /* Cool White-Gray — icons + text       */
   --ink-dim:   #6E7A87;
 
-  /* fighter colors — the roster reads from these */
-  --fig-white: #FFFFFF;
-  --fig-black: #0B0D0F;
-  --fig-line:  #000000;
-  --fig-rim:   rgba(184,197,210,.5);  /* keeps the black model off the background */
+  /* ball colors — the roster reads from these. Three come straight
+     out of the brief; green is the one the brief did not carry, so it
+     is pitched at the same chroma as the other three. */
+  --ball-blue:   #1F7AFF;
+  --ball-red:    #FF2D46;
+  --ball-green:  #21D96A;
+  --ball-yellow: #FFD60A;
+  --ball-line:   #000000;
 
   --rail: 68px;
   --f-display: "Big Shoulders Display", "Arial Narrow", sans-serif;
@@ -372,13 +375,13 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
 .char-cell:active{ background:var(--yellow); border-color:var(--yellow); transform:none; }
 .char-cell.is-picked{ border-color:var(--blue); border-top-color:var(--blue); }
 
-/* the icon is the whole idea: one solid square */
+/* the icon is the whole idea: the ball itself, shrunk */
 .chip{
   display:block; width:100%; aspect-ratio:1 / 1; min-height:56px;
-  border:1px solid var(--fig-line);
+  border-radius:50%;
+  background:var(--ball);
+  border:1px solid var(--ball-line);
 }
-.chip.white{ background:var(--fig-white); }
-.chip.black{ background:var(--fig-black); box-shadow:0 0 0 1px var(--fig-rim); }
 
 .char-cell b{
   display:block; margin-top:13px;
@@ -406,8 +409,8 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
   min-height:clamp(240px,40vh,440px);
 }
 .stage{ position:relative; display:grid; place-items:center; width:100%; height:100%; }
-/* a black fighter on a near-black page is just a wireframe, so the
-   stage carries a soft pool of light for the silhouette to sit in */
+/* the ball sits in a soft pool of light, so it reads as standing on
+   the stage rather than floating flat on the page */
 .stage::before{
   content:""; position:absolute; inset:0; pointer-events:none;
   background:radial-gradient(ellipse 44% 50% at 50% 46%, rgba(126,141,156,.22), transparent 72%);
@@ -424,137 +427,39 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
 }
 
 /* ------------------------------------------------------------
-   THE FIGHTER MODEL — side view, facing right
-   Two rules make the profile work, and both are about overlap.
-   A limb the same colour as the torso vanishes when it crosses
-   it — only its outline survives, which reads as a scribble —
-   so each arm is anchored to stay in clear space: the near arm
-   in front of the body, the far arm behind it. And the legs
-   meet at the hip and splay out to the feet, instead of standing
-   as two parallel posts with a channel of background between.
-   The arm bends at the elbow, but never so tightly that the two
-   segments fold onto each other, since with no line drawn across
-   the joint a folded arm merges into one blob.
-   All sizes are in --u, so one variable resizes the fighter.
+   THE BALL
+   One element. The colour rides in on --ball, which every
+   [data-char] carries, so the swatch in the grid, the ball on
+   the stage and the slot on the select screen all read the same
+   value and can never drift apart. The outline stays hairline
+   at both sizes — it is there to hold the edge against the
+   background, not to be seen as a ring.
    ------------------------------------------------------------ */
-.fig{
-  --u: min(2.05px, .20vh);
-  position:relative;
-  width:calc(120 * var(--u));
-  height:calc(196 * var(--u));
+[data-char="blue"]  { --ball:var(--ball-blue); }
+[data-char="red"]   { --ball:var(--ball-red); }
+[data-char="green"] { --ball:var(--ball-green); }
+[data-char="yellow"]{ --ball:var(--ball-yellow); }
+
+.ball{
+  width:clamp(120px, 27vh, 210px); aspect-ratio:1 / 1;
+  border-radius:50%;
+  background:var(--ball);
+  border:2px solid var(--ball-line);
+  animation:ballIdle 3s ease-in-out infinite;
 }
-.fig .sway, .fig .rig, .fig .upper{ position:absolute; inset:0; }
-.fig .p{ position:absolute; background:var(--body); }
-/* single-block parts carry their own hairline */
-.fig .head, .fig .torso, .fig .leg{ border:1px solid var(--fig-line); }
-/* an arm is three blocks that read as one limb, so the outline is
-   drawn around the union — no seam at the elbow or the wrist */
-.fig .arm{
-  filter:
-    drop-shadow( 1px 0 0 var(--fig-line))
-    drop-shadow(-1px 0 0 var(--fig-line))
-    drop-shadow(0  1px 0 var(--fig-line))
-    drop-shadow(0 -1px 0 var(--fig-line));
+/* picked or poked: squash on the way down, stretch on the way up */
+.ball.is-hit{ animation:ballHit .46s var(--ease); }
+@keyframes ballIdle{
+  0%,100%{ transform:translateY(0) scale(1,1); }
+  50%    { transform:translateY(-9px) scale(.985,1.015); }
 }
-
-/* head 30..60 — gap 6 — torso 66..124 — gap 8 — legs from 132 */
-.fig .head     { left:calc(46*var(--u)); top:calc(30*var(--u)); width:calc(30*var(--u)); height:calc(30*var(--u)); }
-.fig .torso    { left:calc(45*var(--u)); top:calc(66*var(--u)); width:calc(30*var(--u)); height:calc(58*var(--u)); }
-
-/* shoulder pivot. Each fighter sets its own anchors below, because
-   where the shoulder sits is what keeps the arm off the torso. */
-.fig .arm      { position:absolute; width:calc(12*var(--u)); height:calc(20*var(--u)); transform-origin:50% 0; }
-.fig .upperarm { left:0; top:0; width:calc(12*var(--u)); height:calc(20*var(--u)); }
-
-/* elbow pivot; the fist flares a unit wider than the forearm so it
-   still reads as a fist without a line drawn across the wrist */
-.fig .fore     { position:absolute; left:0; top:calc(20*var(--u)); width:calc(12*var(--u)); height:calc(30*var(--u)); transform-origin:50% 0; }
-.fig .forearm  { left:0; top:0; width:calc(12*var(--u)); height:calc(16*var(--u)); }
-.fig .hand     { left:calc(-1*var(--u)); top:calc(16*var(--u)); width:calc(14*var(--u)); height:calc(14*var(--u)); }
-
-/* hips together, feet apart — that is what makes it read as standing */
-.fig .leg      { top:calc(132*var(--u)); width:calc(13*var(--u)); height:calc(60*var(--u)); transform-origin:50% 0; }
-.fig .leg-b    { left:calc(49*var(--u)); }
-.fig .leg-f    { left:calc(58*var(--u)); }
-
-.fig[data-char="white"]{ --body:var(--fig-white); }
-.fig[data-char="black"]{ --body:var(--fig-black); }
-/* on the black model a black line is invisible, so the hairline that
-   does the work is the pale rim — same job, one shade up */
-.fig[data-char="black"] .head,
-.fig[data-char="black"] .torso,
-.fig[data-char="black"] .leg{ box-shadow:0 0 0 1px var(--fig-rim); }
-.fig[data-char="black"] .arm{
-  filter:
-    drop-shadow( 1px 0 0 var(--fig-rim))
-    drop-shadow(-1px 0 0 var(--fig-rim))
-    drop-shadow(0  1px 0 var(--fig-rim))
-    drop-shadow(0 -1px 0 var(--fig-rim));
+@keyframes ballHit{
+  0%  { transform:translateY(0) scale(1,1); }
+  20% { transform:translateY(7px) scale(1.14,.86); }
+  52% { transform:translateY(-16px) scale(.93,1.07); }
+  78% { transform:translateY(2px) scale(1.04,.96); }
+  100%{ transform:translateY(0) scale(1,1); }
 }
-
-/* WHITE — ready to fight. Lead arm bent in front of the chest with
-   the fist up and out; rear arm carried down and back behind the
-   body. The idle is a boxer's bounce at 40 a minute: it peaks at
-   42% of the cycle so it snaps up and settles down, the guard and
-   the head trail a fraction behind it, and a slower 3.4s cycle
-   rocks the weight fore and aft. Every part of it moves in the
-   plane you are looking at — nothing travels sideways. */
-.fig[data-char="white"] .arm-f      { left:calc(74*var(--u)); top:calc(76*var(--u)); }
-.fig[data-char="white"] .arm-b      { left:calc(48*var(--u)); top:calc(74*var(--u)); }
-.fig[data-char="white"] .sway       { animation:wShift 3.4s ease-in-out infinite; }
-.fig[data-char="white"] .rig        { animation:wBounce 1.5s ease-in-out infinite; }
-.fig[data-char="white"] .upper      { animation:wLean 1.5s ease-in-out infinite;
-                                      transform-origin:calc(60*var(--u)) calc(124*var(--u)); }
-.fig[data-char="white"] .head       { animation:wHead 1.5s ease-in-out infinite; animation-delay:.07s; }
-.fig[data-char="white"] .arm-f      { animation:wGuardF 1.5s ease-in-out infinite; animation-delay:.09s; }
-.fig[data-char="white"] .arm-f .fore{ animation:wForeF 1.5s ease-in-out infinite; animation-delay:.13s; }
-.fig[data-char="white"] .arm-b      { animation:wGuardB 1.5s ease-in-out infinite; animation-delay:.09s; }
-.fig[data-char="white"] .arm-b .fore{ animation:wForeB 1.5s ease-in-out infinite; animation-delay:.13s; }
-.fig[data-char="white"] .leg-f      { animation:wLegF 1.5s ease-in-out infinite; }
-.fig[data-char="white"] .leg-b      { animation:wLegB 1.5s ease-in-out infinite; }
-@keyframes wShift { 0%,100%{ transform:translateX(0); } 50%{ transform:translateX(calc(var(--u)*1.4)); } }
-@keyframes wBounce{ 0%,100%{ transform:translateY(0); } 42%{ transform:translateY(calc(var(--u)*-2.4)); } }
-@keyframes wLean  { 0%,100%{ transform:rotate(3.4deg); }  42%{ transform:rotate(1.6deg); } }
-@keyframes wHead  { 0%,100%{ transform:translateY(0); }   42%{ transform:translateY(calc(var(--u)*.8)); } }
-@keyframes wGuardF{ 0%,100%{ transform:rotate(10deg); }   42%{ transform:rotate(6deg); } }
-@keyframes wForeF { 0%,100%{ transform:rotate(-150deg); } 42%{ transform:rotate(-141deg); } }
-@keyframes wGuardB{ 0%,100%{ transform:rotate(50deg); }   42%{ transform:rotate(47deg); } }
-@keyframes wForeB { 0%,100%{ transform:rotate(-20deg); }  42%{ transform:rotate(-22deg); } }
-@keyframes wLegF  { 0%,100%{ transform:rotate(-11deg); }  42%{ transform:rotate(-13deg); } }
-@keyframes wLegB  { 0%,100%{ transform:rotate(13deg); }   42%{ transform:rotate(15deg); } }
-
-/* BLACK — near arm raised, far arm carried down and back. The near
-   shoulder is pushed forward so the raised arm passes clear of the
-   head instead of cutting across the face. Breathing runs at about
-   125 a minute, and the whole breath moves as one piece: chest,
-   head and both shoulders share the beat with no phase offset
-   between them, because at this speed even a 40ms lag stops looking
-   like breathing and starts looking like the model coming apart.
-   The hands drift on a separate 2.4s cycle that never lines up with
-   the breath, so the idle never ticks like a metronome. */
-.fig[data-char="black"] .arm-f      { left:calc(70*var(--u)); top:calc(74*var(--u)); }
-.fig[data-char="black"] .arm-b      { left:calc(48*var(--u)); top:calc(76*var(--u)); }
-.fig[data-char="black"] .sway       { animation:bDrift 3.2s ease-in-out infinite; }
-.fig[data-char="black"] .rig        { animation:bLift .48s ease-in-out infinite; }
-.fig[data-char="black"] .upper      { animation:bBreath .48s ease-in-out infinite;
-                                      transform-origin:calc(60*var(--u)) calc(124*var(--u)); }
-.fig[data-char="black"] .head       { animation:bHead .48s ease-in-out infinite; animation-delay:.02s; }
-.fig[data-char="black"] .arm-f      { animation:bUpArm .48s ease-in-out infinite; }
-.fig[data-char="black"] .arm-f .fore{ animation:bUpFore 2.4s ease-in-out infinite; }
-.fig[data-char="black"] .arm-b      { animation:bLowArm .48s ease-in-out infinite; }
-.fig[data-char="black"] .arm-b .fore{ animation:bLowFore 2.4s ease-in-out infinite; }
-.fig[data-char="black"] .leg-f      { transform:rotate(-9deg); }
-.fig[data-char="black"] .leg-b      { transform:rotate(11deg); }
-@keyframes bDrift  { 0%,100%{ transform:translate(0,0); }
-                     50%{ transform:translate(calc(var(--u)*-.7), calc(var(--u)*.5)); } }
-@keyframes bLift   { 0%,100%{ transform:translateY(0); } 45%{ transform:translateY(calc(var(--u)*-.9)); } }
-@keyframes bBreath { 0%,100%{ transform:rotate(2deg) translateY(0); }
-                     45%{ transform:rotate(2deg) translateY(calc(var(--u)*-1.4)); } }
-@keyframes bHead   { 0%,100%{ transform:translateY(0); }   45%{ transform:translateY(calc(var(--u)*-.6)); } }
-@keyframes bUpArm  { 0%,100%{ transform:rotate(208deg); }  45%{ transform:rotate(206.6deg); } }
-@keyframes bUpFore { 0%,100%{ transform:rotate(-7deg); }   50%{ transform:rotate(-13deg); } }
-@keyframes bLowArm { 0%,100%{ transform:rotate(40deg); }   45%{ transform:rotate(41.4deg); } }
-@keyframes bLowFore{ 0%,100%{ transform:rotate(-16deg); }  50%{ transform:rotate(-11deg); } }
 
 /* ============================================================
    CHARACTER SELECT — roster lands here
@@ -579,8 +484,7 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
 .slot.is-player polygon{ stroke:rgba(31,122,255,.5); }
 /* a filled slot carries the fighter that was picked */
 .slot[data-char] polygon{ stroke-dasharray:none; stroke:var(--blue); }
-.slot[data-char="white"] polygon{ fill:var(--fig-white); }
-.slot[data-char="black"] polygon{ fill:var(--fig-black); }
+.slot[data-char] polygon{ fill:var(--ball); }
 .slot span{
   display:block; margin-top:12px;
   font-size:10px; font-weight:600; letter-spacing:.24em;
@@ -773,7 +677,7 @@ body.is-mobile .chars-body{
 }
 body.is-mobile .chars-rule{ display:none; }
 body.is-mobile .preview{ order:-1; min-height:clamp(190px,30vh,300px); }
-body.is-mobile .fig{ --u:min(1.5px,.14vh); }
+body.is-mobile .ball{ width:clamp(110px,22vh,170px); }
 body.is-mobile .char-side{ align-items:stretch; }
 body.is-mobile .char-go{ text-align:center; }
 body.is-mobile .char-cell:hover, body.is-mobile .char-cell:focus-visible{ transform:none; }
@@ -788,6 +692,52 @@ body.is-mobile .footer{
 body.is-mobile .hint,
 body.is-mobile .modes-foot,
 body.is-mobile .dialog-foot{ display:none; }
+
+/* ============================================================
+   PLAY — the world
+   The shell is dark and the world is not, so this screen covers
+   the whole viewport rather than sitting inside it: no dark rail
+   or footer framing a lit stage. The background here is only a
+   fallback for the frame before the canvas paints; the real sky
+   comes from the theme. (The .play class further up is the red
+   Play button on the home screen — unrelated.)
+   ============================================================ */
+#play{
+  position:fixed; inset:0; z-index:80;
+  background:#fff;
+}
+#play[hidden]{ display:none; }
+#playCanvas{ display:block; width:100%; height:100%; touch-action:none; }
+
+.play-hud{
+  position:absolute; inset:0; pointer-events:none;
+  display:flex; flex-direction:column; justify-content:space-between; align-items:center;
+  padding:clamp(14px,2.4vw,26px);
+  padding-top:calc(clamp(14px,2.4vw,26px) + env(safe-area-inset-top));
+  padding-bottom:calc(clamp(14px,2.4vw,26px) + env(safe-area-inset-bottom));
+}
+.play-top{
+  width:100%; display:flex; align-items:center; justify-content:space-between; gap:16px;
+}
+.play-world{
+  font-size:10px; font-weight:600; letter-spacing:.28em;
+  text-transform:uppercase; color:rgba(0,0,0,.5);
+}
+.play-quit{
+  pointer-events:auto;
+  display:inline-flex; align-items:center; gap:9px;
+  padding:8px 15px 8px 11px;
+  border:1.5px solid #000; background:#fff; color:#000;
+  font-size:10px; font-weight:600; letter-spacing:.24em; text-transform:uppercase;
+  transition:background-color .14s var(--ease), color .14s var(--ease);
+}
+.play-quit svg{ width:12px; height:12px; }
+.play-quit:hover{ background:#000; color:#fff; }
+.play-quit:active{ background:var(--yellow); color:#000; }
+.play-tip{
+  font-size:10px; font-weight:500; letter-spacing:.22em;
+  text-transform:uppercase; color:rgba(0,0,0,.4); text-align:center;
+}
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
@@ -956,6 +906,46 @@ body.is-mobile .dialog-foot{ display:none; }
       </div>
     </section>
 
+    <!-- ---------- SOLO: GAME TYPE ---------- -->
+    <section class="modes" id="games" hidden>
+      <div class="modes-inner">
+
+        <button class="nav-back" data-back type="button">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 4 6 10l6 6"/></svg>
+          <span data-i18n="back">Back</span>
+        </button>
+
+        <div class="modes-head">
+          <div>
+            <p class="crumb" id="gameCrumb">Solo play</p>
+            <h2 data-i18n="gamesTitle">Choose a game</h2>
+          </div>
+        </div>
+
+        <div class="mode-grid two">
+
+          <button class="mode" data-game="race">
+            <b data-i18n="gameRace">Marble race</b>
+            <span class="mode-desc" data-i18n="gameRaceDesc">Every marble on the same course. First one down wins.</span>
+            <span class="mode-tag" data-i18n="gameRaceTag">First to finish</span>
+          </button>
+
+          <button class="mode" data-game="endless">
+            <b data-i18n="gameEndless">Endless run</b>
+            <span class="mode-desc" data-i18n="gameEndlessDesc">The course keeps coming. Roll as far as you can.</span>
+            <span class="mode-tag" data-i18n="gameEndlessTag">No finish line</span>
+          </button>
+
+        </div>
+
+        <p class="modes-foot">
+          <span class="key">←</span><span class="key">→</span>
+          <span data-i18n="modesFoot">Move — Enter to select — Escape to go back</span>
+        </p>
+
+      </div>
+    </section>
+
     <!-- ---------- SOLO: CHARACTER PICK ---------- -->
     <section class="chars" id="chars" hidden>
       <div class="chars-inner">
@@ -967,8 +957,8 @@ body.is-mobile .dialog-foot{ display:none; }
 
         <div class="modes-head">
           <div>
-            <p class="crumb" data-i18n="modeSolo">Solo play</p>
-            <h2 data-i18n="charsTitle">Choose your fighter</h2>
+            <p class="crumb" id="charsCrumb">Solo play</p>
+            <h2 data-i18n="charsTitle">Choose your color</h2>
           </div>
         </div>
 
@@ -1071,6 +1061,21 @@ body.is-mobile .dialog-foot{ display:none; }
   </div>
 </div>
 
+<!-- ============ PLAY ============ -->
+<section id="play" hidden>
+  <canvas id="playCanvas"></canvas>
+  <div class="play-hud">
+    <div class="play-top">
+      <button class="play-quit" id="btnQuit" type="button">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 4 6 10l6 6"/></svg>
+        <span data-i18n="playQuit">Quit</span>
+      </button>
+      <span class="play-world" id="playWorld"></span>
+    </div>
+    <p class="play-tip" id="playTip">Space to jump — Escape to quit</p>
+  </div>
+</section>
+
 <!-- ============ LANGUAGE DIALOG ============ -->
 <div class="scrim" id="langScrim" hidden>
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="langTitle">
@@ -1132,11 +1137,20 @@ body.is-mobile .dialog-foot{ display:none; }
       modeLocal: "Local play",
       modeLocalDesc:"Up to four people on one keyboard.",
       modeLocalTag: "2 to 4 players",
-      charsTitle:"Choose your fighter",
+      gamesTitle:"Choose a game",
+      gameRace:  "Marble race",
+      gameRaceDesc:"Every marble on the same course. First one down wins.",
+      gameRaceTag: "First to finish",
+      gameEndless:"Endless run",
+      gameEndlessDesc:"The course keeps coming. Roll as far as you can.",
+      gameEndlessTag:"No finish line",
+      charsTitle:"Choose your color",
       charsFoot: "Move — Enter to confirm — Escape to go back",
       charsConfirm:"Confirm",
-      charWhite: "White",
-      charBlack: "Black",
+      charBlue:  "Blue",
+      charRed:   "Red",
+      charGreen: "Green",
+      charYellow:"Yellow",
       fmtTitle:  "Choose a format",
       fmtQuick:  "Quick battle",
       fmtQuickDesc:"One match, straight into it.",
@@ -1144,6 +1158,9 @@ body.is-mobile .dialog-foot{ display:none; }
       fmtTournament:"Tournament",
       fmtTournamentDesc:"A bracket of matches. Last fighter standing wins.",
       fmtTournamentTag:"Bracket — 4 fighters",
+      playQuit:  "Quit",
+      playTip:   "Space to jump — Escape to quit",
+      playTipTouch:"Tap to jump",
       selectTitle:"Character select",
       selectBody:"The roster is the next build step.",
       back:      "Back",
@@ -1172,11 +1189,20 @@ body.is-mobile .dialog-foot{ display:none; }
       modeLocal: "Jeu local",
       modeLocalDesc:"Jusqu'à quatre personnes sur un clavier.",
       modeLocalTag: "2 à 4 joueurs",
-      charsTitle:"Choisissez votre combattant",
+      gamesTitle:"Choisissez un jeu",
+      gameRace:  "Course de billes",
+      gameRaceDesc:"Toutes les billes sur le même parcours. La première arrivée gagne.",
+      gameRaceTag: "Première à l'arrivée",
+      gameEndless:"Course sans fin",
+      gameEndlessDesc:"Le parcours ne s'arrête jamais. Allez le plus loin possible.",
+      gameEndlessTag:"Sans ligne d'arrivée",
+      charsTitle:"Choisissez votre couleur",
       charsFoot: "Déplacer — Entrée pour confirmer — Échap pour revenir",
       charsConfirm:"Confirmer",
-      charWhite: "Blanc",
-      charBlack: "Noir",
+      charBlue:  "Bleu",
+      charRed:   "Rouge",
+      charGreen: "Vert",
+      charYellow:"Jaune",
       fmtTitle:  "Choisissez un format",
       fmtQuick:  "Combat rapide",
       fmtQuickDesc:"Un match, sans détour.",
@@ -1184,6 +1210,9 @@ body.is-mobile .dialog-foot{ display:none; }
       fmtTournament:"Tournoi",
       fmtTournamentDesc:"Un tableau de matchs. Le dernier debout l'emporte.",
       fmtTournamentTag:"Tableau — 4 combattants",
+      playQuit:  "Quitter",
+      playTip:   "Espace pour sauter — Échap pour quitter",
+      playTipTouch:"Touchez pour sauter",
       selectTitle:"Sélection des personnages",
       selectBody:"Le roster arrive à la prochaine étape.",
       back:      "Retour",
@@ -1223,10 +1252,17 @@ body.is-mobile .dialog-foot{ display:none; }
   var splash   = $("splash"),
       home     = $("home"),
       modes    = $("modes"),
+      games    = $("games"),
       chars    = $("chars"),
       formats  = $("formats"),
       select   = $("select"),
+      play     = $("play"),
+      playTip  = $("playTip"),
+      playWorld= $("playWorld"),
+      btnQuit  = $("btnQuit"),
       scrim    = $("langScrim"),
+      gameCrumb = $("gameCrumb"),
+      charsCrumb= $("charsCrumb"),
       fmtCrumb = $("fmtCrumb"),
       selectCrumb = $("selectCrumb"),
       slotRow  = $("slotRow"),
@@ -1240,21 +1276,21 @@ body.is-mobile .dialog-foot{ display:none; }
 
   var langButtons = Array.prototype.slice.call(document.querySelectorAll(".lang"));
   var modeButtons = Array.prototype.slice.call(document.querySelectorAll("[data-mode]"));
+  var gameButtons = Array.prototype.slice.call(document.querySelectorAll("[data-game]"));
   var fmtButtons  = Array.prototype.slice.call(document.querySelectorAll("[data-format]"));
   var lang = "en";
   var focusIndex = 0;
-  var modeIndex = 0;
-  var fmtIndex = 0;
 
   /* STRINGS keys for the breadcrumb, and who fills each slot */
   var MODE_KEY = { solo:"modeSolo", local:"modeLocal" };
+  var GAME_KEY = { race:"gameRace", endless:"gameEndless" };
   var FMT_KEY  = { quick:"fmtQuick", tournament:"fmtTournament" };
-  var CHAR_KEY = { white:"charWhite", black:"charBlack" };
+  var CHAR_KEY = { blue:"charBlue", red:"charRed", green:"charGreen", yellow:"charYellow" };
   var ROSTER   = {
     solo:  ["P1","CPU","CPU","CPU"],
     local: ["P1","P2","P3","P4"]
   };
-  var chosenMode = null, chosenFormat = null, chosenChar = null;
+  var chosenMode = null, chosenGame = null, chosenFormat = null, chosenChar = null;
 
   $("wmA").textContent = CONFIG.titleTop;
   $("wmB").textContent = CONFIG.titleBottom;
@@ -1272,7 +1308,10 @@ body.is-mobile .dialog-foot{ display:none; }
     });
     // these screens are built from state, not from data-i18n keys
     refreshCharText();
-    fmtCrumb.textContent = dict.modeSolo;
+    playTip.textContent = document.body.classList.contains("is-mobile")
+      ? dict.playTipTouch : dict.playTip;
+    playWorld.textContent = worldName();
+    renderCrumbs();
     if (chosenMode) renderSelect();
   }
 
@@ -1302,42 +1341,23 @@ body.is-mobile .dialog-foot{ display:none; }
 
   /* ==========================================================
      6. THE ROSTER
-     Add a fighter by adding a line here: the icon grid, the
-     preview and the idle animation all read from this list.
-     The CSS block .fig[data-char="…"] carries the color and
-     the idle; everything else is shared.
+     Add a ball by adding a line here and a --ball-* token up in
+     the palette: the swatch grid, the preview and the filled
+     slot on the select screen all read from this list.
      ========================================================== */
   var CHARS = [
-    { id:"white", key:"charWhite" },
-    { id:"black", key:"charBlack" }
+    { id:"blue",   key:"charBlue"   },
+    { id:"red",    key:"charRed"    },
+    { id:"green",  key:"charGreen"  },
+    { id:"yellow", key:"charYellow" }
   ];
-  var CHAR_COLS = 2;              // columns in the icon grid
+  var CHAR_COLS = 2;              // columns in the swatch grid
   var charIndex = 0;
   var charCells = [];
   var stagedChar = null;
 
-  /* Stacked back to front: far arm, torso, near arm, head, then the
-     legs. The far arm going behind the torso is the whole trick — in
-     front of it, the two arms read as one shoulder carrying both. */
-  function figureHTML(id){
-    var arm = function(side){
-      return '<div class="arm arm-' + side + '">' +
-               '<div class="p upperarm"></div>' +
-               '<div class="fore"><div class="p forearm"></div><div class="p hand"></div></div>' +
-             '</div>';
-    };
-    return '<div class="fig" data-char="' + id + '">' +
-             '<div class="sway"><div class="rig">' +
-               '<div class="upper">' +
-                 arm("b") +
-                 '<div class="p torso"></div>' +
-                 arm("f") +
-                 '<div class="p head"></div>' +
-               '</div>' +
-               '<div class="p leg leg-b"></div>' +
-               '<div class="p leg leg-f"></div>' +
-             '</div></div>' +
-           '</div>';
+  function ballHTML(id){
+    return '<div class="ball" data-char="' + id + '"></div>';
   }
 
   function buildCharGrid(){
@@ -1347,7 +1367,7 @@ body.is-mobile .dialog-foot{ display:none; }
       var cell = document.createElement("button");
       cell.className = "char-cell" + (i === charIndex ? " is-picked" : "");
       cell.setAttribute("data-char", c.id);
-      cell.innerHTML = '<span class="chip ' + c.id + '"></span><b>' + STRINGS[lang][c.key] + '</b>';
+      cell.innerHTML = '<span class="chip"></span><b>' + STRINGS[lang][c.key] + '</b>';
       cell.addEventListener("click", function(){ pickChar(i); });
       charGrid.appendChild(cell);
       charCells.push(cell);
@@ -1355,36 +1375,26 @@ body.is-mobile .dialog-foot{ display:none; }
     renderPreview(true);
   }
 
-  /* A hit. There is nothing to punch on a select screen, so the things
-     that stand in for one are clicking the fighter, picking him, and
-     locking him in. White answers by dropping into his fighting stance
-     and holding it until nothing has touched him for a few seconds;
-     everyone else just takes the knock and carries on. */
-  var STANCE_HOLD = 4200;
-  var stanceTimer = null;
-
+  /* Poke it and it bounces. Clicking the ball, picking it in the
+     grid and locking it in all run the same beat, so the stage
+     answers every one of them. */
   function strike(){
-    var fig = charStage.firstChild;
-    if (!fig) return;
-    fig.classList.remove("is-hit");
-    void fig.offsetWidth;              // restart the recoil
-    fig.classList.add("is-hit");
-    if (fig.getAttribute("data-char") !== "white") return;
-    fig.classList.add("is-fighting");
-    clearTimeout(stanceTimer);
-    stanceTimer = setTimeout(function(){ fig.classList.remove("is-fighting"); }, STANCE_HOLD);
+    var ball = charStage.firstChild;
+    if (!ball) return;
+    ball.classList.remove("is-hit");
+    void ball.offsetWidth;             // restart the bounce
+    ball.classList.add("is-hit");
   }
 
   charStage.addEventListener("click", strike);
 
-  /* The preview is rebuilt only when the fighter changes, so the
+  /* The preview is rebuilt only when the colour changes, so the
      idle restarts on a real switch and never on a repeat click. */
   function renderPreview(force){
     var id = CHARS[charIndex].id;
     if (!force && stagedChar === id) return;
     stagedChar = id;
-    clearTimeout(stanceTimer);
-    charStage.innerHTML = figureHTML(id);
+    charStage.innerHTML = ballHTML(id);
   }
 
   function pickChar(i){
@@ -1409,8 +1419,8 @@ body.is-mobile .dialog-foot{ display:none; }
 
   function confirmChar(){
     chosenChar = CHARS[charIndex].id;
-    fmtIndex = 0;
-    go("formats");
+    renderCrumbs();
+    startGame();
   }
 
   btnCharGo.addEventListener("click", confirmChar);
@@ -1418,22 +1428,45 @@ body.is-mobile .dialog-foot{ display:none; }
   /* ==========================================================
      7. SCREENS
      ========================================================== */
-  var SCREENS = { home:home, modes:modes, chars:chars, formats:formats, select:select };
+  var SCREENS = { home:home, modes:modes, games:games, chars:chars, formats:formats, select:select, play:play };
+
+  /* The three card screens are the same screen with different cards,
+     so they share one keyboard, one focus rule and one click handler.
+     `i` is where the cursor sits on each. */
+  var DECKS = {
+    modes:   { list:modeButtons, i:0, attr:"data-mode",   pick:chooseMode   },
+    games:   { list:gameButtons, i:0, attr:"data-game",   pick:chooseGame   },
+    formats: { list:fmtButtons,  i:0, attr:"data-format", pick:chooseFormat }
+  };
+
+  /* Each screen says out loud how you got there: solo play, then the
+     game, then the colour. Rebuilt on every pick and on a language
+     change, so the trail never goes stale. */
+  var SEP = "  \u2014  ";
+  function renderCrumbs(){
+    var d = STRINGS[lang];
+    var mode = d[MODE_KEY[chosenMode || "solo"]];
+    var game = mode + (chosenGame ? SEP + d[GAME_KEY[chosenGame]] : "");
+    gameCrumb.textContent  = mode;
+    charsCrumb.textContent = game;
+    fmtCrumb.textContent   = game + (chosenChar ? SEP + d[CHAR_KEY[chosenChar]] : "");
+  }
   var screen = "home";
   var trail  = [];          // where Escape and Back retreat to
 
   function show(name){
+    if (screen === "play" && name !== "play") stopGame();
     for (var k in SCREENS) SCREENS[k].hidden = (k !== name);
     screen = name;
     focusScreen(name);
   }
 
   function focusScreen(name){
-    if (name === "home")         btnPlay.focus();
-    else if (name === "modes")   modeButtons[modeIndex].focus();
-    else if (name === "chars")   { if (charCells[charIndex]) charCells[charIndex].focus(); }
-    else if (name === "formats") fmtButtons[fmtIndex].focus();
-    else if (name === "select")  btnBack.focus();
+    if (name === "home")        btnPlay.focus();
+    else if (name === "chars")  { if (charCells[charIndex]) charCells[charIndex].focus(); }
+    else if (name === "select") btnBack.focus();
+    else if (name === "play")   btnQuit.focus();
+    else if (DECKS[name])       DECKS[name].list[DECKS[name].i].focus();
   }
 
   function go(name){ trail.push(screen); show(name); }
@@ -1444,17 +1477,26 @@ body.is-mobile .dialog-foot{ display:none; }
 
   /* --- home -> modes --- */
   function openModes(){
-    modeIndex = 0;
+    DECKS.modes.i = 0;
     go("modes");
   }
 
-  /* --- modes -> fighter pick (solo) or straight to select --- */
+  /* --- modes -> game type (solo) or straight to select --- */
   function chooseMode(id){
     chosenMode = id;
+    chosenGame = null;
     chosenFormat = null;
     chosenChar = null;
-    if (id === "solo"){ renderPreview(true); go("chars"); }
+    if (id === "solo"){ DECKS.games.i = 0; renderCrumbs(); go("games"); }
     else { renderSelect(); go("select"); }
+  }
+
+  /* --- game type -> ball pick. Both cards land in the same place. --- */
+  function chooseGame(id){
+    chosenGame = id;
+    renderCrumbs();
+    renderPreview(true);
+    go("chars");
   }
 
   /* --- formats -> select --- */
@@ -1470,8 +1512,9 @@ body.is-mobile .dialog-foot{ display:none; }
   function renderSelect(){
     var dict = STRINGS[lang];
     var label = dict[MODE_KEY[chosenMode]];
-    if (chosenFormat) label += "  \u2014  " + dict[FMT_KEY[chosenFormat]];
-    if (chosenChar)   label += "  \u2014  " + dict[CHAR_KEY[chosenChar]];
+    if (chosenGame)   label += SEP + dict[GAME_KEY[chosenGame]];
+    if (chosenChar)   label += SEP + dict[CHAR_KEY[chosenChar]];
+    if (chosenFormat) label += SEP + dict[FMT_KEY[chosenFormat]];
     selectCrumb.textContent = label;
 
     slotRow.innerHTML = "";
@@ -1495,22 +1538,286 @@ body.is-mobile .dialog-foot{ display:none; }
     btn.addEventListener("click", goBack);
   });
 
-  modeButtons.forEach(function(btn, i){
-    btn.addEventListener("click", function(){
-      modeIndex = i;
-      chooseMode(btn.getAttribute("data-mode"));
-    });
-  });
-
-  fmtButtons.forEach(function(btn, i){
-    btn.addEventListener("click", function(){
-      fmtIndex = i;
-      chooseFormat(btn.getAttribute("data-format"));
+  /* one wiring pass for all three card screens */
+  Object.keys(DECKS).forEach(function(name){
+    var deck = DECKS[name];
+    deck.list.forEach(function(btn, i){
+      btn.addEventListener("click", function(){
+        deck.i = i;
+        deck.pick(btn.getAttribute(deck.attr));
+      });
     });
   });
 
   /* ==========================================================
-     8. KEYBOARD
+     8. THE GAME
+     A one-button runner. The ball holds its lane near the left
+     edge and never moves sideways — the world slides past it
+     instead, so every jump is timed against scenery rather than
+     aimed. Each run draws a world at random.
+     ========================================================== */
+  var TUNE = {
+    grav:  2900,    // px/s²
+    jump:  1020,    // launch speed — clears about 180px
+    speed:  360,    // how fast the world slides past
+    lane:    .22,   // how far in from the left the ball stands
+    line:     2     // every outline in the world is this thick
+  };
+
+  /* One world for now. Violet on purpose: none of the four ball
+     colours live in that family, so every ball stays distinct
+     against every layer of it. Sky and hills stay light because
+     the ball's outline is black and has to keep reading; the
+     ground is the only dark mass, which is what makes the
+     horizon line land. More worlds slot in beside this one
+     later without the renderer changing. */
+  var WORLD = {
+    en:"Dusk", fr:"Crépuscule",
+    skyTop: "#CFC3EC",   // overhead
+    skyLow: "#FBDCC4",   // the warm band at the horizon
+    sun:    "#FFF1D6",
+    cloud:  "#E7DEF6",
+    far:    "#BCAFDD",   // distant range
+    mid:    "#AC9ED4",   // rolling hills
+    near:   "#9C8DC9",   // scrub along the horizon
+    ground: "#8C7CBE",
+    soil:   "#7A6AAC"    // the crust under the surface
+  };
+
+  var cv  = $("playCanvas"),
+      ctx = cv.getContext("2d");
+
+  var view  = { w:0, h:0 };
+  var world = { dist:0, seed:0 };
+  var ball  = { x:0, y:0, vy:0, r:26, color:"#1F7AFF", down:true };
+  var keys  = { jump:false };
+  var running = false, raf = 0, last = 0, sky = null;
+
+  /* The ball colours live in the palette and nowhere else, so the
+     ball on the canvas cannot drift from the swatch that picked it. */
+  function ballHex(id){
+    var v = getComputedStyle(document.documentElement)
+              .getPropertyValue("--ball-" + id).trim();
+    return v || "#1F7AFF";
+  }
+  /* Deterministic noise: the same seed rebuilds the same skyline
+     every frame, so the far blocks hold still as the view scrolls
+     instead of flickering into new shapes. */
+  function rnd(i){
+    var x = Math.sin(i * 12.9898 + world.seed) * 43758.5453;
+    return x - Math.floor(x);
+  }
+
+  function sizeCanvas(){
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    view.w = cv.clientWidth;
+    view.h = cv.clientHeight;
+    cv.width  = Math.round(view.w * dpr);
+    cv.height = Math.round(view.h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    sky = ctx.createLinearGradient(0, 0, 0, floorY());
+    sky.addColorStop(0, WORLD.skyTop);
+    sky.addColorStop(1, WORLD.skyLow);
+  }
+  function floorY(){ return view.h - Math.max(46, Math.min(view.h * .11, 100)); }
+  function radius(){ return Math.max(12, Math.min(view.h * .032, 24)); }
+  function laneX(){ return Math.max(80, Math.min(view.w * TUNE.lane, 280)); }
+
+  function worldName(){ return WORLD[lang] || WORLD.en; }
+
+  function startGame(){
+    go("play");                 // unhide first: a hidden canvas has no size
+    sizeCanvas();
+
+    world.seed = Math.random() * 1000;   // same world, freshly shaped terrain
+    world.dist = 0;
+    play.style.background = WORLD.skyTop;      // no white flash before the first frame
+    playWorld.textContent = worldName();
+
+    ball.r     = radius();
+    ball.color = ballHex(chosenChar);
+    ball.x     = laneX();
+    ball.y     = floorY() - ball.r;
+    ball.vy    = 0;
+    ball.down  = true;
+    keys.jump  = false;
+
+    last = 0;
+    if (!running){ running = true; raf = requestAnimationFrame(frame); }
+  }
+
+  function stopGame(){
+    running = false;
+    cancelAnimationFrame(raf);
+  }
+
+  function frame(t){
+    if (!running) return;
+    if (!last) last = t;
+    var dt = Math.min((t - last) / 1000, .05);   // clamped so a background tab cannot teleport the world
+    last = t;
+    step(dt);
+    draw();
+    raf = requestAnimationFrame(frame);
+  }
+
+  function step(dt){
+    world.dist += TUNE.speed * dt;
+
+    /* Held, not tapped: on the ground with the button down is a jump,
+       so holding it keeps the ball hopping the way a runner should. */
+    if (keys.jump && ball.down){ ball.vy = -TUNE.jump; ball.down = false; }
+
+    ball.vy += TUNE.grav * dt;
+    ball.y  += ball.vy * dt;
+
+    var rest = floorY() - ball.r;
+    if (ball.y >= rest){ ball.y = rest; ball.vy = 0; ball.down = true; }
+  }
+
+  /* --- the world, back to front --------------------------- */
+
+  /* A ridge is one jagged line with the space beneath it filled.
+     Same routine at three scales and three speeds gives the depth;
+     the further a layer is, the lighter and the slower it goes. */
+  function ridge(shift, step, base, amp, seedOff, color, top){
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    var i0 = Math.floor(shift / step) - 1;
+    ctx.moveTo(i0 * step - shift, view.h);
+    for (var i = i0; i * step - shift < view.w + step; i++){
+      ctx.lineTo(i * step - shift, top - base - rnd(i + seedOff) * amp);
+    }
+    ctx.lineTo(view.w + step, view.h);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  /* Three overlapping discs read as a cloud without needing a sprite. */
+  function clouds(shift, fy){
+    ctx.fillStyle = WORLD.cloud;
+    var step = 330;
+    for (var i = Math.floor(shift / step) - 1; i * step - shift < view.w + step; i++){
+      var x = i * step - shift + rnd(i + 41) * 150,
+          y = fy * (.12 + rnd(i + 77) * .26),
+          r = 9 + rnd(i + 13) * 12;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.arc(x + r * 1.5, y - r * .55, r * 1.35, 0, Math.PI * 2);
+      ctx.arc(x + r * 3.1, y, r * .95, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  /* Scrub on the horizon: gapped on purpose, so it reads as growth
+     rather than as a wall. This is the fastest layer behind the ball,
+     which is what sells the speed. */
+  function scrub(shift, fy){
+    ctx.fillStyle = WORLD.near;
+    var step = 62;
+    for (var i = Math.floor(shift / step) - 1; i * step - shift < view.w + step; i++){
+      if (rnd(i + 137) < .34) continue;
+      ctx.fillRect(Math.round(i * step - shift),
+                   fy - (12 + rnd(i + 307) * 40),
+                   18 + rnd(i + 211) * 30,
+                   12 + rnd(i + 307) * 40);
+    }
+  }
+
+  /* Stones on the surface, moving at the true speed of the ground. */
+  function pebbles(shift, fy, h){
+    ctx.fillStyle = "rgba(0,0,0,.13)";
+    var step = 54, band = h - fy;
+    for (var i = Math.floor(shift / step) - 1; i * step - shift < view.w + step; i++){
+      if (rnd(i + 401) < .45) continue;
+      ctx.fillRect(Math.round(i * step - shift + rnd(i + 457) * 28),
+                   Math.round(fy + band * (.38 + rnd(i + 503) * .44)),
+                   5 + rnd(i + 599) * 9, 2);
+    }
+  }
+
+  function draw(){
+    var w = view.w, h = view.h, fy = floorY(), d = world.dist;
+
+    ctx.fillStyle = sky || WORLD.skyTop;
+    ctx.fillRect(0, 0, w, fy);
+
+    /* The sun holds still. The runner is what is moving, not the evening. */
+    var sr = Math.max(30, Math.min(fy * .16, 84)),
+        sx = w * .74, sy = fy * .58;
+    ctx.fillStyle = WORLD.sun;
+    ctx.globalAlpha = .45;
+    ctx.beginPath(); ctx.arc(sx, sy, sr * 1.75, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.fill();
+
+    clouds(d * .10, fy);
+    ridge(d * .18, 148, fy * .17, fy * .30, 11, WORLD.far, fy);
+    ridge(d * .34, 102, fy * .08, fy * .17, 53, WORLD.mid, fy);
+    scrub(d * .62, fy);
+
+    ctx.fillStyle = WORLD.ground;
+    ctx.fillRect(0, fy, w, h - fy);
+    ctx.fillStyle = WORLD.soil;
+    ctx.fillRect(0, fy, w, Math.max(5, (h - fy) * .20));
+    pebbles(d, fy, h);
+
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = TUNE.line;
+    ctx.beginPath();
+    ctx.moveTo(0, fy + TUNE.line / 2);
+    ctx.lineTo(w, fy + TUNE.line / 2);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+    ctx.fillStyle = ball.color;
+    ctx.fill();
+    ctx.lineWidth = TUNE.line;
+    ctx.strokeStyle = "#000";
+    ctx.stroke();
+  }
+
+  /* --- input: one button ---------------------------------- */
+  function gameKey(e, down){
+    if (screen !== "play") return;
+    var k = e.key;
+    if (k === " " || k === "Spacebar" || k === "ArrowUp" || k === "w" || k === "W"){
+      keys.jump = down;
+      e.preventDefault();
+    }
+  }
+  document.addEventListener("keydown", function(e){ gameKey(e, true); });
+  document.addEventListener("keyup",   function(e){ gameKey(e, false); });
+
+  /* Pointer is the same button: press anywhere on the world to jump,
+     hold to keep hopping. Works for a finger and for a mouse. */
+  function pointerJump(down){
+    return function(e){
+      if (screen !== "play") return;
+      keys.jump = down;
+      e.preventDefault();
+    };
+  }
+  cv.addEventListener("pointerdown",   pointerJump(true));
+  cv.addEventListener("pointerup",     pointerJump(false));
+  cv.addEventListener("pointercancel", pointerJump(false));
+  cv.addEventListener("pointerleave",  pointerJump(false));
+
+  btnQuit.addEventListener("click", goBack);
+
+  /* The world is measured from the window, so it is remeasured when
+     the window changes and the ball is put back on the ground. */
+  window.addEventListener("resize", function(){
+    if (screen !== "play") return;
+    sizeCanvas();
+    ball.r = radius();
+    ball.x = laneX();
+    ball.y = Math.min(ball.y, floorY() - ball.r);
+  });
+
+  /* ==========================================================
+     9. KEYBOARD
      ========================================================== */
   document.addEventListener("keydown", function(e){
     if (gated) return;
@@ -1564,28 +1871,29 @@ body.is-mobile .dialog-foot{ display:none; }
       return;
     }
 
-    /* both card screens navigate the same way */
-    if (screen === "modes" || screen === "formats"){
-      var onModes = screen === "modes";
-      var list    = onModes ? modeButtons : fmtButtons;
-      var idx     = onModes ? modeIndex : fmtIndex;
+    /* all three card screens navigate the same way */
+    if (DECKS[screen]){
+      var deck = DECKS[screen], list = deck.list;
 
       if (e.key === "ArrowRight" || e.key === "ArrowLeft"){
         e.preventDefault();
-        idx = e.key === "ArrowRight"
-          ? (idx + 1) % list.length
-          : (idx - 1 + list.length) % list.length;
-        if (onModes) modeIndex = idx; else fmtIndex = idx;
-        list[idx].focus();
+        deck.i = e.key === "ArrowRight"
+          ? (deck.i + 1) % list.length
+          : (deck.i - 1 + list.length) % list.length;
+        list[deck.i].focus();
         return;
       }
       if ((e.key === "Enter" || e.key === " ") && document.activeElement === document.body){
         e.preventDefault();
-        if (onModes) chooseMode(list[idx].getAttribute("data-mode"));
-        else         chooseFormat(list[idx].getAttribute("data-format"));
+        deck.pick(list[deck.i].getAttribute(deck.attr));
         return;
       }
       if (e.key === "Escape") goBack();
+      return;
+    }
+
+    if (screen === "play"){
+      if (e.key === "Escape"){ e.preventDefault(); goBack(); }
       return;
     }
 
@@ -1595,7 +1903,7 @@ body.is-mobile .dialog-foot{ display:none; }
   });
 
   /* ==========================================================
-     9. BOOT
+     10. BOOT
      ========================================================== */
   /* Primary pointer coarse + no hover means phone or tablet. A
      touchscreen laptop still reports a fine primary pointer, so it
