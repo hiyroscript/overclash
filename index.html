@@ -240,12 +240,10 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
 .footer{
   border-top:1px solid var(--char-line);
   padding:14px clamp(28px,5vw,80px);
-  display:flex; align-items:center; justify-content:space-between; gap:20px;
+  display:flex; align-items:center; gap:20px;
   font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--ink-dim);
 }
 .footer strong{ color:var(--ink); font-weight:600; letter-spacing:.24em; }
-.footer-right{ display:flex; align-items:center; gap:22px; }
-.build{ color:var(--red); }
 
 /* ============================================================
    MODE SELECT
@@ -804,11 +802,9 @@ body.is-mobile .char-cell:hover, body.is-mobile .char-cell:focus-visible{ transf
 
 body.is-mobile .slot-row{ flex-wrap:wrap; }
 body.is-mobile .footer{
-  flex-direction:column; align-items:flex-start; gap:7px;
   padding:12px clamp(18px,5vw,34px);
   padding-bottom:calc(12px + env(safe-area-inset-bottom));
 }
-body.is-mobile .footer-right{ flex-wrap:wrap; gap:14px; }
 
 /* no keyboard, so no keyboard legends */
 body.is-mobile .hint,
@@ -909,21 +905,6 @@ body.is-mobile .dialog-foot{ display:none; }
           <circle cx="12" cy="12" r="9"/>
           <path d="M3 12h18"/>
           <path d="M12 3c2.6 2.6 3.9 5.6 3.9 9s-1.3 6.4-3.9 9c-2.6-2.6-3.9-5.6-3.9-9S9.4 5.6 12 3Z"/>
-        </svg>
-      </button>
-      <button class="icon-btn" id="btnControls" data-tip="controls" aria-label="Controls">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-          <rect x="3" y="7" width="18" height="10"/>
-          <path d="M7 10v4M5 12h4"/>
-          <path d="M16 11h.01M18.5 13.5h.01"/>
-        </svg>
-      </button>
-      <button class="icon-btn" id="btnSettings" data-tip="settings" aria-label="Settings">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-          <path d="M4 7h16M4 12h16M4 17h16"/>
-          <rect x="8" y="4.6" width="4" height="4.8"/>
-          <rect x="13" y="9.6" width="4" height="4.8"/>
-          <rect x="6" y="14.6" width="4" height="4.8"/>
         </svg>
       </button>
     </div>
@@ -1148,11 +1129,6 @@ body.is-mobile .dialog-foot{ display:none; }
     <!-- ---------- FOOTER ---------- -->
     <footer class="footer">
       <p>A game by <strong>hiyroscript</strong></p>
-      <div class="footer-right">
-        <span data-i18n="inputTag">Keyboard + mouse</span>
-        <span id="langTag">EN</span>
-        <span class="build">Build 0.2 — Pre-alpha</span>
-      </div>
     </footer>
 
   </div>
@@ -1244,8 +1220,6 @@ body.is-mobile .dialog-foot{ display:none; }
       langTitle: "Choose your language",
       langSub:   "Change it any time from the menu rail.",
       langFoot:  "Move — Enter to confirm",
-      inputTag:  "Keyboard + mouse",
-      inputTagTouch:"Touch",
       gateDeviceTitle:"Computer required",
       gateDeviceBody: "This game runs on keyboard and mouse. Open it on a desktop or laptop.",
       gateSizeTitle:  "Window too small",
@@ -1291,8 +1265,6 @@ body.is-mobile .dialog-foot{ display:none; }
       langTitle: "Choisissez votre langue",
       langSub:   "Modifiable à tout moment depuis le menu latéral.",
       langFoot:  "Déplacer — Entrée pour confirmer",
-      inputTag:  "Clavier + souris",
-      inputTagTouch:"Tactile",
       gateDeviceTitle:"Ordinateur requis",
       gateDeviceBody: "Ce jeu se joue au clavier et à la souris. Ouvrez-le sur un ordinateur.",
       gateSizeTitle:  "Fenêtre trop petite",
@@ -1332,7 +1304,6 @@ body.is-mobile .dialog-foot{ display:none; }
       arena    = $("arena"),
       scrim    = $("langScrim"),
       flash    = $("flash"),
-      langTag  = $("langTag"),
       fmtCrumb = $("fmtCrumb"),
       selectCrumb = $("selectCrumb"),
       slotRow  = $("slotRow"),
@@ -1373,16 +1344,10 @@ body.is-mobile .dialog-foot{ display:none; }
     lang = STRINGS[code] ? code : "en";
     var dict = STRINGS[lang];
     document.documentElement.lang = lang;
-    langTag.textContent = lang.toUpperCase();
     Array.prototype.forEach.call(document.querySelectorAll("[data-i18n]"), function(el){
       var k = el.getAttribute("data-i18n");
       if (dict[k]) el.textContent = dict[k];
     });
-    // the footer names the input the player actually has
-    if (document.body.classList.contains("is-mobile")){
-      var tag = document.querySelector('[data-i18n="inputTag"]');
-      if (tag) tag.textContent = dict.inputTagTouch;
-    }
     // these screens are built from state, not from data-i18n keys
     refreshCharText();
     fmtCrumb.textContent = dict.modeBots;
