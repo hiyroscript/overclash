@@ -116,7 +116,6 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
   display:flex; flex-direction:column; align-items:center;
   padding:20px 0 18px;
 }
-.mark{ width:30px; height:30px; color:var(--blue); }
 .rail-spacer{ flex:1; }
 .rail-tools{ display:flex; flex-direction:column; gap:6px; }
 .icon-btn{
@@ -256,7 +255,7 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
 .modes-inner{ width:100%; max-width:1080px; }
 
 .modes-head{
-  display:flex; align-items:flex-end; justify-content:space-between;
+  display:flex; align-items:flex-end;
   gap:24px; margin-bottom:26px;
 }
 .modes-head h2{
@@ -264,13 +263,6 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
   font-size:clamp(38px,5vw,62px); line-height:.88;
   text-transform:uppercase; color:var(--ink);
 }
-.legend{
-  display:flex; gap:18px; flex-shrink:0;
-  font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-dim);
-}
-.legend span{ display:flex; align-items:center; gap:7px; }
-.legend svg{ width:13px; height:13px; }
-
 .mode-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
 
 .mode{
@@ -282,16 +274,6 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
 }
 .mode:hover, .mode:focus-visible{ border-color:var(--blue); transform:translateY(-3px); }
 .mode:active{ background:var(--yellow); border-color:var(--yellow); transform:none; }
-
-/* roster diagram — solid token is a person, outline is the CPU */
-.roster{ display:flex; gap:6px; margin-bottom:20px; }
-.tok{ width:19px; height:19px; }
-.tok polygon{ stroke-width:1.5; }
-.tok.human polygon{ fill:var(--blue); stroke:var(--blue); }
-.tok.cpu polygon{ fill:none; stroke:var(--ink-dim); }
-.mode:hover .tok.cpu polygon, .mode:focus-visible .tok.cpu polygon{ stroke:var(--ink); }
-.mode:active .tok.human polygon{ fill:var(--char-deep); stroke:var(--char-deep); }
-.mode:active .tok.cpu polygon{ stroke:var(--char-deep); }
 
 .mode b{
   display:block; font-family:var(--f-display); font-weight:700;
@@ -323,7 +305,7 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
   text-transform:uppercase; color:var(--ink-dim);
 }
 
-/* two-card grid, for the bots formats */
+/* two-card grid */
 .mode-grid.two{ grid-template-columns:repeat(2,1fr); max-width:720px; }
 
 /* format diagram — the shape of the match itself */
@@ -890,13 +872,6 @@ body.is-mobile .dialog-foot{ display:none; }
 <div id="app">
 
   <nav class="rail" aria-label="Menu">
-    <svg class="mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-      <path d="M16 2 30 16 16 30 2 16Z" stroke="currentColor" stroke-width="1.6"/>
-      <path d="M16 9 23 16 16 23 9 16Z" fill="currentColor" opacity=".22"/>
-      <path d="M16 9 23 16" stroke="currentColor" stroke-width="1.6"/>
-      <path d="M9 16 16 23" stroke="currentColor" stroke-width="1.6"/>
-    </svg>
-
     <div class="rail-spacer"></div>
 
     <div class="rail-tools">
@@ -958,55 +933,21 @@ body.is-mobile .dialog-foot{ display:none; }
         </button>
 
         <div class="modes-head">
-          <h2 data-i18n="modesTitle">Choose a mode</h2>
-          <div class="legend">
-            <span>
-              <svg class="tok human" viewBox="0 0 24 24" aria-hidden="true"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
-              <em style="font-style:normal" data-i18n="legendPlayer">Player</em>
-            </span>
-            <span>
-              <svg class="tok cpu" viewBox="0 0 24 24" aria-hidden="true"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
-              <em style="font-style:normal" data-i18n="legendCpu">CPU</em>
-            </span>
-          </div>
+          <h2 data-i18n="modesTitle">Single player or multiplayer</h2>
         </div>
 
-        <div class="mode-grid">
+        <div class="mode-grid two">
 
-          <button class="mode" data-mode="bots">
-            <span class="roster" aria-hidden="true">
-              <svg class="tok human" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
-              <svg class="tok cpu" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
-              <svg class="tok cpu" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
-              <svg class="tok cpu" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
-            </span>
-            <b data-i18n="modeBots">Play against bots</b>
-            <span class="mode-desc" data-i18n="modeBotsDesc">You against three CPU fighters.</span>
-            <span class="mode-tag" data-i18n="modeBotsTag">1 player — 3 CPU</span>
+          <button class="mode" data-mode="solo">
+            <b data-i18n="modeSolo">Solo play</b>
+            <span class="mode-desc" data-i18n="modeSoloDesc">One player against the computer.</span>
+            <span class="mode-tag" data-i18n="modeSoloTag">1 player</span>
           </button>
 
           <button class="mode" data-mode="local">
-            <span class="roster" aria-hidden="true">
-              <svg class="tok human" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
-              <svg class="tok human" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
-              <svg class="tok human" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
-              <svg class="tok human" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
-            </span>
             <b data-i18n="modeLocal">Local play</b>
             <span class="mode-desc" data-i18n="modeLocalDesc">Up to four people on one keyboard.</span>
             <span class="mode-tag" data-i18n="modeLocalTag">2 to 4 players</span>
-          </button>
-
-          <button class="mode" data-mode="spectate">
-            <span class="roster" aria-hidden="true">
-              <svg class="tok cpu" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
-              <svg class="tok cpu" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
-              <svg class="tok cpu" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
-              <svg class="tok cpu" viewBox="0 0 24 24"><polygon points="20.3,15.4 15.4,20.3 8.6,20.3 3.7,15.4 3.7,8.6 8.6,3.7 15.4,3.7 20.3,8.6"/></svg>
-            </span>
-            <b data-i18n="modeSpectate">Spectate</b>
-            <span class="mode-desc" data-i18n="modeSpectateDesc">Watch four CPU fighters settle it.</span>
-            <span class="mode-tag" data-i18n="modeSpectateTag">0 players — 4 CPU</span>
           </button>
 
         </div>
@@ -1019,7 +960,7 @@ body.is-mobile .dialog-foot{ display:none; }
       </div>
     </section>
 
-    <!-- ---------- BOTS: CHARACTER PICK ---------- -->
+    <!-- ---------- SOLO: CHARACTER PICK ---------- -->
     <section class="chars" id="chars" hidden>
       <div class="chars-inner">
 
@@ -1030,7 +971,7 @@ body.is-mobile .dialog-foot{ display:none; }
 
         <div class="modes-head">
           <div>
-            <p class="crumb" data-i18n="modeBots">Play against bots</p>
+            <p class="crumb" data-i18n="modeSolo">Solo play</p>
             <h2 data-i18n="charsTitle">Choose your fighter</h2>
           </div>
         </div>
@@ -1061,7 +1002,7 @@ body.is-mobile .dialog-foot{ display:none; }
       </div>
     </section>
 
-    <!-- ---------- BOTS: FORMAT ---------- -->
+    <!-- ---------- SOLO: FORMAT ---------- -->
     <section class="modes" id="formats" hidden>
       <div class="modes-inner">
 
@@ -1189,19 +1130,14 @@ body.is-mobile .dialog-foot{ display:none; }
       tagline:   "Four fighters. One stage. Knock them off it.",
       play:      "Play",
       hint:      "Start",
-      modesTitle:"Choose a mode",
+      modesTitle:"Single player or multiplayer",
       modesFoot: "Move — Enter to select — Escape to go back",
-      legendPlayer:"Player",
-      legendCpu: "CPU",
-      modeBots:  "Play against bots",
-      modeBotsDesc:"You against three CPU fighters.",
-      modeBotsTag: "1 player — 3 CPU",
+      modeSolo:  "Solo play",
+      modeSoloDesc:"One player against the computer.",
+      modeSoloTag: "1 player",
       modeLocal: "Local play",
       modeLocalDesc:"Up to four people on one keyboard.",
       modeLocalTag: "2 to 4 players",
-      modeSpectate:"Spectate",
-      modeSpectateDesc:"Watch four CPU fighters settle it.",
-      modeSpectateTag: "0 players — 4 CPU",
       charsTitle:"Choose your fighter",
       charsFoot: "Move — Enter to confirm — Escape to go back",
       charsConfirm:"Confirm",
@@ -1234,19 +1170,14 @@ body.is-mobile .dialog-foot{ display:none; }
       tagline:   "Quatre combattants. Une arène. Éjectez-les.",
       play:      "Jouer",
       hint:      "Démarrer",
-      modesTitle:"Choisissez un mode",
+      modesTitle:"Solo ou multijoueur",
       modesFoot: "Déplacer — Entrée pour choisir — Échap pour revenir",
-      legendPlayer:"Joueur",
-      legendCpu: "IA",
-      modeBots:  "Affronter des bots",
-      modeBotsDesc:"Vous contre trois combattants IA.",
-      modeBotsTag: "1 joueur — 3 IA",
+      modeSolo:  "Jeu solo",
+      modeSoloDesc:"Un joueur contre l'ordinateur.",
+      modeSoloTag: "1 joueur",
       modeLocal: "Jeu local",
       modeLocalDesc:"Jusqu'à quatre personnes sur un clavier.",
       modeLocalTag: "2 à 4 joueurs",
-      modeSpectate:"Mode spectateur",
-      modeSpectateDesc:"Regardez quatre IA en découdre.",
-      modeSpectateTag: "0 joueur — 4 IA",
       charsTitle:"Choisissez votre combattant",
       charsFoot: "Déplacer — Entrée pour confirmer — Échap pour revenir",
       charsConfirm:"Confirmer",
@@ -1324,13 +1255,12 @@ body.is-mobile .dialog-foot{ display:none; }
   var fmtIndex = 0;
 
   /* STRINGS keys for the breadcrumb, and who fills each slot */
-  var MODE_KEY = { bots:"modeBots", local:"modeLocal", spectate:"modeSpectate" };
+  var MODE_KEY = { solo:"modeSolo", local:"modeLocal" };
   var FMT_KEY  = { quick:"fmtQuick", tournament:"fmtTournament" };
   var CHAR_KEY = { white:"charWhite", black:"charBlack" };
   var ROSTER   = {
-    bots:     ["P1","CPU","CPU","CPU"],
-    local:    ["P1","P2","P3","P4"],
-    spectate: ["CPU","CPU","CPU","CPU"]
+    solo:  ["P1","CPU","CPU","CPU"],
+    local: ["P1","P2","P3","P4"]
   };
   var chosenMode = null, chosenFormat = null, chosenChar = null;
 
@@ -1350,7 +1280,7 @@ body.is-mobile .dialog-foot{ display:none; }
     });
     // these screens are built from state, not from data-i18n keys
     refreshCharText();
-    fmtCrumb.textContent = dict.modeBots;
+    fmtCrumb.textContent = dict.modeSolo;
     if (chosenMode) renderSelect();
   }
 
@@ -1537,14 +1467,14 @@ body.is-mobile .dialog-foot{ display:none; }
     setTimeout(function(){ modeIndex = 0; go("modes"); }, 200);
   }
 
-  /* --- modes -> fighter pick (bots) or straight to select --- */
+  /* --- modes -> fighter pick (solo) or straight to select --- */
   function chooseMode(id){
     chosenMode = id;
     chosenFormat = null;
     chosenChar = null;
     pressFlash();
     setTimeout(function(){
-      if (id === "bots"){ renderPreview(true); go("chars"); }
+      if (id === "solo"){ renderPreview(true); go("chars"); }
       else { renderSelect(); go("select"); }
     }, 200);
   }
