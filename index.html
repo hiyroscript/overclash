@@ -229,12 +229,6 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
 @keyframes spin{ to{ transform:rotate(360deg); } }
 @keyframes pulse{ 0%,100%{ opacity:.35; } 50%{ opacity:1; } }
 
-.arena.is-hit .ring{ animation-play-state:paused; }
-.arena.is-hit .ring, .arena.is-hit .core, .arena.is-hit .node{
-  stroke:var(--yellow); fill:var(--yellow); opacity:1;
-  transition:none;
-}
-
 /* ---------- footer ---------- */
 .footer{
   border-top:1px solid var(--char-line);
@@ -662,14 +656,6 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
   font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-dim);
 }
 
-/* ---------- press flash ---------- */
-#flash{
-  position:fixed; inset:0; z-index:90; pointer-events:none;
-  background:var(--yellow); opacity:0;
-}
-#flash.go{ animation:flash .3s var(--ease); }
-@keyframes flash{ 0%{ opacity:.5; } 100%{ opacity:0; } }
-
 /* ---------- entrance stagger ---------- */
 .reveal{ opacity:0; transform:translateY(16px); }
 .home.is-in .reveal{
@@ -1096,8 +1082,6 @@ body.is-mobile .dialog-foot{ display:none; }
   </div>
 </div>
 
-<div id="flash" aria-hidden="true"></div>
-
 <script>
 (function(){
   "use strict";
@@ -1232,9 +1216,7 @@ body.is-mobile .dialog-foot{ display:none; }
       chars    = $("chars"),
       formats  = $("formats"),
       select   = $("select"),
-      arena    = $("arena"),
       scrim    = $("langScrim"),
-      flash    = $("flash"),
       fmtCrumb = $("fmtCrumb"),
       selectCrumb = $("selectCrumb"),
       slotRow  = $("slotRow"),
@@ -1302,7 +1284,6 @@ body.is-mobile .dialog-foot{ display:none; }
       focusIndex = i;
       applyLang(btn.getAttribute("data-lang"));
       save.set(KEY_LANG, lang);
-      pressFlash();
       closeLangDialog();
     });
   });
@@ -1418,9 +1399,8 @@ body.is-mobile .dialog-foot{ display:none; }
 
   function confirmChar(){
     chosenChar = CHARS[charIndex].id;
-    strike();
-    pressFlash();
-    setTimeout(function(){ fmtIndex = 0; go("formats"); }, 200);
+    fmtIndex = 0;
+    go("formats");
   }
 
   btnCharGo.addEventListener("click", confirmChar);
@@ -1428,12 +1408,6 @@ body.is-mobile .dialog-foot{ display:none; }
   /* ==========================================================
      7. SCREENS
      ========================================================== */
-  function pressFlash(){
-    flash.classList.remove("go");
-    void flash.offsetWidth;          // restart the animation
-    flash.classList.add("go");
-  }
-
   var SCREENS = { home:home, modes:modes, chars:chars, formats:formats, select:select };
   var screen = "home";
   var trail  = [];          // where Escape and Back retreat to
@@ -1455,16 +1429,13 @@ body.is-mobile .dialog-foot{ display:none; }
   function go(name){ trail.push(screen); show(name); }
 
   function goBack(){
-    pressFlash();
     show(trail.pop() || "home");
   }
 
   /* --- home -> modes --- */
   function openModes(){
-    pressFlash();
-    arena.classList.add("is-hit");
-    setTimeout(function(){ arena.classList.remove("is-hit"); }, 180);
-    setTimeout(function(){ modeIndex = 0; go("modes"); }, 200);
+    modeIndex = 0;
+    go("modes");
   }
 
   /* --- modes -> fighter pick (solo) or straight to select --- */
@@ -1472,18 +1443,15 @@ body.is-mobile .dialog-foot{ display:none; }
     chosenMode = id;
     chosenFormat = null;
     chosenChar = null;
-    pressFlash();
-    setTimeout(function(){
-      if (id === "solo"){ renderPreview(true); go("chars"); }
-      else { renderSelect(); go("select"); }
-    }, 200);
+    if (id === "solo"){ renderPreview(true); go("chars"); }
+    else { renderSelect(); go("select"); }
   }
 
   /* --- formats -> select --- */
   function chooseFormat(id){
     chosenFormat = id;
-    pressFlash();
-    setTimeout(function(){ renderSelect(); go("select"); }, 200);
+    renderSelect();
+    go("select");
   }
 
   /* Builds the empty roster slots from whichever mode got picked,
