@@ -715,6 +715,16 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
    ============================================================ */
 @supports (height:100dvh){ body.is-mobile #app{ height:100dvh; } }
 
+/* The glow is aimed at wherever the arena stands. On a wide window
+   that is out to the right; in portrait the arena drops below the
+   wordmark, so the glow drops with it — the layout turned a quarter,
+   and the light turns the same quarter (46vw across becomes 46vh
+   down). Left alone it would sit off to the side of the octagons
+   instead of behind them. */
+body.is-mobile .bg-glow{
+  background:radial-gradient(circle 46vh at 50% 70%, rgba(31,122,255,.13), transparent 62%);
+}
+
 body.is-mobile #app{
   grid-template-columns:minmax(0,1fr);
   grid-template-rows:auto minmax(0,1fr);
