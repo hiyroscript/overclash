@@ -375,9 +375,11 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
 .char-cell:active{ background:var(--yellow); border-color:var(--yellow); transform:none; }
 .char-cell.is-picked{ border-color:var(--blue); border-top-color:var(--blue); }
 
-/* the icon is the whole idea: the ball itself, shrunk */
+/* the icon is the whole idea: the ball itself, shrunk. The canvas
+   inside carries the pattern; the circle and the hairline are CSS, so
+   the outline stays hairline however small the swatch gets. */
 .chip{
-  display:block; width:100%; aspect-ratio:1 / 1; min-height:56px;
+  display:block; width:100%; height:auto; aspect-ratio:1 / 1; min-height:56px;
   border-radius:50%;
   background:var(--ball);
   border:1px solid var(--ball-line);
@@ -441,7 +443,8 @@ button{ font:inherit; color:inherit; background:none; border:none; cursor:pointe
 [data-char="yellow"]{ --ball:var(--ball-yellow); }
 
 .ball{
-  width:clamp(120px, 27vh, 210px); aspect-ratio:1 / 1;
+  display:block;
+  width:clamp(120px, 27vh, 210px); height:auto; aspect-ratio:1 / 1;
   border-radius:50%;
   background:var(--ball);
   border:2px solid var(--ball-line);
@@ -778,6 +781,26 @@ body.is-mobile .dialog-foot{ display:none; }
   font-family:var(--f-display); font-weight:800;
   font-size:26px; line-height:1; color:#000;
   font-variant-numeric:tabular-nums;
+}
+
+/* ---------- the start clock ---------- */
+.countdown{
+  position:absolute; inset:0;
+  display:grid; place-items:center;
+  pointer-events:none;
+}
+.countdown[hidden]{ display:none; }
+.countdown b{
+  font-family:var(--f-display); font-weight:800;
+  font-size:clamp(64px,15vh,170px); line-height:.8;
+  text-transform:uppercase; color:#000;
+  font-variant-numeric:tabular-nums;
+}
+.countdown b.is-tick{ animation:tick .5s var(--ease); }
+@keyframes tick{
+  0%  { opacity:0; transform:scale(1.45); }
+  24% { opacity:1; transform:scale(1); }
+  100%{ opacity:.88; transform:scale(1); }
 }
 
 /* ---------- pause ---------- */
@@ -1154,6 +1177,8 @@ body.is-mobile .dialog-foot{ display:none; }
     </div>
   </div>
 
+  <div class="countdown" id="countdown" hidden><b id="countNum">3</b></div>
+
   <!-- pause takes the whole world, because it is also the only way out -->
   <div class="pause-sheet" id="pauseSheet" hidden>
     <div class="pause-card">
@@ -1248,6 +1273,7 @@ body.is-mobile .dialog-foot{ display:none; }
       fmtTournamentTag:"Bracket — 4 fighters",
       playPause: "Pause",
       playJumps: "Jumps",
+      playGo:    "Go",
       playQuit:  "Quit",
       pauseTitle:"Paused",
       pauseResume:"Resume",
@@ -1302,6 +1328,7 @@ body.is-mobile .dialog-foot{ display:none; }
       fmtTournamentTag:"Tableau — 4 combattants",
       playPause: "Pause",
       playJumps: "Sauts",
+      playGo:    "Partez",
       playQuit:  "Quitter",
       pauseTitle:"En pause",
       pauseResume:"Reprendre",
@@ -1355,6 +1382,8 @@ body.is-mobile .dialog-foot{ display:none; }
       btnResume= $("btnResume"),
       pauseSheet=$("pauseSheet"),
       jumpCount= $("jumpCount"),
+      countdown= $("countdown"),
+      countNum = $("countNum"),
       scrim    = $("langScrim"),
       gameCrumb = $("gameCrumb"),
       charsCrumb= $("charsCrumb"),
@@ -1449,8 +1478,33 @@ body.is-mobile .dialog-foot{ display:none; }
   var charCells = [];
   var stagedChar = null;
 
-  function ballHTML(id){
-    return '<div class="ball" data-char="' + id + '"></div>';
+  /* The swatch, the preview and the marble on the track are the same
+     picture at three sizes. Painting all three from one routine and one
+     MARBLE table is the only way they cannot drift apart. The canvas
+     carries colour and pattern; the round edge and the hairline outline
+     stay in CSS, so they hold at whatever size each one is shown. */
+  function paintMarble(el, id){
+    var px = 168, c = el.getContext("2d"), r = px / 2;
+    el.width = el.height = px;
+    c.save();
+    c.translate(r, r);
+    var col = ballHex(id);
+    c.fillStyle = col;
+    c.fillRect(-r, -r, px, px);        // CSS rounds the corners away
+    var pattern = MARBLE[id];
+    if (pattern){
+      c.fillStyle = c.strokeStyle = patternInk(col);
+      pattern(c, r);
+    }
+    c.restore();
+  }
+
+  function ballNode(id){
+    var el = document.createElement("canvas");
+    el.className = "ball";
+    el.setAttribute("data-char", id);
+    paintMarble(el, id);
+    return el;
   }
 
   function buildCharGrid(){
@@ -1460,7 +1514,11 @@ body.is-mobile .dialog-foot{ display:none; }
       var cell = document.createElement("button");
       cell.className = "char-cell" + (i === charIndex ? " is-picked" : "");
       cell.setAttribute("data-char", c.id);
-      cell.innerHTML = '<span class="chip"></span><b>' + STRINGS[lang][c.key] + '</b>';
+      var chip = document.createElement("canvas");
+      chip.className = "chip";
+      paintMarble(chip, c.id);
+      cell.appendChild(chip);
+      cell.insertAdjacentHTML("beforeend", '<b>' + STRINGS[lang][c.key] + '</b>');
       cell.addEventListener("click", function(){ pickChar(i); });
       charGrid.appendChild(cell);
       charCells.push(cell);
@@ -1487,7 +1545,8 @@ body.is-mobile .dialog-foot{ display:none; }
     var id = CHARS[charIndex].id;
     if (!force && stagedChar === id) return;
     stagedChar = id;
-    charStage.innerHTML = ballHTML(id);
+    charStage.innerHTML = "";
+    charStage.appendChild(ballNode(id));
   }
 
   function pickChar(i){
@@ -1644,18 +1703,25 @@ body.is-mobile .dialog-foot{ display:none; }
 
   /* ==========================================================
      8. THE GAME
-     A one-button runner. The ball holds its lane near the left
-     edge and never moves sideways — the world slides past it
-     instead, so every jump is timed against scenery rather than
-     aimed. Each run draws a world at random.
+     A one-button runner. Every marble holds its own lane and
+     never moves sideways — the world slides past instead, so a
+     jump is timed against scenery rather than aimed. A race
+     opens with a clock: the field rolls in from off the left
+     edge, furthest lane first, and the marble you steer is the
+     last one through the gate.
      ========================================================== */
   var TUNE = {
     grav:  2900,    // px/s²
     jump:  1020,    // launch speed — clears about 180px
     speed:  360,    // how fast the world slides past
-    lane:    .22,   // how far in from the left the ball stands
+    lane:    .22,   // how far in from the left the player stands
     line:     2     // every outline in the world is this thick
   };
+
+  var COUNT   = 3,    // seconds on the start clock
+      GO_HOLD = .7,   // how long "Go" stays up once the clock runs out
+      IN_SPAN = 1.9,  // the longest roll-in, in seconds
+      IN_STEP = .25;  // gap between one marble entering and the next
 
   /* One world for now. Violet on purpose: none of the four ball
      colours live in that family, so every ball stays distinct
@@ -1679,12 +1745,57 @@ body.is-mobile .dialog-foot{ display:none; }
   var cv  = $("playCanvas"),
       ctx = cv.getContext("2d");
 
-  var view  = { w:0, h:0 };
-  var world = { dist:0, seed:0 };
-  var ball  = { x:0, y:0, vy:0, r:26, color:"#1F7AFF", down:true };
-  var keys  = { jump:false };
+  var view    = { w:0, h:0 };
+  var world   = { dist:0, seed:0, phase:"count", clock:COUNT, shown:0, flash:0 };
+  var runners = [];              // [0] is the player, the rest are rivals
+  var keys    = { jump:false };
   var running = false, raf = 0, last = 0, sky = null;
   var paused = false, jumps = 0;
+
+  /* One pattern per marble, drawn in the same ink and clipped to the
+     glass. Every one of them is asymmetric on purpose — a design with
+     rotational symmetry would turn without ever looking like it had.
+     The pattern is what shows the roll now. */
+  var MARBLE = {
+    /* a single ribbon straight across the middle */
+    blue: function(c, r){
+      c.fillRect(-r, -r * .24, r * 2, r * .48);
+    },
+    /* cat's eye: two arcs meeting at the poles */
+    red: function(c, r){
+      c.beginPath();
+      c.moveTo(0, -r * .80);
+      c.quadraticCurveTo(r * .84, 0, 0, r * .80);
+      c.quadraticCurveTo(-r * .84, 0, 0, -r * .80);
+      c.fill();
+    },
+    /* one curl, left open at the near side */
+    green: function(c, r){
+      c.lineWidth = r * .34;
+      c.lineCap = "round";
+      c.beginPath();
+      c.arc(0, 0, r * .50, -Math.PI * .85, Math.PI * .35);
+      c.stroke();
+    },
+    /* a wedge pressed into the glass */
+    yellow: function(c, r){
+      c.beginPath();
+      c.moveTo(0, 0);
+      c.arc(0, 0, r * 1.1, -Math.PI * .30, Math.PI * .30);
+      c.closePath();
+      c.fill();
+    }
+  };
+
+  /* The pattern has to hold against its own marble, so it flips to a
+     deep tone on a base colour that is already bright, and stays white
+     on the three that are not. */
+  function patternInk(hex){
+    var n = parseInt(hex.slice(1), 16),
+        R = (n >> 16) & 255, G = (n >> 8) & 255, B = n & 255;
+    if (.299 * R + .587 * G + .114 * B <= 170) return "#FFFFFF";
+    return "rgb(" + Math.round(R * .42) + "," + Math.round(G * .42) + "," + Math.round(B * .42) + ")";
+  }
 
   /* The ball colours live in the palette and nowhere else, so the
      ball on the canvas cannot drift from the swatch that picked it. */
@@ -1721,8 +1832,48 @@ body.is-mobile .dialog-foot{ display:none; }
   function floorY(){ return view.h - Math.max(38, Math.min(span() * .11, 100)); }
   function radius(){ return Math.max(10, Math.min(span() * .032, 24)); }
   function laneX(){ return Math.max(80, Math.min(view.w * TUNE.lane, 280)); }
+  function laneGap(){ return Math.max(56, Math.min(view.w * .11, 120)); }
 
   function worldName(){ return WORLD[lang] || WORLD.en; }
+
+  /* The player takes the colour they picked and the rivals take the
+     three that are left, so no two marbles in a race are ever the
+     same colour and the one you steer is always the one you chose. */
+  function buildField(){
+    var gap = laneGap(), x = laneX(), r = radius();
+    var ids = [chosenChar];
+    CHARS.forEach(function(c){ if (c.id !== chosenChar) ids.push(c.id); });
+
+    runners = ids.map(function(id, i){
+      var col = ballHex(id);
+      return {
+        id:id, color:col, ink:patternInk(col), bot:i > 0,
+        r:r, x:0, y:floorY() - r, vy:0, down:true, spin:0,
+        home:x + i * gap,        // the lane it settles into
+        from:-(r + 40),          // off the left edge, out of sight
+        wait:0, span:1, hop:0
+      };
+    });
+
+    /* Furthest lane enters first, the player last. One shared speed
+       sets every duration from its own trip length, so nobody
+       overtakes on the way in and they all roll at the same rate. */
+    var far = runners[runners.length - 1];
+    var v = (far.home - far.from) / IN_SPAN;
+    runners.forEach(function(r2, i){
+      r2.wait = (runners.length - 1 - i) * IN_STEP;
+      r2.span = (r2.home - r2.from) / v;
+      r2.x    = r2.from;
+    });
+  }
+
+  /* Restart the pop so each number lands rather than cross-fades. */
+  function tickCount(text){
+    countNum.textContent = text;
+    countNum.classList.remove("is-tick");
+    void countNum.offsetWidth;
+    countNum.classList.add("is-tick");
+  }
 
   function startGame(){
     go("play");                 // unhide first: a hidden canvas has no size
@@ -1733,13 +1884,15 @@ body.is-mobile .dialog-foot{ display:none; }
     play.style.background = WORLD.skyTop;      // no white flash before the first frame
     playWorld.textContent = worldName();
 
-    ball.r     = radius();
-    ball.color = ballHex(chosenChar);
-    ball.x     = laneX();
-    ball.y     = floorY() - ball.r;
-    ball.vy    = 0;
-    ball.down  = true;
-    keys.jump  = false;
+    world.phase = "count";
+    world.clock = COUNT;
+    world.shown = COUNT;
+    world.flash = 0;
+    countdown.hidden = false;
+    tickCount(COUNT);
+
+    buildField();
+    keys.jump = false;
 
     jumps = 0;
     jumpCount.textContent = "0";
@@ -1764,6 +1917,7 @@ body.is-mobile .dialog-foot{ display:none; }
     loop(false);
     paused = false;
     pauseSheet.hidden = true;
+    countdown.hidden = true;
   }
 
   /* Pause is also the way out: on a phone there is no Escape key, so
@@ -1788,21 +1942,84 @@ body.is-mobile .dialog-foot{ display:none; }
   }
 
   function step(dt){
-    world.dist += TUNE.speed * dt;
+    if (world.phase === "count"){ countIn(dt); return; }
 
-    /* Held, not tapped: on the ground with the button down is a jump,
-       so holding it keeps the ball hopping the way a runner should. */
-    if (keys.jump && ball.down){
-      ball.vy = -TUNE.jump;
-      ball.down = false;
-      jumpCount.textContent = ++jumps;   // written on a jump, not every frame
+    if (world.flash > 0){
+      world.flash -= dt;
+      if (world.flash <= 0) countdown.hidden = true;
     }
 
-    ball.vy += TUNE.grav * dt;
-    ball.y  += ball.vy * dt;
+    world.dist += TUNE.speed * dt;
 
-    var rest = floorY() - ball.r;
-    if (ball.y >= rest){ ball.y = rest; ball.vy = 0; ball.down = true; }
+    for (var i = 0; i < runners.length; i++){
+      var r = runners[i];
+
+      if (r.bot){
+        /* A rival hops on its own clock. This is a placeholder for
+           real racing, not an opponent worth beating yet. */
+        r.hop -= dt;
+        if (r.hop <= 0 && r.down){
+          r.vy = -TUNE.jump;
+          r.down = false;
+          r.hop = .8 + Math.random() * 1.7;
+        }
+      } else if (keys.jump && r.down){
+        /* Held, not tapped: on the ground with the button down is a
+           jump, so holding it keeps the marble hopping. */
+        r.vy = -TUNE.jump;
+        r.down = false;
+        jumpCount.textContent = ++jumps;   // written on a jump, not every frame
+      }
+
+      /* Rolling without slipping: one full turn per circumference of
+         ground travelled. The marble holds its lane, so the distance
+         is the world's, not its own. */
+      r.spin += (TUNE.speed * dt) / r.r;
+
+      r.vy += TUNE.grav * dt;
+      r.y  += r.vy * dt;
+
+      var rest = floorY() - r.r;
+      if (r.y >= rest){ r.y = rest; r.vy = 0; r.down = true; }
+    }
+  }
+
+  /* The start. Nothing scrolls and no button does anything until the
+     clock runs out; the only motion is the field rolling in from off
+     the left edge, each marble easing to a stop in its own lane. */
+  function countIn(dt){
+    world.clock -= dt;
+    var t = COUNT - world.clock;
+
+    for (var i = 0; i < runners.length; i++){
+      var r = runners[i],
+          p = (t - r.wait) / r.span,
+          was = r.x;
+      /* Snapped rather than interpolated at the end: easing to p=1
+         lands a rounding error short of the lane, and the player's
+         lane has to be the exact x it would have had with no start
+         sequence at all. */
+      if (p >= 1) r.x = r.home;
+      else if (p <= 0) r.x = r.from;
+      else r.x = r.from + (r.home - r.from) * (1 - Math.pow(1 - p, 3));
+
+      /* Rolling without slipping on the way in as well. Here the ground
+         is still and the marble is what moves, so the turn comes from
+         its own travel rather than from the world's. */
+      r.spin += (r.x - was) / r.r;
+    }
+
+    var n = Math.max(0, Math.ceil(world.clock));
+    if (n !== world.shown){
+      world.shown = n;
+      tickCount(n > 0 ? n : STRINGS[lang].playGo);
+    }
+    if (world.clock <= 0){
+      world.phase = "run";
+      world.flash = GO_HOLD;
+      keys.jump = false;                   // a button held through the clock does not count
+      for (i = 0; i < runners.length; i++) runners[i].x = runners[i].home;
+    }
   }
 
   /* --- the world, back to front --------------------------- */
@@ -1883,13 +2100,41 @@ body.is-mobile .dialog-foot{ display:none; }
     ctx.lineTo(w, fy + TUNE.line / 2);
     ctx.stroke();
 
-    ctx.beginPath();
-    ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
-    ctx.fillStyle = ball.color;
-    ctx.fill();
+    /* Back to front, so the marble being steered is never hidden
+       behind a rival that happens to share its patch of ground. */
     ctx.lineWidth = TUNE.line;
     ctx.strokeStyle = "#000";
-    ctx.stroke();
+    for (var i = runners.length - 1; i >= 0; i--){
+      var r = runners[i];
+      if (r.x + r.r < 0) continue;         // still off the left edge
+
+      ctx.save();
+      ctx.translate(r.x, r.y);
+      ctx.rotate(r.spin);
+
+      ctx.beginPath();
+      ctx.arc(0, 0, r.r, 0, Math.PI * 2);
+      ctx.fillStyle = r.color;
+      ctx.fill();
+
+      /* Clipped to the glass, so a pattern can run past the edge and
+         still come out shaped like the marble. */
+      var pattern = MARBLE[r.id];
+      if (pattern){
+        ctx.save();
+        ctx.clip();                        // the circle just filled
+        ctx.fillStyle = r.ink;
+        ctx.strokeStyle = r.ink;
+        pattern(ctx, r.r);
+        ctx.restore();
+      }
+
+      ctx.beginPath();
+      ctx.arc(0, 0, r.r, 0, Math.PI * 2);
+      ctx.strokeStyle = "#000";
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 
   /* --- input: one button ---------------------------------- */
@@ -1927,9 +2172,14 @@ body.is-mobile .dialog-foot{ display:none; }
   window.addEventListener("resize", function(){
     if (screen !== "play") return;
     sizeCanvas();
-    ball.r = radius();
-    ball.x = laneX();
-    ball.y = Math.min(ball.y, floorY() - ball.r);
+    var gap = laneGap(), x = laneX(), r = radius();
+    runners.forEach(function(m, i){
+      m.r    = r;
+      m.home = x + i * gap;
+      m.from = -(r + 40);
+      if (world.phase === "run") m.x = m.home;   // mid-race, lanes just move
+      m.y = Math.min(m.y, floorY() - m.r);
+    });
   });
 
   /* ==========================================================
