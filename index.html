@@ -741,13 +741,14 @@ body.is-mobile .dialog-foot{ display:none; }
   padding-bottom:calc(clamp(14px,2.4vw,26px) + env(safe-area-inset-bottom));
 }
 .play-top{
-  width:100%; display:flex; align-items:center; justify-content:space-between; gap:16px;
+  width:100%; display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
 }
 .play-world{
   font-size:10px; font-weight:600; letter-spacing:.28em;
   text-transform:uppercase; color:rgba(0,0,0,.5);
 }
-.play-quit{
+.play-left{ display:flex; flex-direction:column; align-items:flex-start; gap:9px; }
+.play-btn{
   pointer-events:auto;
   display:inline-flex; align-items:center; gap:9px;
   padding:8px 15px 8px 11px;
@@ -755,13 +756,60 @@ body.is-mobile .dialog-foot{ display:none; }
   font-size:10px; font-weight:600; letter-spacing:.24em; text-transform:uppercase;
   transition:background-color .14s var(--ease), color .14s var(--ease);
 }
-.play-quit svg{ width:12px; height:12px; }
-.play-quit:hover{ background:#000; color:#fff; }
-.play-quit:active{ background:var(--yellow); color:#000; }
-.play-tip{
-  font-size:10px; font-weight:500; letter-spacing:.22em;
-  text-transform:uppercase; color:rgba(0,0,0,.4); text-align:center;
+.play-btn svg{ width:12px; height:12px; }
+.play-btn:hover{ background:#000; color:#fff; }
+.play-btn:active{ background:var(--yellow); color:#000; }
+
+/* the tally sits in the world rather than on top of it: the sky
+   reads straight through the fill, only the outline holds the shape */
+.play-count{
+  min-width:72px;
+  padding:6px 12px 7px;
+  background:rgba(255,255,255,.5);
+  border:1.5px solid #000;
 }
+.play-count span{
+  display:block;
+  font-size:9px; font-weight:600; letter-spacing:.22em;
+  text-transform:uppercase; color:rgba(0,0,0,.6);
+}
+.play-count b{
+  display:block; margin-top:1px;
+  font-family:var(--f-display); font-weight:800;
+  font-size:26px; line-height:1; color:#000;
+  font-variant-numeric:tabular-nums;
+}
+
+/* ---------- pause ---------- */
+.pause-sheet{
+  position:absolute; inset:0;
+  display:grid; place-items:center;
+  background:rgba(0,0,0,.34);
+  animation:fade .2s var(--ease);
+}
+.pause-sheet[hidden]{ display:none; }
+.pause-card{
+  width:min(300px, calc(100vw - 56px));
+  background:#fff; border:2px solid #000;
+  padding:24px 22px 20px; text-align:center;
+}
+.pause-card h2{
+  font-family:var(--f-display); font-weight:700;
+  font-size:34px; line-height:1; text-transform:uppercase; color:#000;
+  margin-bottom:6px;
+}
+.pause-btn{
+  display:block; width:100%; margin-top:10px;
+  padding:13px 16px;
+  border:2px solid #000;
+  font-size:11px; font-weight:700; letter-spacing:.24em; text-transform:uppercase;
+  transition:background-color .14s var(--ease), color .14s var(--ease);
+}
+.pause-btn.is-go{ background:var(--red); color:#fff; }
+.pause-btn.is-go:hover{ background:#ff4258; }
+.pause-btn.is-quit{ background:#fff; color:#000; }
+.pause-btn.is-quit:hover{ background:#000; color:#fff; }
+.pause-btn:active{ background:var(--yellow); color:#000; }
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
@@ -1090,13 +1138,29 @@ body.is-mobile .dialog-foot{ display:none; }
   <canvas id="playCanvas"></canvas>
   <div class="play-hud">
     <div class="play-top">
-      <button class="play-quit" id="btnQuit" type="button">
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 4 6 10l6 6"/></svg>
-        <span data-i18n="playQuit">Quit</span>
-      </button>
+      <div class="play-left">
+        <button class="play-btn" id="btnPause" type="button">
+          <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <rect x="5" y="4" width="3.6" height="12"/><rect x="11.4" y="4" width="3.6" height="12"/>
+          </svg>
+          <span data-i18n="playPause">Pause</span>
+        </button>
+        <div class="play-count">
+          <span data-i18n="playJumps">Jumps</span>
+          <b id="jumpCount">0</b>
+        </div>
+      </div>
       <span class="play-world" id="playWorld"></span>
     </div>
-    <p class="play-tip" id="playTip">Space to jump — Escape to quit</p>
+  </div>
+
+  <!-- pause takes the whole world, because it is also the only way out -->
+  <div class="pause-sheet" id="pauseSheet" hidden>
+    <div class="pause-card">
+      <h2 data-i18n="pauseTitle">Paused</h2>
+      <button class="pause-btn is-go" id="btnResume" type="button" data-i18n="pauseResume">Resume</button>
+      <button class="pause-btn is-quit" id="btnQuit" type="button" data-i18n="playQuit">Quit</button>
+    </div>
   </div>
 </section>
 
@@ -1182,9 +1246,11 @@ body.is-mobile .dialog-foot{ display:none; }
       fmtTournament:"Tournament",
       fmtTournamentDesc:"A bracket of matches. Last fighter standing wins.",
       fmtTournamentTag:"Bracket — 4 fighters",
+      playPause: "Pause",
+      playJumps: "Jumps",
       playQuit:  "Quit",
-      playTip:   "Space to jump — Escape to quit",
-      playTipTouch:"Tap to jump",
+      pauseTitle:"Paused",
+      pauseResume:"Resume",
       selectTitle:"Character select",
       selectBody:"The roster is the next build step.",
       back:      "Back",
@@ -1234,9 +1300,11 @@ body.is-mobile .dialog-foot{ display:none; }
       fmtTournament:"Tournoi",
       fmtTournamentDesc:"Un tableau de matchs. Le dernier debout l'emporte.",
       fmtTournamentTag:"Tableau — 4 combattants",
+      playPause: "Pause",
+      playJumps: "Sauts",
       playQuit:  "Quitter",
-      playTip:   "Espace pour sauter — Échap pour quitter",
-      playTipTouch:"Touchez pour sauter",
+      pauseTitle:"En pause",
+      pauseResume:"Reprendre",
       selectTitle:"Sélection des personnages",
       selectBody:"Le roster arrive à la prochaine étape.",
       back:      "Retour",
@@ -1281,9 +1349,12 @@ body.is-mobile .dialog-foot{ display:none; }
       formats  = $("formats"),
       select   = $("select"),
       play     = $("play"),
-      playTip  = $("playTip"),
       playWorld= $("playWorld"),
       btnQuit  = $("btnQuit"),
+      btnPause = $("btnPause"),
+      btnResume= $("btnResume"),
+      pauseSheet=$("pauseSheet"),
+      jumpCount= $("jumpCount"),
       scrim    = $("langScrim"),
       gameCrumb = $("gameCrumb"),
       charsCrumb= $("charsCrumb"),
@@ -1332,8 +1403,6 @@ body.is-mobile .dialog-foot{ display:none; }
     });
     // these screens are built from state, not from data-i18n keys
     refreshCharText();
-    playTip.textContent = document.body.classList.contains("is-mobile")
-      ? dict.playTipTouch : dict.playTip;
     playWorld.textContent = worldName();
     renderCrumbs();
     if (chosenMode) renderSelect();
@@ -1489,7 +1558,7 @@ body.is-mobile .dialog-foot{ display:none; }
     if (name === "home")        btnPlay.focus();
     else if (name === "chars")  { if (charCells[charIndex]) charCells[charIndex].focus(); }
     else if (name === "select") btnBack.focus();
-    else if (name === "play")   btnQuit.focus();
+    else if (name === "play")   btnPause.focus();
     else if (DECKS[name])       DECKS[name].list[DECKS[name].i].focus();
   }
 
@@ -1615,6 +1684,7 @@ body.is-mobile .dialog-foot{ display:none; }
   var ball  = { x:0, y:0, vy:0, r:26, color:"#1F7AFF", down:true };
   var keys  = { jump:false };
   var running = false, raf = 0, last = 0, sky = null;
+  var paused = false, jumps = 0;
 
   /* The ball colours live in the palette and nowhere else, so the
      ball on the canvas cannot drift from the swatch that picked it. */
@@ -1671,13 +1741,40 @@ body.is-mobile .dialog-foot{ display:none; }
     ball.down  = true;
     keys.jump  = false;
 
-    last = 0;
-    if (!running){ running = true; raf = requestAnimationFrame(frame); }
+    jumps = 0;
+    jumpCount.textContent = "0";
+    paused = false;
+    pauseSheet.hidden = true;
+    loop(true);
+  }
+
+  function loop(on){
+    if (on){
+      if (running) return;
+      running = true;
+      last = 0;                    // the pause must not arrive as one huge frame
+      raf = requestAnimationFrame(frame);
+    } else {
+      running = false;
+      cancelAnimationFrame(raf);
+    }
   }
 
   function stopGame(){
-    running = false;
-    cancelAnimationFrame(raf);
+    loop(false);
+    paused = false;
+    pauseSheet.hidden = true;
+  }
+
+  /* Pause is also the way out: on a phone there is no Escape key, so
+     without a sheet behind this button there would be no exit at all. */
+  function pauseGame(on){
+    if (screen !== "play" || paused === on) return;
+    paused = on;
+    pauseSheet.hidden = !on;
+    keys.jump = false;             // a held button does not survive the pause
+    loop(!on);
+    (on ? btnResume : btnPause).focus();
   }
 
   function frame(t){
@@ -1695,7 +1792,11 @@ body.is-mobile .dialog-foot{ display:none; }
 
     /* Held, not tapped: on the ground with the button down is a jump,
        so holding it keeps the ball hopping the way a runner should. */
-    if (keys.jump && ball.down){ ball.vy = -TUNE.jump; ball.down = false; }
+    if (keys.jump && ball.down){
+      ball.vy = -TUNE.jump;
+      ball.down = false;
+      jumpCount.textContent = ++jumps;   // written on a jump, not every frame
+    }
 
     ball.vy += TUNE.grav * dt;
     ball.y  += ball.vy * dt;
@@ -1793,7 +1894,7 @@ body.is-mobile .dialog-foot{ display:none; }
 
   /* --- input: one button ---------------------------------- */
   function gameKey(e, down){
-    if (screen !== "play") return;
+    if (screen !== "play" || paused) return;
     var k = e.key;
     if (k === " " || k === "Spacebar" || k === "ArrowUp" || k === "w" || k === "W"){
       keys.jump = down;
@@ -1807,7 +1908,7 @@ body.is-mobile .dialog-foot{ display:none; }
      hold to keep hopping. Works for a finger and for a mouse. */
   function pointerJump(down){
     return function(e){
-      if (screen !== "play") return;
+      if (screen !== "play" || paused) return;
       keys.jump = down;
       e.preventDefault();
     };
@@ -1817,6 +1918,8 @@ body.is-mobile .dialog-foot{ display:none; }
   cv.addEventListener("pointercancel", pointerJump(false));
   cv.addEventListener("pointerleave",  pointerJump(false));
 
+  btnPause.addEventListener("click", function(){ pauseGame(true); });
+  btnResume.addEventListener("click", function(){ pauseGame(false); });
   btnQuit.addEventListener("click", goBack);
 
   /* The world is measured from the window, so it is remeasured when
@@ -1906,7 +2009,7 @@ body.is-mobile .dialog-foot{ display:none; }
     }
 
     if (screen === "play"){
-      if (e.key === "Escape"){ e.preventDefault(); goBack(); }
+      if (e.key === "Escape"){ e.preventDefault(); pauseGame(!paused); }
       return;
     }
 
