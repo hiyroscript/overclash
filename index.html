@@ -669,20 +669,44 @@ body.is-mobile .mode-grid.two{ grid-template-columns:minmax(0,1fr); max-width:no
 body.is-mobile .mode{ padding:18px 18px 16px; }
 body.is-mobile .mode:hover, body.is-mobile .mode:focus-visible{ transform:none; }
 
-/* fighter pick — preview on top, roster under it */
+/* Headings and back controls run tighter in portrait, so a whole
+   screen lands above the fold instead of trailing off the bottom. */
+body.is-mobile .nav-back{ margin-bottom:14px; }
+body.is-mobile .crumb{ margin-bottom:10px; }
+body.is-mobile .modes-head{ margin-bottom:18px; }
+body.is-mobile .modes-head h2{ font-size:clamp(30px,8vw,44px); }
+
+/* Colour pick — preview on top, the four swatches in one row under
+   it. Full-width swatches stacked two deep ran the Confirm button
+   off the bottom of the screen; four across fits the whole pick,
+   preview included, without a scroll. */
 body.is-mobile .chars-body{
   grid-template-columns:minmax(0,1fr);
   grid-template-rows:auto auto;
-  gap:22px;
+  gap:16px;
 }
 body.is-mobile .chars-rule{ display:none; }
-body.is-mobile .preview{ order:-1; min-height:clamp(190px,30vh,300px); }
-body.is-mobile .ball{ width:clamp(110px,22vh,170px); }
+body.is-mobile .preview{ order:-1; min-height:clamp(150px,24vh,230px); }
+body.is-mobile .ball{ width:clamp(88px,15vh,140px); }
+body.is-mobile .preview-foot{ margin-top:12px; padding-top:10px; }
+body.is-mobile .preview-name{ font-size:clamp(26px,8vw,38px); }
 body.is-mobile .char-side{ align-items:stretch; }
-body.is-mobile .char-go{ text-align:center; }
+body.is-mobile .char-grid{ grid-template-columns:repeat(4,1fr); gap:10px; }
+body.is-mobile .char-cell{ padding:11px 9px 9px; text-align:center; }
+body.is-mobile .chip{ min-height:0; }
+body.is-mobile .char-cell b{ margin-top:9px; font-size:15px; }
+body.is-mobile .char-go{ margin-top:14px; padding:14px 22px; text-align:center; }
 body.is-mobile .char-cell:hover, body.is-mobile .char-cell:focus-visible{ transform:none; }
 
-body.is-mobile .slot-row{ flex-wrap:wrap; }
+/* the roster slots fit one row in portrait once they stop being
+   sized for a desktop column */
+body.is-mobile .select h2{ font-size:clamp(32px,8.5vw,46px); }
+body.is-mobile .slot{ width:clamp(58px,16vw,86px); }
+body.is-mobile .slot span{ margin-top:8px; }
+body.is-mobile .slot-row{ gap:10px; margin-top:22px; }
+body.is-mobile .select-body{ margin-top:22px; }
+body.is-mobile .back{ margin-top:24px; }
+
 body.is-mobile .footer{
   padding:12px clamp(18px,5vw,34px);
   padding-bottom:calc(12px + env(safe-area-inset-bottom));
@@ -1619,8 +1643,14 @@ body.is-mobile .dialog-foot{ display:none; }
     sky.addColorStop(0, WORLD.skyTop);
     sky.addColorStop(1, WORLD.skyLow);
   }
-  function floorY(){ return view.h - Math.max(46, Math.min(view.h * .11, 100)); }
-  function radius(){ return Math.max(12, Math.min(view.h * .032, 24)); }
+  /* Sizes key to the short side of the view, not to its height. A
+     computer is gated to landscape, so there the short side IS the
+     height and nothing moves; in portrait it is the width, which is
+     what stops a phone's long axis from inflating the ground and the
+     ball to the size they were. */
+  function span(){ return Math.min(view.w, view.h); }
+  function floorY(){ return view.h - Math.max(38, Math.min(span() * .11, 100)); }
+  function radius(){ return Math.max(10, Math.min(span() * .032, 24)); }
   function laneX(){ return Math.max(80, Math.min(view.w * TUNE.lane, 280)); }
 
   function worldName(){ return WORLD[lang] || WORLD.en; }
