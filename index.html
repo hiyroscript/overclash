@@ -1603,7 +1603,6 @@ body.is-mobile .dialog-foot{ display:none; }
     cloud:  "#E7DEF6",
     far:    "#BCAFDD",   // distant range
     mid:    "#AC9ED4",   // rolling hills
-    near:   "#9C8DC9",   // scrub along the horizon
     ground: "#8C7CBE",
     soil:   "#7A6AAC"    // the crust under the surface
   };
@@ -1708,8 +1707,8 @@ body.is-mobile .dialog-foot{ display:none; }
   /* --- the world, back to front --------------------------- */
 
   /* A ridge is one jagged line with the space beneath it filled.
-     Same routine at three scales and three speeds gives the depth;
-     the further a layer is, the lighter and the slower it goes. */
+     Same routine at two scales and two speeds gives the depth; the
+     further a layer is, the lighter and the slower it goes. */
   function ridge(shift, step, base, amp, seedOff, color, top){
     ctx.fillStyle = color;
     ctx.beginPath();
@@ -1736,21 +1735,6 @@ body.is-mobile .dialog-foot{ display:none; }
       ctx.arc(x + r * 1.5, y - r * .55, r * 1.35, 0, Math.PI * 2);
       ctx.arc(x + r * 3.1, y, r * .95, 0, Math.PI * 2);
       ctx.fill();
-    }
-  }
-
-  /* Scrub on the horizon: gapped on purpose, so it reads as growth
-     rather than as a wall. This is the fastest layer behind the ball,
-     which is what sells the speed. */
-  function scrub(shift, fy){
-    ctx.fillStyle = WORLD.near;
-    var step = 62;
-    for (var i = Math.floor(shift / step) - 1; i * step - shift < view.w + step; i++){
-      if (rnd(i + 137) < .34) continue;
-      ctx.fillRect(Math.round(i * step - shift),
-                   fy - (12 + rnd(i + 307) * 40),
-                   18 + rnd(i + 211) * 30,
-                   12 + rnd(i + 307) * 40);
     }
   }
 
@@ -1784,7 +1768,6 @@ body.is-mobile .dialog-foot{ display:none; }
     clouds(d * .10, fy);
     ridge(d * .18, 148, fy * .17, fy * .30, 11, WORLD.far, fy);
     ridge(d * .34, 102, fy * .08, fy * .17, 53, WORLD.mid, fy);
-    scrub(d * .62, fy);
 
     ctx.fillStyle = WORLD.ground;
     ctx.fillRect(0, fy, w, h - fy);
