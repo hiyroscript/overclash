@@ -1711,11 +1711,27 @@ body.is-mobile .dialog-foot{ display:none; }
      last one through the gate.
      ========================================================== */
   var TUNE = {
-    grav:  2900,    // px/s²
-    jump:  1020,    // launch speed — clears about 180px
+    /* The jump is described the way it is felt, not in px/s²: how
+       high in marble radii, and how long off the ground. Both then
+       scale with the marble, so a phone plays the same game a
+       desktop does instead of getting a jump five times its own
+       size. Geometry Dash's cube clears about two of itself and is
+       back down in half a second — that is these two numbers. */
+    jumpH:   4.0,   // apex, in radii — two marble-widths
+    airTime:  .50,  // seconds between leaving the ground and landing
     speed:  360,    // how fast the world slides past
     lane:    .22,   // how far in from the left the player stands
-    line:     2     // every outline in the world is this thick
+    line:     2,    // every outline in the world is this thick
+
+    spikeW:  1.7,   // spike width, in marble radii
+    spikeH:  2.0,   // spike height
+    slot:    400,   // one possible spike per this much track
+    density:  .55,  // how many of those slots actually carry one
+    dieFor:     2,  // seconds a destroyed marble stays gone
+    clearBy:  160,  // how far past a hazard counts as having passed it
+    linger:     3,  // seconds after the LAST marble is past before it retires
+    floatMin:  .9,  // shortest time in the bubble
+    safeGap:  240   // clear track a bubble needs before it dares pop
   };
 
   var COUNT   = 3,    // seconds on the start clock
@@ -1744,6 +1760,18 @@ body.is-mobile .dialog-foot{ display:none; }
 
   var cv  = $("playCanvas"),
       ctx = cv.getContext("2d");
+
+  var IRIS = ["rgba(120,240,255,.55)", "rgba(255,150,214,.50)", "rgba(255,244,168,.46)"];
+
+  /* Launch speed and gravity are solved from jumpH and airTime every
+     time the marble is resized, so the shape of the arc is fixed and
+     only its scale moves. */
+  var G = { jump:0, grav:0 };
+  function tuneJump(){
+    var r = radius();
+    G.jump = 4 * TUNE.jumpH * r / TUNE.airTime;
+    G.grav = 2 * G.jump / TUNE.airTime;
+  }
 
   var view    = { w:0, h:0 };
   var world   = { dist:0, seed:0, phase:"count", clock:COUNT, shown:0, flash:0 };
@@ -1834,6 +1862,137 @@ body.is-mobile .dialog-foot{ display:none; }
   function laneX(){ return Math.max(80, Math.min(view.w * TUNE.lane, 280)); }
   function laneGap(){ return Math.max(56, Math.min(view.w * .11, 120)); }
 
+  /* ---- the course ----------------------------------------
+     One canonical course, laid out once. Slots are decided by the
+     same seeded noise the scenery uses, but a hazard is turned into
+     a real object the moment it is first needed and then kept —
+     it is never regenerated from the camera. That is what makes it
+     canon to every marble: a rival four screens ahead meets the
+     same spikes a marble four screens behind has still to meet,
+     and neither of them can see a hazard the other cannot.
+
+     A hazard retires only once EVERY marble is past it, and then
+     only after a delay, so nothing can wink out from under anyone.
+     By the time the delay expires it is over a thousand pixels
+     behind the last marble, well off the left edge. */
+  var hazards = [], spawnedTo = 0;
+
+  function slotUsed(i){ return i >= 2 && rnd(i * 3.7 + 733) < TUNE.density; }
+  function slotSpot(i){ return i * TUNE.slot + 210 + rnd(i * 5.1 + 811) * 60; }
+
+  /* Laid down ahead of whoever is furthest along, so the leader never
+     runs into blank road. Each slot is built exactly once. */
+  function layCourse(lead){
+    var upto = Math.floor((lead + view.w + TUNE.slot * 2) / TUNE.slot);
+    while (spawnedTo <= upto){
+      if (slotUsed(spawnedTo)) hazards.push({ x:slotSpot(spawnedTo), done:-1 });
+      spawnedTo++;
+    }
+  }
+
+  /* `tail` is the marble furthest back, destroyed ones included —
+     they have not passed anything while they sit there. */
+  function sweepCourse(tail, dt){
+    for (var i = hazards.length - 1; i >= 0; i--){
+      var z = hazards[i];
+      if (z.done < 0){
+        if (tail > z.x + TUNE.clearBy) z.done = TUNE.linger;
+      } else if ((z.done -= dt) <= 0){
+        hazards.splice(i, 1);
+      }
+    }
+  }
+
+  /* ---- collision ----------------------------------------
+     Exact circle against exact triangle: the centre inside the
+     triangle, or any of the three edges within one radius of it.
+     No profile curve, no shrunken box — the shape that is drawn
+     is the shape that kills. */
+  function segDist2(px, py, ax, ay, bx, by){
+    var vx = bx - ax, vy = by - ay,
+        L  = vx * vx + vy * vy,
+        t  = L > 0 ? ((px - ax) * vx + (py - ay) * vy) / L : 0;
+    t = t < 0 ? 0 : (t > 1 ? 1 : t);
+    var dx = px - (ax + vx * t), dy = py - (ay + vy * t);
+    return dx * dx + dy * dy;
+  }
+
+  function inTri(px, py, ax, ay, bx, by, cx, cy){
+    var d1 = (px - bx) * (ay - by) - (ax - bx) * (py - by),
+        d2 = (px - cx) * (by - cy) - (bx - cx) * (py - cy),
+        d3 = (px - ax) * (cy - ay) - (cx - ax) * (py - ay);
+    return !(((d1 < 0) || (d2 < 0) || (d3 < 0)) && ((d1 > 0) || (d2 > 0) || (d3 > 0)));
+  }
+
+  function spikeHit(m, fy){
+    var w = m.r * TUNE.spikeW, h = m.r * TUNE.spikeH, r2 = m.r * m.r;
+    for (var i = 0; i < hazards.length; i++){
+      var z = hazards[i], dx = m.dist - z.x;
+      if (dx < -(w / 2 + m.r) || dx > (w / 2 + m.r)) continue;   // quick reject
+      var ax = z.x - w / 2, ay = fy,
+          bx = z.x,         by = fy - h,
+          cx = z.x + w / 2, cy = fy;
+      if (inTri(m.dist, m.y, ax, ay, bx, by, cx, cy)) return true;
+      if (segDist2(m.dist, m.y, ax, ay, bx, by) <= r2) return true;
+      if (segDist2(m.dist, m.y, bx, by, cx, cy) <= r2) return true;
+      if (segDist2(m.dist, m.y, cx, cy, ax, ay) <= r2) return true;
+    }
+    return false;
+  }
+
+  /* Where a bubble is allowed to let go: far enough from anything
+     sharp that the marble lands running rather than landing dead. */
+  function clearSpot(d){
+    for (var i = 0; i < hazards.length; i++){
+      if (Math.abs(hazards[i].x - d) < TUNE.safeGap) return false;
+    }
+    return true;
+  }
+
+  /* What a bot is looking at. -1 when the road ahead is clear. */
+  function nextSpike(d){
+    var best = -1;
+    for (var i = 0; i < hazards.length; i++){
+      var x = hazards[i].x;
+      if (x > d && (best < 0 || x < best)) best = x;
+    }
+    return best;
+  }
+
+  /* ---- debris and pops ----------------------------------- */
+  var bits = [], rings = [];
+
+  function burst(m){
+    for (var k = 0; k < 10; k++){
+      var a = -Math.PI * (.12 + Math.random() * .76);
+      bits.push({
+        d:m.dist + (Math.random() - .5) * m.r, y:m.y,
+        vx:Math.cos(a) * (80 + Math.random() * 230),
+        vy:Math.sin(a) * (150 + Math.random() * 250),
+        r:m.r * (.15 + Math.random() * .22),
+        color:m.color, life:.6, max:.6
+      });
+    }
+  }
+
+  function popRing(m, R){ rings.push({ d:m.dist, y:m.y, r:R, life:.34, max:.34 }); }
+
+  function stepDebris(dt){
+    var i, b;
+    for (i = bits.length - 1; i >= 0; i--){
+      b = bits[i];
+      b.life -= dt;
+      if (b.life <= 0){ bits.splice(i, 1); continue; }
+      b.vy += G.grav * .55 * dt;
+      b.d  += b.vx * dt;
+      b.y  += b.vy * dt;
+    }
+    for (i = rings.length - 1; i >= 0; i--){
+      rings[i].life -= dt;
+      if (rings[i].life <= 0) rings.splice(i, 1);
+    }
+  }
+
   function worldName(){ return WORLD[lang] || WORLD.en; }
 
   /* The player takes the colour they picked and the rivals take the
@@ -1849,9 +2008,14 @@ body.is-mobile .dialog-foot{ display:none; }
       return {
         id:id, color:col, ink:patternInk(col), bot:i > 0,
         r:r, x:0, y:floorY() - r, vy:0, down:true, spin:0,
+        dist:0,                  // how far along the course it has got
+        state:"run", timer:0, bob:0,
+        react:70 + Math.random() * 60,    // how early this rival leaves its jump
+        skill:.80 + Math.random() * .15,  // how often it actually sees one coming
+        target:-1, miss:false,
         home:x + i * gap,        // the lane it settles into
         from:-(r + 40),          // off the left edge, out of sight
-        wait:0, span:1, hop:0
+        wait:0, span:1
       };
     });
 
@@ -1878,6 +2042,7 @@ body.is-mobile .dialog-foot{ display:none; }
   function startGame(){
     go("play");                 // unhide first: a hidden canvas has no size
     sizeCanvas();
+    tuneJump();
 
     world.seed = Math.random() * 1000;   // same world, freshly shaped terrain
     world.dist = 0;
@@ -1892,6 +2057,10 @@ body.is-mobile .dialog-foot{ display:none; }
     tickCount(COUNT);
 
     buildField();
+    hazards.length = 0;
+    spawnedTo = 0;
+    layCourse(runners[runners.length - 1].home - laneX());
+    bits.length = rings.length = 0;
     keys.jump = false;
 
     jumps = 0;
@@ -1949,38 +2118,98 @@ body.is-mobile .dialog-foot{ display:none; }
       if (world.flash <= 0) countdown.hidden = true;
     }
 
-    world.dist += TUNE.speed * dt;
-
+    /* The course is laid ahead of whoever is furthest along and swept
+       behind whoever is furthest back, so it exists for every marble
+       at once rather than for whoever the camera happens to follow. */
+    var lead = -Infinity, tail = Infinity;
     for (var i = 0; i < runners.length; i++){
-      var r = runners[i];
+      if (runners[i].dist > lead) lead = runners[i].dist;
+      if (runners[i].dist < tail) tail = runners[i].dist;
+    }
+    layCourse(lead);
 
-      if (r.bot){
-        /* A rival hops on its own clock. This is a placeholder for
-           real racing, not an opponent worth beating yet. */
-        r.hop -= dt;
-        if (r.hop <= 0 && r.down){
-          r.vy = -TUNE.jump;
-          r.down = false;
-          r.hop = .8 + Math.random() * 1.7;
-        }
-      } else if (keys.jump && r.down){
-        /* Held, not tapped: on the ground with the button down is a
-           jump, so holding it keeps the marble hopping. */
-        r.vy = -TUNE.jump;
-        r.down = false;
-        jumpCount.textContent = ++jumps;   // written on a jump, not every frame
+    for (i = 0; i < runners.length; i++) advance(runners[i], dt);
+    sweepCourse(tail, dt);
+    stepDebris(dt);
+
+    /* The camera rides the player, so the parallax and every screen
+       position are read off one number. A player who is destroyed
+       stops gaining ground, the view stops with them, and the field
+       visibly rolls away up the road. */
+    world.dist = runners[0].dist;
+    var cam = world.dist - laneX();
+    for (i = 0; i < runners.length; i++) runners[i].x = runners[i].dist - cam;
+  }
+
+  function advance(m, dt){
+    var fy = floorY(), rest = fy - m.r;
+
+    /* destroyed: no ground gained, which is the whole cost of it */
+    if (m.state === "dead"){
+      m.timer -= dt;
+      if (m.timer <= 0){
+        m.state = "bubble";
+        m.timer = 0;
+        m.bob   = 0;
+        m.vy    = 0;
+        m.y     = rest - m.r * 3.4;    // it comes back where it went
+        popRing(m, m.r * 1.85);
       }
+      return;
+    }
 
-      /* Rolling without slipping: one full turn per circumference of
-         ground travelled. The marble holds its lane, so the distance
-         is the world's, not its own. */
-      r.spin += (TUNE.speed * dt) / r.r;
+    /* carried, not running: no controls, no collision, no jumping —
+       the bubble drifts at race pace and lets go over clear track */
+    if (m.state === "bubble"){
+      m.timer += dt;
+      m.bob   += dt;
+      m.dist  += TUNE.speed * dt;
+      m.y      = rest - m.r * 3.4 + Math.sin(m.bob * 2.4) * m.r * .45;
+      m.spin  += (TUNE.speed * dt) / m.r * .22;
+      if (m.timer > TUNE.floatMin && clearSpot(m.dist)){
+        popRing(m, m.r * 1.85);
+        m.state = "run";
+        m.down  = false;
+        m.vy    = 0;
+      }
+      return;
+    }
 
-      r.vy += TUNE.grav * dt;
-      r.y  += r.vy * dt;
+    if (m.bot){
+      /* A rival watches the road, not a clock. Jumping late still
+         clears a spike — the marble leaves the ground fast — so a
+         bot that always tries never dies, and a race with no
+         mistakes in it has no lead changes. The mistake is missing
+         the spike altogether: each one gets rolled for once, when it
+         comes into view, and the answer is honoured to the end. */
+      var next = nextSpike(m.dist);
+      if (next !== m.target){
+        m.target = next;
+        m.miss = Math.random() > m.skill;
+      }
+      if (!m.miss && m.down && next > 0 && next - m.dist < m.react){
+        m.vy = -G.jump;
+        m.down = false;
+      }
+    } else if (keys.jump && m.down){
+      /* Held, not tapped: on the ground with the button down is a
+         jump, so holding it keeps the marble hopping. */
+      m.vy = -G.jump;
+      m.down = false;
+      jumpCount.textContent = ++jumps;   // written on a jump, not every frame
+    }
 
-      var rest = floorY() - r.r;
-      if (r.y >= rest){ r.y = rest; r.vy = 0; r.down = true; }
+    m.dist += TUNE.speed * dt;
+    m.spin += (TUNE.speed * dt) / m.r;   // rolling without slipping
+
+    m.vy += G.grav * dt;
+    m.y  += m.vy * dt;
+    if (m.y >= rest){ m.y = rest; m.vy = 0; m.down = true; }
+
+    if (spikeHit(m, fy)){
+      burst(m);
+      m.state = "dead";
+      m.timer = TUNE.dieFor;
     }
   }
 
@@ -2018,7 +2247,13 @@ body.is-mobile .dialog-foot{ display:none; }
       world.phase = "run";
       world.flash = GO_HOLD;
       keys.jump = false;                   // a button held through the clock does not count
-      for (i = 0; i < runners.length; i++) runners[i].x = runners[i].home;
+      /* The starting formation is handed over to the race as track
+         distance, so the first frame of the race puts everyone exactly
+         where the roll-in left them. */
+      for (i = 0; i < runners.length; i++){
+        runners[i].x    = runners[i].home;
+        runners[i].dist = runners[i].home - laneX();
+      }
     }
   }
 
@@ -2068,6 +2303,85 @@ body.is-mobile .dialog-foot{ display:none; }
     }
   }
 
+  /* ---- the respawn bubble --------------------------------
+     Five things stacked, and the order is the whole trick. The
+     film brightens hard just INSIDE the rim rather than on it,
+     which is what stops it reading as a disc and makes it read
+     as a hollow skin with air in the middle. */
+  function drawBubble(cx, cy, R, phase){
+    /* halo — pale blue bleeding out to 1.6R, gone by the edge of
+       its own square, so it never draws a seam */
+    var halo = ctx.createRadialGradient(cx, cy, R * .55, cx, cy, R * 1.6);
+    halo.addColorStop(0,   "rgba(176,222,255,.08)");   // barely any over the marble
+    halo.addColorStop(.38, "rgba(176,222,255,.21)");   // strongest just outside the rim
+    halo.addColorStop(1,   "rgba(176,222,255,0)");
+    ctx.fillStyle = halo;
+    ctx.fillRect(cx - R * 1.6, cy - R * 1.6, R * 3.2, R * 3.2);
+
+    /* film — nearly clear in the middle, a blue haze through the
+       body, a hard white band at 88%, then falling away at the rim */
+    var film = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+    film.addColorStop(0,   "rgba(255,255,255,.03)");
+    film.addColorStop(.42, "rgba(186,224,255,.10)");
+    film.addColorStop(.74, "rgba(206,236,255,.19)");
+    film.addColorStop(.88, "rgba(255,255,255,.62)");
+    film.addColorStop(.96, "rgba(255,255,255,.24)");
+    film.addColorStop(1,   "rgba(255,255,255,.06)");
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.fillStyle = film;
+    ctx.fill();
+
+    /* iridescence — three quarter-arcs of thin-film colour, evenly
+       spaced, sliding round the rim as the road scrolls */
+    ctx.lineWidth = R * .11;
+    ctx.lineCap = "round";
+    for (var k = 0; k < 3; k++){
+      var a0 = phase + k * (Math.PI * 2 / 3);
+      ctx.beginPath();
+      ctx.arc(cx, cy, R * .93, a0, a0 + Math.PI * 2 * .25);
+      ctx.strokeStyle = IRIS[k];
+      ctx.stroke();
+    }
+    ctx.lineCap = "butt";
+
+    /* outline — thin, translucent, closes the whole thing off */
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "rgba(255,255,255,.55)";
+    ctx.stroke();
+
+    /* glints — a big tilted one upper-left, a small dim one lower-right */
+    ctx.beginPath();
+    ctx.ellipse(cx - R * .38, cy - R * .40, R * .29, R * .13, -Math.PI * .28, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,.88)";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx + R * .42, cy + R * .38, R * .085, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,.42)";
+    ctx.fill();
+  }
+
+  /* ---- spikes -------------------------------------------- */
+  function drawSpikes(cam, fy, r){
+    var w = r * TUNE.spikeW, h = r * TUNE.spikeH;
+    ctx.fillStyle = WORLD.soil;
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = TUNE.line;
+    for (var i = 0; i < hazards.length; i++){
+      var x = hazards[i].x - cam;
+      if (x < -w || x > view.w + w) continue;         // off screen, still very much there
+      ctx.beginPath();
+      ctx.moveTo(x - w / 2, fy);
+      ctx.lineTo(x, fy - h);
+      ctx.lineTo(x + w / 2, fy);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
+
   function draw(){
     var w = view.w, h = view.h, fy = floorY(), d = world.dist;
 
@@ -2100,13 +2414,52 @@ body.is-mobile .dialog-foot{ display:none; }
     ctx.lineTo(w, fy + TUNE.line / 2);
     ctx.stroke();
 
+    var cam = world.dist - laneX(), rad = radius();
+    if (world.phase !== "count") drawSpikes(cam, fy, rad);
+
+    /* debris from anything that was destroyed this second */
+    for (var b = 0; b < bits.length; b++){
+      var f = bits[b];
+      ctx.globalAlpha = Math.max(0, f.life / f.max);
+      ctx.beginPath();
+      ctx.arc(f.d - cam, f.y, f.r, 0, Math.PI * 2);
+      ctx.fillStyle = f.color;
+      ctx.fill();
+    }
+    for (b = 0; b < rings.length; b++){
+      var g = rings[b], k = 1 - g.life / g.max;
+      ctx.globalAlpha = (1 - k) * .7;
+      ctx.beginPath();
+      ctx.arc(g.d - cam, g.y, g.r * (1 + k * .7), 0, Math.PI * 2);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(255,255,255,.9)";
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    /* Rivals that have been dropped or have pulled away sit off the
+       screen entirely. A pip on the edge keeps the race legible
+       instead of leaving you alone on an empty road. */
+    for (var e = 1; e < runners.length; e++){
+      var o = runners[e];
+      if (o.state === "dead" || (o.x > -o.r && o.x < w + o.r)) continue;
+      ctx.beginPath();
+      ctx.arc(o.x < 0 ? 12 : w - 12, fy - o.r * 1.6, o.r * .5, 0, Math.PI * 2);
+      ctx.fillStyle = o.color;
+      ctx.fill();
+      ctx.lineWidth = TUNE.line;
+      ctx.strokeStyle = "#000";
+      ctx.stroke();
+    }
+
     /* Back to front, so the marble being steered is never hidden
        behind a rival that happens to share its patch of ground. */
     ctx.lineWidth = TUNE.line;
     ctx.strokeStyle = "#000";
     for (var i = runners.length - 1; i >= 0; i--){
       var r = runners[i];
-      if (r.x + r.r < 0) continue;         // still off the left edge
+      if (r.state === "dead") continue;    // destroyed: only the debris is left
+      if (r.x + r.r < 0 || r.x - r.r > w) continue;
 
       ctx.save();
       ctx.translate(r.x, r.y);
@@ -2134,6 +2487,9 @@ body.is-mobile .dialog-foot{ display:none; }
       ctx.strokeStyle = "#000";
       ctx.stroke();
       ctx.restore();
+
+      /* the bubble goes on last, so the marble is seen through it */
+      if (r.state === "bubble") drawBubble(r.x, r.y, r.r * 1.85, world.dist * .004);
     }
   }
 
@@ -2172,6 +2528,7 @@ body.is-mobile .dialog-foot{ display:none; }
   window.addEventListener("resize", function(){
     if (screen !== "play") return;
     sizeCanvas();
+    tuneJump();
     var gap = laneGap(), x = laneX(), r = radius();
     runners.forEach(function(m, i){
       m.r    = r;
