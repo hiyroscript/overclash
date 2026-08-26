@@ -1719,19 +1719,60 @@ body.is-mobile .dialog-foot{ display:none; }
        back down in half a second — that is these two numbers. */
     jumpH:   4.0,   // apex, in radii — two marble-widths
     airTime:  .50,  // seconds between leaving the ground and landing
-    speed:  360,    // how fast the world slides past
+    /* Reach, not pace, is why this number is what it is. A jump has
+       to carry the marble five of its own widths for a three-spike
+       cluster to be fair — that is the proportion Geometry Dash
+       runs at, and 480 against a 0.50s airtime is exactly five. At
+       360 a triple left three frames to time it in. */
+    speed:  480,    // how fast the world slides past
     lane:    .22,   // how far in from the left the player stands
     line:     2,    // every outline in the world is this thick
 
     spikeW:  1.7,   // spike width, in marble radii
     spikeH:  2.0,   // spike height
-    slot:    400,   // one possible spike per this much track
-    density:  .55,  // how many of those slots actually carry one
+    tallH:   3.0,   // the tall one — half again as high, and the apex is only 4.0
+    gapMin:  320,   // clear road between one cluster and the next
+    gapMax:  600,
+    twoUp:    .30,  // chance a cluster is a pair
+    threeUp:  .12,  // chance it is a trio
+    tallUp:   .16,  // chance it is a tall spike with a small one beside it
+
+    /* Platforms. A deck sits a fixed height above whatever ground it
+       spans, and that height is settled by the jump: it has to be
+       inside the apex to be landable, and thick enough that the
+       underside still clears the spikes a bridge is built over.
+       3.2 up, 0.6 thick — 0.8 of a radius under the apex, 0.6 of a
+       radius over a spike tip, and 0.6 of headroom for a marble
+       running underneath it. */
+    slabUp:   .20,  // chance a feature is a platform rather than spikes
+    slabSpike:.45,  // and how often that platform comes covered in spikes
+    slabLift: 3.2,  // the deck, in radii above the ground under it
+    slabT:     .6,  // how thick the slab is
+    slabPad:   .7,  // clear deck each side of a bridged field, in jump reaches
+    /* Run lengths, measured in jump reaches rather than in spikes, so
+       "too long to jump" stays true at every marble size. A bridged
+       field starts above 1 reach — that is what makes the deck the
+       only way over it. A roof runs from a couple of spikes to a long
+       low ceiling. */
+    fieldMin:1.25,
+    fieldMax: 2.6,
+    roofMin:   .3,
+    roofMax:  2.2,
+
+    riseUp:   .34,  // chance a feature is a change in ground level
+    levelH:     2,  // one level, in marble radii
+    maxLevel:   3,  // how far above the datum the ground may climb
+    stairUp:  .45,  // chance that change is a run of them instead of one
+    stairMin: 220,  // spacing inside a run — two rises clear at 180, so this
+    stairMax: 320,  // leaves margin at every reaction time a bot can have
+    leadIn:  900,   // clear road before the first hazard of a race
     dieFor:     2,  // seconds a destroyed marble stays gone
     clearBy:  160,  // how far past a hazard counts as having passed it
     linger:     3,  // seconds after the LAST marble is past before it retires
-    floatMin:  .9,  // shortest time in the bubble
-    safeGap:  240   // clear track a bubble needs before it dares pop
+    dropBack:  60,  // a bubble will not let go this close behind a cluster
+    dropAhead:240,  // nor this close in front of the next one
+    floatMin:  .9,  // shortest carry, so the bubble is always seen
+    floatMax:   4   // it stops looking for a gap after this and drops anyway
   };
 
   var COUNT   = 3,    // seconds on the start clock
@@ -1755,7 +1796,8 @@ body.is-mobile .dialog-foot{ display:none; }
     far:    "#BCAFDD",   // distant range
     mid:    "#AC9ED4",   // rolling hills
     ground: "#8C7CBE",
-    soil:   "#7A6AAC"    // the crust under the surface
+    soil:   "#7A6AAC",   // the crust under the surface, and on top of a step
+    hazard: "#5F4E86"    // spikes — darker than any terrain, so they read as danger
   };
 
   var cv  = $("playCanvas"),
@@ -1875,32 +1917,243 @@ body.is-mobile .dialog-foot{ display:none; }
      only after a delay, so nothing can wink out from under anyone.
      By the time the delay expires it is over a thousand pixels
      behind the last marble, well off the left edge. */
-  var hazards = [], spawnedTo = 0;
+  var hazards = [], slabs = [], courseAt = 0, clusters = 0;
 
-  function slotUsed(i){ return i >= 2 && rnd(i * 3.7 + 733) < TUNE.density; }
-  function slotSpot(i){ return i * TUNE.slot + 210 + rnd(i * 5.1 + 811) * 60; }
+  /* One jump, in ground covered. Every structure that has to be
+     jumped onto, ducked under or bridged is measured against this
+     rather than against a pixel count, so a course laid for a small
+     marble asks exactly the same jumps of it as a big one. */
+  function reachPx(){ return TUNE.speed * TUNE.airTime; }
 
-  /* Laid down ahead of whoever is furthest along, so the leader never
-     runs into blank road. Each slot is built exactly once. */
+  /* The ground is a profile, not a floor with blocks on it. It runs
+     at a level until a transition, then runs at the new one — so the
+     whole terrain rises and falls the way a Geometry Dash level does
+     rather than the marble hopping over slabs on a flat floor.
+     Levels are counted in radii so the climb is the same number of
+     marble-heights on every screen. */
+  var ground = [{ x:-1e9, hr:0, rise:0 }];
+
+  function segAt(d){
+    for (var i = ground.length - 1; i > 0; i--) if (ground[i].x <= d) return i;
+    return 0;
+  }
+  function groundHR(d){ return ground[segAt(d)].hr; }
+  function surfaceY(d, fy, r){ return fy - groundHR(d) * r; }
+
+  /* ---- platforms ----------------------------------------
+     A slab of ground floating over the road. The deck can be stood
+     on and everything else about it kills: run into its edge or come
+     up under it and the marble is destroyed. A platform under a full
+     coat of spikes cannot be landed on at all, so it is a roof — the
+     only way past it is along the ground, without jumping. */
+  function slabTopY(p, fy, r){ return fy - p.hr * r; }
+  function slabBotY(p, fy, r){ return fy - p.hr * r + TUNE.slabT * r; }
+
+  /* What the marble may stand on. A level only holds it up if the
+     marble came down onto it — judged on where the underside sat
+     BEFORE this frame's move, because a drop from the apex covers
+     nine pixels in a frame and would otherwise end up below the
+     surface with the ground declining to hold it. */
+  var restSlab = null;    // what restY last stood the marble on, or null for the ground
+
+  function restY(m, fy, was){
+    var t = surfaceY(m.dist, fy, m.r), on = null, i, p, top;
+
+    /* A deck holds a marble up on exactly the same terms the ground
+       does — only if the marble came down onto it. Rising into it or
+       catching its edge is not standing on it, and falls through to
+       slabHit, which is what makes the underside lethal. */
+    for (i = 0; i < slabs.length; i++){
+      p = slabs[i];
+      if (m.dist < p.x || m.dist > p.x + p.w) continue;   // the centre carries it, so it rolls off the end
+      top = slabTopY(p, fy, m.r);
+      if (was > top + 1) continue;
+      if (top < t){ t = top; on = p; }
+    }
+    restSlab = on;
+    if (on) return t - m.r;
+
+    if (was <= t + 1) return t - m.r;
+    /* Beside a wall rather than on top of it: stay on the level it
+       was running along, and let the wall decide what happens. */
+    var back = surfaceY(m.dist - m.r * 2, fy, m.r);
+    return (t > back ? t : back) - m.r;
+  }
+
+  /* Only a rising wall can be run into — the marble travels one way,
+     so a drop is something it falls off, never something it hits.
+     That also removes the corner-graze problem entirely: the face of
+     a descent is simply not part of the lethal shape. */
+  function wallHit(m, fy){
+    var r2 = m.r * m.r;
+    for (var i = 1; i < ground.length; i++){
+      var g = ground[i];
+      if (g.rise <= 0) continue;
+      if (m.dist < g.x - m.r || m.dist > g.x + m.r) continue;
+      var top = fy - g.hr * m.r,                     // top of the wall
+          foot = fy - (g.hr - g.rise) * m.r,         // the level it climbs from
+          cy = m.y < top ? top : (m.y > foot ? foot : m.y),
+          dx = m.dist - g.x, dy = m.y - cy;
+      if (dx * dx + dy * dy < r2 - .5) return true;
+    }
+    return false;
+  }
+
+  /* Circle against the slab, exactly as drawn. Landing is not a hit:
+     restY has already parked the marble one radius clear of the deck,
+     so the circle touches the top edge and never crosses it. Anything
+     else that reaches the rectangle — the head under the underside,
+     the shoulder against the leading edge — is a hit. */
+  function slabHit(m, fy){
+    var r2 = m.r * m.r;
+    for (var i = 0; i < slabs.length; i++){
+      var p = slabs[i];
+      /* Past the far end there is nothing left to hit: a marble only
+         ever travels one way, so the trailing face is something it
+         rolls off, never something it runs into — the same rule the
+         ground uses to keep a descending step from being lethal. */
+      if (m.dist + m.r < p.x || m.dist > p.x + p.w) continue;
+      var top = slabTopY(p, fy, m.r),
+          bot = top + TUNE.slabT * m.r,
+          cx  = m.dist < p.x ? p.x : m.dist,
+          cy  = m.y < top ? top : (m.y > bot ? bot : m.y),
+          dx  = m.dist - cx, dy = m.y - cy;
+      if (dx * dx + dy * dy < r2 - .5) return true;
+    }
+    return false;
+  }
+
+  /* The lowest deck standing over a point, for a bubble to duck under. */
+  function lidY(d, fy, r){
+    var y = -Infinity;
+    for (var i = 0; i < slabs.length; i++){
+      var p = slabs[i];
+      if (d < p.x || d > p.x + p.w) continue;
+      var b = slabBotY(p, fy, r);
+      if (b > y) y = b;
+    }
+    return y;
+  }
+
+  function spikeSpan(){ return radius() * TUNE.spikeW; }
+  function tipHeight(z, j, r){ return r * (j === z.tall ? TUNE.tallH : TUNE.spikeH); }
+  function lastTip(z){ return z.x + (z.n - 1) * spikeSpan(); }
+  /* A spike stands on whatever holds it up: the ground it is planted
+     in, or the deck of the platform it was laid across. */
+  function hazBase(z, fy, r){ return z.plat ? slabTopY(z.plat, fy, r) : surfaceY(z.x, fy, r); }
+
+  /* Laid down ahead of whoever is furthest along, one cluster at a
+     time, so the road reads like something somebody built: a run of
+     singles, then a pair, then a trio, spaced by gaps that always
+     leave room to land and set up again. Cluster k always rolls the
+     same gap and the same size for a given seed, so the course is
+     fixed the moment the race starts even though nothing about it
+     was authored. */
   function layCourse(lead){
-    var upto = Math.floor((lead + view.w + TUNE.slot * 2) / TUNE.slot);
-    while (spawnedTo <= upto){
-      if (slotUsed(spawnedTo)) hazards.push({ x:slotSpot(spawnedTo), done:-1 });
-      spawnedTo++;
+    var w = spikeSpan(), R = reachPx();
+    while (courseAt < lead + view.w + 900){
+      var k = clusters++;
+      courseAt += TUNE.gapMin + rnd(k * 7.3 + 401) * (TUNE.gapMax - TUNE.gapMin);
+      if (courseAt < TUNE.leadIn) continue;
+      var pick = rnd(k * 2.9 + 55);
+
+      /* ---- a platform ----------------------------------
+         Both kinds get a clear jump's reach either side of them,
+         because both kinds are decided in the air: one has to be
+         landed on, the other has to be passed without leaving the
+         ground. Neither can be asked for while a marble is still
+         committed to the jump before it. */
+      if (pick < TUNE.riseUp + TUNE.slabUp && pick >= TUNE.riseUp){
+        var hr = ground[ground.length - 1].hr,
+            len = rnd(k * 8.9 + 271),
+            n2, deck;
+        courseAt += R;
+
+        if (rnd(k * 5.3 + 199) < TUNE.slabSpike){
+          /* Covered end to end, so there is nothing up there to land
+             on: a roof. The road under it is left clear, and the only
+             way through is to stay on it. */
+          n2 = Math.max(2, Math.round((TUNE.roofMin + len * (TUNE.roofMax - TUNE.roofMin)) * R / w));
+          deck = { x:courseAt - w / 2, w:n2 * w, hr:hr + TUNE.slabLift, spiked:true, done:-1 };
+          slabs.push(deck);
+          hazards.push({ x:courseAt, n:n2, tall:-1, plat:deck, deck:null, done:-1 });
+          courseAt += (n2 - 1) * w + w / 2;
+        } else {
+          /* Bare, and bridging a field of spikes longer than any jump
+             covers. The field is why the deck is there and the deck is
+             the only way over the field — the pad at each end is the
+             landing room and the run-off. */
+          var pad = TUNE.slabPad * R;
+          n2 = Math.max(2, Math.round((TUNE.fieldMin + len * (TUNE.fieldMax - TUNE.fieldMin)) * R / w));
+          deck = { x:courseAt - w / 2 - pad, w:n2 * w + pad * 2, hr:hr + TUNE.slabLift, spiked:false, done:-1 };
+          slabs.push(deck);
+          hazards.push({ x:courseAt, n:n2, tall:-1, plat:null, deck:deck, done:-1 });
+          courseAt += (n2 - 1) * w + w / 2 + pad;
+        }
+        courseAt += R;
+        continue;
+      }
+
+      /* A quarter of the time the road changes level instead of
+         biting. It climbs one level at a time, because one level is
+         what a jump comfortably clears, and it can fall two at once,
+         because falling is free. */
+      if (pick < TUNE.riseUp){
+        /* Often a whole run rather than a single change: two or three
+           transitions in a row, packed tighter than a normal gap, so
+           the ground reads as a staircase or a plateau instead of an
+           isolated bump. */
+        var roll2 = rnd(k * 13.1 + 211),
+            runs = roll2 < TUNE.stairUp ? (roll2 < TUNE.stairUp * .4 ? 3 : 2) : 1;
+        for (var q = 0; q < runs; q++){
+          var lvl = ground[ground.length - 1].hr / TUNE.levelH,
+              up  = lvl <= 0 ? true : (lvl >= TUNE.maxLevel ? false : rnd(k * 6.1 + 77 + q * 3.3) < .55),
+              nxt = up ? lvl + 1 : Math.max(0, lvl - (rnd(k * 9.7 + 131 + q * 5.7) < .35 ? 2 : 1));
+          if (nxt === lvl) continue;
+          ground.push({ x:courseAt, hr:nxt * TUNE.levelH, rise:(nxt - lvl) * TUNE.levelH });
+          if (q < runs - 1){
+            courseAt += TUNE.stairMin + rnd(k * 17.9 + 307 + q * 7.1) * (TUNE.stairMax - TUNE.stairMin);
+          }
+        }
+        continue;
+      }
+
+      /* A tall spike never stands on its own — it always comes paired
+         with a normal one, on one side or the other. `tall` is which
+         member of the cluster is the big one, or -1 for none. */
+      var roll = rnd(k * 11.7 + 907), n = 1, tall = -1;
+      if (roll < TUNE.threeUp) n = 3;
+      else if (roll < TUNE.threeUp + TUNE.twoUp) n = 2;
+      else if (roll < TUNE.threeUp + TUNE.twoUp + TUNE.tallUp){
+        n = 2;
+        tall = rnd(k * 4.9 + 613) < .5 ? 0 : 1;   // left or right
+      }
+      hazards.push({ x:courseAt, n:n, tall:tall, plat:null, deck:null, done:-1 });
+      courseAt += (n - 1) * w;
     }
   }
 
   /* `tail` is the marble furthest back, destroyed ones included —
      they have not passed anything while they sit there. */
-  function sweepCourse(tail, dt){
-    for (var i = hazards.length - 1; i >= 0; i--){
-      var z = hazards[i];
+  function retire(list, dt, endOf){
+    for (var i = list.length - 1; i >= 0; i--){
+      var z = list[i];
       if (z.done < 0){
-        if (tail > z.x + TUNE.clearBy) z.done = TUNE.linger;
+        if (endOf(z)) z.done = TUNE.linger;
       } else if ((z.done -= dt) <= 0){
-        hazards.splice(i, 1);
+        list.splice(i, 1);
       }
     }
+  }
+
+  function sweepCourse(tail, dt){
+    retire(hazards, dt, function(z){ return tail > lastTip(z) + TUNE.clearBy; });
+    retire(slabs,   dt, function(p){ return tail > p.x + p.w + TUNE.clearBy; });
+    /* The profile is continuous, so a segment is dropped only once the
+       one after it is comfortably behind the last marble — the same
+       three-second grace the spikes get. */
+    var keep = tail - TUNE.clearBy - TUNE.linger * TUNE.speed;
+    while (ground.length > 1 && ground[1].x < keep) ground.shift();
   }
 
   /* ---- collision ----------------------------------------
@@ -1925,38 +2178,104 @@ body.is-mobile .dialog-foot{ display:none; }
   }
 
   function spikeHit(m, fy){
-    var w = m.r * TUNE.spikeW, h = m.r * TUNE.spikeH, r2 = m.r * m.r;
+    var w = m.r * TUNE.spikeW, r2 = m.r * m.r;
     for (var i = 0; i < hazards.length; i++){
-      var z = hazards[i], dx = m.dist - z.x;
-      if (dx < -(w / 2 + m.r) || dx > (w / 2 + m.r)) continue;   // quick reject
-      var ax = z.x - w / 2, ay = fy,
-          bx = z.x,         by = fy - h,
-          cx = z.x + w / 2, cy = fy;
-      if (inTri(m.dist, m.y, ax, ay, bx, by, cx, cy)) return true;
-      if (segDist2(m.dist, m.y, ax, ay, bx, by) <= r2) return true;
-      if (segDist2(m.dist, m.y, bx, by, cx, cy) <= r2) return true;
-      if (segDist2(m.dist, m.y, cx, cy, ax, ay) <= r2) return true;
+      var z = hazards[i];
+      if (m.dist < z.x - w - m.r || m.dist > z.x + z.n * w + m.r) continue;  // whole cluster missed
+      var base = hazBase(z, fy, m.r);         // the ground it is planted in, or the deck it was laid on
+      for (var j = 0; j < z.n; j++){
+        var sx = z.x + j * w;
+        if (m.dist < sx - w / 2 - m.r || m.dist > sx + w / 2 + m.r) continue;
+        var h = tipHeight(z, j, m.r),
+            fy2 = base,
+            ax = sx - w / 2, bx = sx, cx = sx + w / 2;
+        if (inTri(m.dist, m.y, ax, fy2, bx, fy2 - h, cx, fy2)) return true;
+        if (segDist2(m.dist, m.y, ax, fy2, bx, fy2 - h) <= r2) return true;
+        if (segDist2(m.dist, m.y, bx, fy2 - h, cx, fy2) <= r2) return true;
+        if (segDist2(m.dist, m.y, cx, fy2, ax, fy2) <= r2) return true;
+      }
     }
     return false;
   }
 
-  /* Where a bubble is allowed to let go: far enough from anything
-     sharp that the marble lands running rather than landing dead. */
-  function clearSpot(d){
-    for (var i = 0; i < hazards.length; i++){
-      if (Math.abs(hazards[i].x - d) < TUNE.safeGap) return false;
+  /* Where a bubble is willing to let go: the first place with room to
+     land behind it and room to set the next jump up in front. */
+  function clearSpot(d, loose){
+    var ahead = loose ? TUNE.dropBack : TUNE.dropAhead, i;
+    for (i = 0; i < hazards.length; i++){
+      var z = hazards[i];
+      if (z.plat) continue;                           // up on a deck, not on the road
+      if (d > lastTip(z) + TUNE.dropBack) continue;   // safely behind it
+      if (d < z.x - ahead) continue;                  // far enough short of it
+      return false;                                    // too close, or inside it
+    }
+    for (i = 1; i < ground.length; i++){
+      var g = ground[i];
+      if (g.rise <= 0) continue;                      // a drop is nothing to land under
+      if (d > g.x) continue;                          // past the wall
+      if (d < g.x - ahead) continue;                  // well short of it
+      return false;                                    // would land right under the wall
+    }
+    for (i = 0; i < slabs.length; i++){
+      var p = slabs[i];
+      if (p.spiked) continue;                         // a roof is only a roof: the road under it is clear
+      if (d > p.x) continue;                          // past the edge, or already under the deck
+      if (d < p.x - ahead) continue;
+      return false;                                    // no room left to make the climb
     }
     return true;
   }
 
-  /* What a bot is looking at. -1 when the road ahead is clear. */
-  function nextSpike(d){
-    var best = -1;
-    for (var i = 0; i < hazards.length; i++){
-      var x = hazards[i].x;
-      if (x > d && (best < 0 || x < best)) best = x;
+  /* The carry height. Under a deck the bubble ducks so it slides
+     beneath the platform instead of sailing through it, and it will
+     not duck lower than just clear of the ground. */
+  function bubbleY(m, fy){
+    var base = surfaceY(m.dist, fy, m.r),
+        y    = base - m.r * 3.4 + Math.sin(m.bob * 2.4) * m.r * .45,
+        lid  = lidY(m.dist, fy, m.r);
+    if (lid > -Infinity) y = Math.min(base - m.r * 1.15, Math.max(y, lid + m.r * 1.85));
+    return y;
+  }
+
+  /* What a bot is looking at: the nearest thing it has to leave the
+     ground for, whether that is a spike or the face of a step. -1 when
+     the road ahead is clear. */
+  function nextJump(m){
+    var d = m.dist, best = -1, i;
+    if (m.on) return -1;                    // riding a deck: nothing down there to leave it for
+    for (i = 0; i < hazards.length; i++){
+      var z = hazards[i];
+      if (z.plat || z.deck) continue;       // on a roof, or bridged — the deck is the thing to aim at
+      if (z.x > d && (best < 0 || z.x < best)) best = z.x;
+    }
+    for (i = 1; i < ground.length; i++){
+      var g = ground[i];
+      if (g.rise > 0 && g.x > d && (best < 0 || g.x < best)) best = g.x;
+    }
+    for (i = 0; i < slabs.length; i++){
+      var p = slabs[i];
+      if (p.spiked) continue;               // covered: there is nothing up there to land on
+      /* A spike is cleared by the marble's centre; a deck has to be
+         cleared by its shoulder, which arrives a whole radius sooner.
+         Aim that much earlier and the same reaction band that clears
+         every spike also lands every deck. */
+      var e = p.x - m.r;
+      if (e > d && (best < 0 || e < best)) best = e;
     }
     return best;
+  }
+
+  /* A roof ends any jump taken near it. A rival will not take one
+     whose arc reaches under a covered platform — which is the same
+     thing a player works out the first time it costs them. */
+  function roofNear(m){
+    var far = m.dist + reachPx();
+    for (var i = 0; i < slabs.length; i++){
+      var p = slabs[i];
+      if (!p.spiked) continue;
+      if (far > p.x - m.r && m.dist < p.x + p.w + m.r) return true;
+    }
+    return false;
   }
 
   /* ---- debris and pops ----------------------------------- */
@@ -2010,9 +2329,13 @@ body.is-mobile .dialog-foot{ display:none; }
         r:r, x:0, y:floorY() - r, vy:0, down:true, spin:0,
         dist:0,                  // how far along the course it has got
         state:"run", timer:0, bob:0,
-        react:70 + Math.random() * 60,    // how early this rival leaves its jump
+        /* Measured, not guessed: at 60fps the band that clears every
+           feature on a generated course is 82..102px. Outside it a
+           rival fails the same obstacle every time, which reads as a
+           broken bot rather than a mistake. */
+        react:84 + Math.random() * 16,    // how early this rival leaves its jump
         skill:.80 + Math.random() * .15,  // how often it actually sees one coming
-        target:-1, miss:false,
+        target:-1, miss:false, on:null,
         home:x + i * gap,        // the lane it settles into
         from:-(r + 40),          // off the left edge, out of sight
         wait:0, span:1
@@ -2058,7 +2381,10 @@ body.is-mobile .dialog-foot{ display:none; }
 
     buildField();
     hazards.length = 0;
-    spawnedTo = 0;
+    slabs.length = 0;
+    ground.length = 1;
+    ground[0] = { x:-1e9, hr:0, rise:0 };
+    courseAt = clusters = 0;
     layCourse(runners[runners.length - 1].home - laneX());
     bits.length = rings.length = 0;
     keys.jump = false;
@@ -2142,7 +2468,7 @@ body.is-mobile .dialog-foot{ display:none; }
   }
 
   function advance(m, dt){
-    var fy = floorY(), rest = fy - m.r;
+    var fy = floorY(), rest;
 
     /* destroyed: no ground gained, which is the whole cost of it */
     if (m.state === "dead"){
@@ -2152,24 +2478,29 @@ body.is-mobile .dialog-foot{ display:none; }
         m.timer = 0;
         m.bob   = 0;
         m.vy    = 0;
-        m.y     = rest - m.r * 3.4;    // it comes back where it went
+        m.y     = bubbleY(m, fy);          // it comes back where it went
         popRing(m, m.r * 1.85);
       }
       return;
     }
 
-    /* carried, not running: no controls, no collision, no jumping —
-       the bubble drifts at race pace and lets go over clear track */
+    /* Carried, not running: no controls, no collision, no jumping.
+       The bubble drifts at race pace and waits for somewhere it can
+       put the marble down running. It will not hold on forever: past
+       floatMax it drops wherever it is, so a course that fills up
+       later cannot leave anyone floating for good. */
     if (m.state === "bubble"){
       m.timer += dt;
       m.bob   += dt;
       m.dist  += TUNE.speed * dt;
-      m.y      = rest - m.r * 3.4 + Math.sin(m.bob * 2.4) * m.r * .45;
+      m.y      = bubbleY(m, fy);
       m.spin  += (TUNE.speed * dt) / m.r * .22;
-      if (m.timer > TUNE.floatMin && clearSpot(m.dist)){
+      if (m.timer >= TUNE.floatMax ? clearSpot(m.dist, true)
+                                   : (m.timer >= TUNE.floatMin && clearSpot(m.dist, false))){
         popRing(m, m.r * 1.85);
         m.state = "run";
         m.down  = false;
+        m.on    = null;
         m.vy    = 0;
       }
       return;
@@ -2182,12 +2513,12 @@ body.is-mobile .dialog-foot{ display:none; }
          mistakes in it has no lead changes. The mistake is missing
          the spike altogether: each one gets rolled for once, when it
          comes into view, and the answer is honoured to the end. */
-      var next = nextSpike(m.dist);
+      var next = nextJump(m);
       if (next !== m.target){
         m.target = next;
         m.miss = Math.random() > m.skill;
       }
-      if (!m.miss && m.down && next > 0 && next - m.dist < m.react){
+      if (!m.miss && m.down && next > 0 && next - m.dist < m.react && !roofNear(m)){
         m.vy = -G.jump;
         m.down = false;
       }
@@ -2202,14 +2533,19 @@ body.is-mobile .dialog-foot{ display:none; }
     m.dist += TUNE.speed * dt;
     m.spin += (TUNE.speed * dt) / m.r;   // rolling without slipping
 
+    var was = m.y + m.r;                 // where the underside sat before the move
     m.vy += G.grav * dt;
     m.y  += m.vy * dt;
-    if (m.y >= rest){ m.y = rest; m.vy = 0; m.down = true; }
 
-    if (spikeHit(m, fy)){
+    rest = restY(m, fy, was);
+    if (m.y >= rest){ m.y = rest; m.vy = 0; m.down = true; m.on = restSlab; }
+    else m.on = null;
+
+    if (spikeHit(m, fy) || wallHit(m, fy) || slabHit(m, fy)){
       burst(m);
       m.state = "dead";
       m.timer = TUNE.dieFor;
+      m.on = null;
     }
   }
 
@@ -2291,14 +2627,17 @@ body.is-mobile .dialog-foot{ display:none; }
     }
   }
 
-  /* Stones on the surface, moving at the true speed of the ground. */
-  function pebbles(shift, fy, h){
+  /* Stones on the surface, moving at the true speed of the ground and
+     sitting on whatever level the ground happens to be at. */
+  function pebbles(shift, fy, h, r, cam){
     ctx.fillStyle = "rgba(0,0,0,.13)";
-    var step = 54, band = h - fy;
+    var step = 54;
     for (var i = Math.floor(shift / step) - 1; i * step - shift < view.w + step; i++){
       if (rnd(i + 401) < .45) continue;
-      ctx.fillRect(Math.round(i * step - shift + rnd(i + 457) * 28),
-                   Math.round(fy + band * (.38 + rnd(i + 503) * .44)),
+      var x = i * step - shift + rnd(i + 457) * 28,
+          top = surfaceY(x + cam, fy, r),
+          band = h - top;
+      ctx.fillRect(Math.round(x), Math.round(top + band * (.10 + rnd(i + 503) * .28)),
                    5 + rnd(i + 599) * 9, 2);
     }
   }
@@ -2363,22 +2702,98 @@ body.is-mobile .dialog-foot{ display:none; }
     ctx.fill();
   }
 
+  /* ---- terrain -------------------------------------------
+     One polyline for the whole visible profile: run at a level,
+     step, run at the next. Filling under it and stroking along it
+     means the ground, the walls and the drops are all the same
+     object, which is what makes the terrain read as terrain rather
+     than as furniture standing on a floor. */
+  function groundLine(cam, fy, r){
+    var pts = [], i = segAt(cam), top = fy - ground[i].hr * r;
+    pts.push([0, top]);
+    for (i = i + 1; i < ground.length && ground[i].x - cam <= view.w; i++){
+      var x = ground[i].x - cam, t = fy - ground[i].hr * r;
+      pts.push([x, top]);                 // run out to the transition
+      pts.push([x, t]);                   // and step
+      top = t;
+    }
+    pts.push([view.w, top]);
+    return pts;
+  }
+
+  function drawGround(cam, fy, r, h, d){
+    var pts = groundLine(cam, fy, r), i;
+
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    for (i = 0; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.lineTo(view.w, h);
+    ctx.closePath();
+    ctx.fillStyle = WORLD.ground;
+    ctx.fill();
+
+    /* crust along each level run, so the surface reads as a surface */
+    ctx.fillStyle = WORLD.soil;
+    var crust = Math.max(5, r * .5);
+    for (i = 0; i + 1 < pts.length; i += 2){
+      ctx.fillRect(pts[i][0], pts[i][1], pts[i + 1][0] - pts[i][0], crust);
+    }
+
+    pebbles(d, fy, h, r, cam);
+
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1] + TUNE.line / 2);
+    for (i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1] + TUNE.line / 2);
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = TUNE.line;
+    ctx.stroke();
+  }
+
+  /* ---- platforms -----------------------------------------
+     Built out of the same two tones as the ground, so a deck reads as
+     a piece of the world rather than as a game object standing in it:
+     crust on top, body under. The underside carries a band of the
+     hazard tone — it is the one part of the terrain that kills
+     without being a spike, and it has to say so out loud. */
+  function drawSlabs(cam, fy, r){
+    var t = TUNE.slabT * r,
+        crust = Math.max(3, t * .34),
+        edge  = Math.max(2, t * .22);
+    ctx.lineWidth = TUNE.line;
+    ctx.strokeStyle = "#000";
+    for (var i = 0; i < slabs.length; i++){
+      var p = slabs[i], x = p.x - cam, top = slabTopY(p, fy, r);
+      if (x > view.w + 60 || x + p.w < -60) continue;
+      ctx.fillStyle = WORLD.ground;
+      ctx.fillRect(x, top, p.w, t);
+      ctx.fillStyle = WORLD.soil;
+      ctx.fillRect(x, top, p.w, crust);
+      ctx.fillStyle = WORLD.hazard;
+      ctx.fillRect(x, top + t - edge, p.w, edge);
+      ctx.strokeRect(x, top, p.w, t);
+    }
+  }
+
   /* ---- spikes -------------------------------------------- */
   function drawSpikes(cam, fy, r){
-    var w = r * TUNE.spikeW, h = r * TUNE.spikeH;
-    ctx.fillStyle = WORLD.soil;
+    var w = r * TUNE.spikeW;
+    ctx.fillStyle = WORLD.hazard;
     ctx.strokeStyle = "#000";
     ctx.lineWidth = TUNE.line;
     for (var i = 0; i < hazards.length; i++){
-      var x = hazards[i].x - cam;
-      if (x < -w || x > view.w + w) continue;         // off screen, still very much there
-      ctx.beginPath();
-      ctx.moveTo(x - w / 2, fy);
-      ctx.lineTo(x, fy - h);
-      ctx.lineTo(x + w / 2, fy);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
+      var z = hazards[i];
+      if (z.x - cam > view.w + w || z.x + z.n * w - cam < -w) continue;  // off screen, still very much there
+      var base = hazBase(z, fy, r);
+      for (var j = 0; j < z.n; j++){
+        var x = z.x + j * w - cam, h = tipHeight(z, j, r);
+        ctx.beginPath();
+        ctx.moveTo(x - w / 2, base);
+        ctx.lineTo(x, base - h);
+        ctx.lineTo(x + w / 2, base);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
     }
   }
 
@@ -2401,21 +2816,9 @@ body.is-mobile .dialog-foot{ display:none; }
     ridge(d * .18, 148, fy * .17, fy * .30, 11, WORLD.far, fy);
     ridge(d * .34, 102, fy * .08, fy * .17, 53, WORLD.mid, fy);
 
-    ctx.fillStyle = WORLD.ground;
-    ctx.fillRect(0, fy, w, h - fy);
-    ctx.fillStyle = WORLD.soil;
-    ctx.fillRect(0, fy, w, Math.max(5, (h - fy) * .20));
-    pebbles(d, fy, h);
-
-    ctx.strokeStyle = "#000";
-    ctx.lineWidth = TUNE.line;
-    ctx.beginPath();
-    ctx.moveTo(0, fy + TUNE.line / 2);
-    ctx.lineTo(w, fy + TUNE.line / 2);
-    ctx.stroke();
-
     var cam = world.dist - laneX(), rad = radius();
-    if (world.phase !== "count") drawSpikes(cam, fy, rad);
+    drawGround(cam, fy, rad, h, d);
+    if (world.phase !== "count"){ drawSlabs(cam, fy, rad); drawSpikes(cam, fy, rad); }
 
     /* debris from anything that was destroyed this second */
     for (var b = 0; b < bits.length; b++){
