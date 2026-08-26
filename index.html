@@ -1731,40 +1731,63 @@ body.is-mobile .dialog-foot{ display:none; }
     spikeW:  1.7,   // spike width, in marble radii
     spikeH:  2.0,   // spike height
     tallH:   3.0,   // the tall one — half again as high, and the apex is only 4.0
-    gapMin:  320,   // clear road between one cluster and the next
-    gapMax:  600,
     twoUp:    .30,  // chance a cluster is a pair
     threeUp:  .12,  // chance it is a trio
     tallUp:   .16,  // chance it is a tall spike with a small one beside it
 
     /* Platforms. A deck sits a fixed height above whatever ground it
-       spans, and that height is settled by the jump: it has to be
-       inside the apex to be landable, and thick enough that the
-       underside still clears the spikes a bridge is built over.
-       3.2 up, 0.6 thick — 0.8 of a radius under the apex, 0.6 of a
-       radius over a spike tip, and 0.6 of headroom for a marble
-       running underneath it. */
-    slabUp:   .20,  // chance a feature is a platform rather than spikes
-    slabSpike:.45,  // and how often that platform comes covered in spikes
-    slabLift: 3.2,  // the deck, in radii above the ground under it
-    slabT:     .6,  // how thick the slab is
-    slabPad:   .7,  // clear deck each side of a bridged field, in jump reaches
-    /* Run lengths, measured in jump reaches rather than in spikes, so
-       "too long to jump" stays true at every marble size. A bridged
-       field starts above 1 reach — that is what makes the deck the
-       only way over it. A roof runs from a couple of spikes to a long
-       low ceiling. */
-    fieldMin:1.25,
-    fieldMax: 2.6,
-    roofMin:   .3,
-    roofMax:  2.2,
+       spans, and the two numbers below share one budget: the top has
+       to stay inside the jump apex to be landable, and the underside
+       has to stay above the spikes a bridge is built over. 3.3 up,
+       0.9 thick — 0.7 of a radius under the apex, and 0.4 of a radius
+       both over a spike tip and over the head of a marble running
+       underneath. Thicker than this and the road under a roof stops
+       looking passable; higher and the landing window closes. */
+    slabLift: 3.3,  // the deck, in radii above the ground under it
+    slabT:     .9,  // how thick the slab is
 
-    riseUp:   .34,  // chance a feature is a change in ground level
+    /* ---- set pieces ----------------------------------
+       Everything below is measured in jump reaches, never in pixels,
+       so a shape asks the same jump of a small marble as of a big
+       one. Spacing INSIDE a piece is one fixed number repeated —
+       that is what makes a piece read as something a person drew
+       rather than as dice landing next to each other. */
+    restMin: 1.45,  // clear road between pieces
+    restStep: .25,  // rests come in three fixed lengths, this far apart
+    restHeavy: .35, // and a big piece earns extra road after it
+    warmUp:     3,  // pieces of plain road-and-spikes before anything big
+
+    fieldMin:1.25,  // a bridged spike field — over one reach, so no jump crosses it
+    fieldMax: 2.6,
+    slabPad:   .5,  // deck sticking out past each end of a bridged field
+    stoneLen:  .70, // a stepping stone, and how much longer it may run
+    stoneVary: .30,
+    stoneGap:  .36, // clear air between two stones, and how much it may vary
+    stoneVar2: .08,
+    stoneMax:    4, // most stones in a chain
+    stairRise: 2.2, // one deck step above the last, in radii
+    stairMax2:   3, // most decks in a flight
+
+    /* Holes. A hole is the one hazard on the course that is left
+       LATE — the ground has to last as long as it can — so it carries
+       its own aim rather than the reaction band the spikes use. An
+       island is a jump reach wide, which is what leaves room to land
+       out of one hole and set up for the next. */
+    gapMin:   .34,  // a hole, in jump reaches
+    gapMax:   .66,
+    gapIsle:  .95,  // island between two holes in a run
+    gapRun:     3,  // most holes in one run
+    gapAim:   .18,  // how far short of the lip a rival leaves the ground
+    pitDeep:  1.2,  // how far under the floor line a fall turns fatal, in radii
+
+    rhythmMin:  3,  // singles in a metronome run, and the fixed step between
+    rhythmMax:  5,
+    rhythmStep:1.3,
+    climbStep:1.15, // spacing inside a staircase of ground
+    dropStep:   .8, // and inside a run of terraces going back down
+
     levelH:     2,  // one level, in marble radii
     maxLevel:   3,  // how far above the datum the ground may climb
-    stairUp:  .45,  // chance that change is a run of them instead of one
-    stairMin: 220,  // spacing inside a run — two rises clear at 180, so this
-    stairMax: 320,  // leaves margin at every reaction time a bot can have
     leadIn:  900,   // clear road before the first hazard of a race
     dieFor:     2,  // seconds a destroyed marble stays gone
     clearBy:  160,  // how far past a hazard counts as having passed it
@@ -1938,14 +1961,19 @@ body.is-mobile .dialog-foot{ display:none; }
     return 0;
   }
   function groundHR(d){ return ground[segAt(d)].hr; }
+  /* A hole keeps the level of the ground it cuts through, so scenery,
+     bubbles and the camera all still have a line to read; only what
+     holds a marble up consults this. */
+  function solidAt(d){ return !ground[segAt(d)].void; }
   function surfaceY(d, fy, r){ return fy - groundHR(d) * r; }
 
   /* ---- platforms ----------------------------------------
-     A slab of ground floating over the road. The deck can be stood
-     on and everything else about it kills: run into its edge or come
-     up under it and the marble is destroyed. A platform under a full
-     coat of spikes cannot be landed on at all, so it is a roof — the
-     only way past it is along the ground, without jumping. */
+     A slab of ground floating over the road. The deck can be stood on
+     and everything else about it kills: run into its edge or come up
+     under it and the marble is destroyed. Every deck stands over
+     spikes — that is what it is for — so there is never a reason to
+     put spikes on top of one as well. `plat` on a hazard is the hook
+     for that if it is ever wanted; nothing sets it now. */
   function slabTopY(p, fy, r){ return fy - p.hr * r; }
   function slabBotY(p, fy, r){ return fy - p.hr * r + TUNE.slabT * r; }
 
@@ -1973,10 +2001,15 @@ body.is-mobile .dialog-foot{ display:none; }
     restSlab = on;
     if (on) return t - m.r;
 
+    /* Over a hole there is nothing to land on at all. The marble keeps
+       falling, and the depth check in advance() ends it. */
+    if (!solidAt(m.dist)) return Infinity;
+
     if (was <= t + 1) return t - m.r;
     /* Beside a wall rather than on top of it: stay on the level it
        was running along, and let the wall decide what happens. */
-    var back = surfaceY(m.dist - m.r * 2, fy, m.r);
+    var back = solidAt(m.dist - m.r * 2)
+             ? surfaceY(m.dist - m.r * 2, fy, m.r) : Infinity;
     return (t > back ? t : back) - m.r;
   }
 
@@ -1987,12 +2020,19 @@ body.is-mobile .dialog-foot{ display:none; }
   function wallHit(m, fy){
     var r2 = m.r * m.r;
     for (var i = 1; i < ground.length; i++){
-      var g = ground[i];
-      if (g.rise <= 0) continue;
+      var g = ground[i], top, foot;
+      if (g.pit){
+        /* The far lip of a hole is a face with no bottom to it: clear
+           it and you land, catch it and the run ends there. */
+        top = fy - g.hr * m.r;
+        foot = fy + 1e5;
+      } else {
+        if (g.rise <= 0) continue;
+        top  = fy - g.hr * m.r;                      // top of the wall
+        foot = fy - (g.hr - g.rise) * m.r;           // the level it climbs from
+      }
       if (m.dist < g.x - m.r || m.dist > g.x + m.r) continue;
-      var top = fy - g.hr * m.r,                     // top of the wall
-          foot = fy - (g.hr - g.rise) * m.r,         // the level it climbs from
-          cy = m.y < top ? top : (m.y > foot ? foot : m.y),
+      var cy = m.y < top ? top : (m.y > foot ? foot : m.y),
           dx = m.dist - g.x, dy = m.y - cy;
       if (dx * dx + dy * dy < r2 - .5) return true;
     }
@@ -2039,97 +2079,228 @@ body.is-mobile .dialog-foot{ display:none; }
   function tipHeight(z, j, r){ return r * (j === z.tall ? TUNE.tallH : TUNE.spikeH); }
   function lastTip(z){ return z.x + (z.n - 1) * spikeSpan(); }
   /* A spike stands on whatever holds it up: the ground it is planted
-     in, or the deck of the platform it was laid across. */
+     in, or a deck, if a hazard is ever given one. */
   function hazBase(z, fy, r){ return z.plat ? slabTopY(z.plat, fy, r) : surfaceY(z.x, fy, r); }
 
-  /* Laid down ahead of whoever is furthest along, one cluster at a
-     time, so the road reads like something somebody built: a run of
-     singles, then a pair, then a trio, spaced by gaps that always
-     leave room to land and set up again. Cluster k always rolls the
-     same gap and the same size for a given seed, so the course is
-     fixed the moment the race starts even though nothing about it
-     was authored. */
+  /* ---- the composer -------------------------------------
+     The course is laid in set pieces, not in single obstacles. Each
+     piece is a shape somebody could have drawn — a metronome run of
+     spikes, a staircase, a flight of decks over a spike sea — and it
+     lays its own ground, hazards and platforms in one go. The seed
+     picks which piece comes next and how big it is; the rules about
+     what may follow what are what turn a bag of dice into something
+     that reads as built. Piece k always rolls the same way for a
+     given seed, and a piece is never regenerated once laid, so the
+     course is canon to every marble in the race.
+
+     Two habits do most of the work. Spacing inside a piece is one
+     number repeated, so the eye reads a phrase instead of a scatter.
+     And every piece is followed by clear road, so each one lands as
+     its own idea rather than running into the next. */
+  var lastPiece = "", laid = 0, restDebt = 0, climbRun = 0;
+
+  function level(){ return ground[ground.length - 1].hr / TUNE.levelH; }
+
+  /* Rests come in a few fixed lengths rather than anywhere in a
+     range: repetition is what makes spacing feel deliberate. */
+  function restGap(k, R){
+    return R * (TUNE.restMin + Math.floor(rnd(k * 7.3 + 401) * 3) * TUNE.restStep)
+         + (restDebt > 0 ? R * TUNE.restHeavy : 0);
+  }
+
+  /* A field of spikes on the ground from a to b, tagged with the deck
+     that crosses it so nothing on the ground tries to jump it. */
+  function layField(a, b, w, deck){
+    var n = Math.max(1, Math.round((b - a) / w));
+    hazards.push({ x:a + w / 2, n:n, tall:-1, plat:null, deck:deck, done:-1 });
+  }
+
+  /* A chain of decks over one spike sea. Same height and it is
+     stepping stones; climbing and it is a staircase. Both are one
+     routine because they are one idea — the gaps and the rise are
+     the only difference, and both are sized off the jump. */
+  function layChain(at, w, R, n, len, gap, rise){
+    var hr = ground[ground.length - 1].hr, x = at, first = null, i, deck;
+    for (i = 0; i < n; i++){
+      deck = { x:x, w:len, hr:hr + TUNE.slabLift + i * rise, done:-1 };
+      slabs.push(deck);
+      if (!first) first = deck;
+      x += len + (i < n - 1 ? gap : 0);
+    }
+    layField(at, x, w, first);
+    return x;
+  }
+
+  var PIECES = {
+    /* The plain beat: one to three spikes, sometimes with a tall one
+       leaning on a small one. */
+    beat: function(k, at, w, R){
+      var roll = rnd(k * 11.7 + 907), n = 1, tall = -1;
+      if (laid >= 2){
+        if (roll < TUNE.threeUp) n = 3;
+        else if (roll < TUNE.threeUp + TUNE.twoUp) n = 2;
+        else if (roll < TUNE.threeUp + TUNE.twoUp + TUNE.tallUp){
+          /* The tall one always stands second. Leading with it asks
+             the marble to be three radii up at the very start of its
+             arc, which is the one shape on the course that stops
+             being clearable when the frame rate drops; behind a small
+             one it is met at the apex instead. */
+          n = 2; tall = 1;
+        }
+      }
+      hazards.push({ x:at, n:n, tall:tall, plat:null, deck:null, done:-1 });
+      return at + (n - 1) * w;
+    },
+
+    /* A metronome. Three to five singles at one fixed step, so the
+       whole run is jumped on a beat instead of read one spike at a
+       time. This is the piece that does the most to make a generated
+       course feel authored. */
+    rhythm: function(k, at, w, R){
+      var n = TUNE.rhythmMin + Math.floor(rnd(k * 5.7 + 83) * (TUNE.rhythmMax - TUNE.rhythmMin + 1)),
+          step = R * (TUNE.rhythmStep + Math.floor(rnd(k * 9.1 + 157) * 2) * .2), i;
+      for (i = 0; i < n; i++){
+        hazards.push({ x:at + i * step, n:1, tall:-1, plat:null, deck:null, done:-1 });
+      }
+      return at + (n - 1) * step;
+    },
+
+    /* The ground climbing a level at a time, evenly spaced: a
+       staircase, not three unrelated bumps. Half the time there is a
+       spike waiting on the top landing. */
+    climb: function(k, at, w, R){
+      var lvl = level(),
+          n = Math.min(2 + Math.floor(rnd(k * 6.1 + 77) * 2), TUNE.maxLevel - lvl),
+          step = R * TUNE.climbStep, i, end;
+      for (i = 0; i < n; i++){
+        ground.push({ x:at + i * step, hr:(lvl + i + 1) * TUNE.levelH, rise:TUNE.levelH });
+      }
+      end = at + (n - 1) * step;
+      if (rnd(k * 8.3 + 211) < .5){
+        end += R * 1.3;
+        hazards.push({ x:end, n:1, tall:-1, plat:null, deck:null, done:-1 });
+      }
+      return end;
+    },
+
+    /* And the ground letting go again — terraces down, evenly
+       spaced. Falling costs nothing, so this is the breath between
+       two hard things. */
+    drop: function(k, at, w, R){
+      var lvl = level(),
+          n = Math.min(1 + Math.floor(rnd(k * 4.3 + 47) * 2), lvl),
+          step = R * TUNE.dropStep, i;
+      for (i = 0; i < n; i++){
+        ground.push({ x:at + i * step, hr:(lvl - i - 1) * TUNE.levelH, rise:-TUNE.levelH });
+      }
+      return at + (n - 1) * step;
+    },
+
+    /* Holes in the road, at one island length apart. A hole asks the
+       opposite of a spike — stay on the ground as long as you can,
+       then go — so a run of them reads as a different rhythm even
+       though it is the same button. */
+    gap: function(k, at, w, R){
+      var hr = ground[ground.length - 1].hr,
+          n = 1 + Math.floor(rnd(k * 6.3 + 149) * TUNE.gapRun),
+          span = R * (TUNE.gapMin + rnd(k * 4.1 + 67) * (TUNE.gapMax - TUNE.gapMin)),
+          isle = R * TUNE.gapIsle,
+          x = at, i;
+      for (i = 0; i < n; i++){
+        ground.push({ x:x, hr:hr, rise:0, void:true });
+        ground.push({ x:x + span, hr:hr, rise:0, pit:true });
+        x += span + (i < n - 1 ? isle : 0);
+      }
+      return x;
+    },
+
+    /* One deck over a field of spikes too long for any jump. The
+       field is why the deck is there and the deck is the only way
+       over the field. */
+    bridge: function(k, at, w, R){
+      var hr = ground[ground.length - 1].hr,
+          span = R * (TUNE.fieldMin + rnd(k * 8.9 + 271) * (TUNE.fieldMax - TUNE.fieldMin)),
+          pad = TUNE.slabPad * R,
+          deck = { x:at, w:span + pad * 2, hr:hr + TUNE.slabLift, done:-1 };
+      slabs.push(deck);
+      layField(at + pad, at + pad + span, w, deck);
+      return at + deck.w;
+    },
+
+    /* Stepping stones: the same crossing broken into pieces, so it is
+       hopped rather than ridden. One gap size for the whole chain. */
+    stones: function(k, at, w, R){
+      var n = 2 + Math.floor(rnd(k * 7.9 + 331) * (TUNE.stoneMax - 1)),
+          len = R * (TUNE.stoneLen + rnd(k * 5.1 + 137) * TUNE.stoneVary),
+          gap = R * (TUNE.stoneGap + rnd(k * 3.3 + 89) * TUNE.stoneVar2);
+      return layChain(at, w, R, n, len, gap, 0);
+    },
+
+    /* The same chain, climbing. Each deck is one step above the last,
+       and the step is small enough that the jump which reached the
+       first one reaches every one after it. */
+    deckstair: function(k, at, w, R){
+      var n = 2 + (rnd(k * 6.7 + 401) < .45 ? 1 : 0),
+          len = R * TUNE.stoneLen,
+          gap = R * TUNE.stoneGap;
+      return layChain(at, w, R, Math.min(n, TUNE.stairMax2), len, gap, TUNE.stairRise);
+    }
+  };
+
+  var LIGHT = ["beat", "rhythm", "drop"],
+      HEAVY = ["bridge", "stones", "deckstair"];
+
+  /* How often a piece comes up when it is allowed at all. The big
+     pieces are punctuation: a course that is all crossings has no
+     shape to it, and one that never reaches a crossing has nothing
+     to build to. */
+  var WEIGHT = { beat:3, rhythm:2, drop:2, climb:2, gap:2, bridge:1, stones:1, deckstair:1 };
+
+  /* What may follow what. The course opens on plain road so the first
+     jump teaches the button, never repeats a piece back to back, and
+     always spends a light piece after a heavy one — a course with no
+     rests in it stops reading as a course. The ground is kept honest
+     too: it cannot climb past the ceiling, cannot fall through the
+     floor, and after two climbs it is made to come back down, so the
+     terrain breathes instead of pinning itself at the top. */
+  function choosePiece(k){
+    var lvl = level(), pool, out = [], i;
+
+    if (laid < TUNE.warmUp) pool = ["beat", "rhythm"];
+    else if (restDebt > 0)  pool = LIGHT;
+    else                    pool = LIGHT.concat(["climb", "gap"]).concat(HEAVY);
+
+    for (i = 0; i < pool.length; i++){
+      var name = pool[i], n;
+      if (name === lastPiece) continue;                       // never twice running
+      if (name === "climb" && lvl >= TUNE.maxLevel) continue; // no room left above
+      if (name === "drop"  && lvl <= 0) continue;             // already on the floor
+      if (name === "deckstair" && lvl > 1) continue;          // a flight needs headroom
+      for (n = 0; n < WEIGHT[name]; n++) out.push(name);
+    }
+    if (climbRun >= 2 && lvl > 0 && out.indexOf("drop") >= 0) return "drop";
+    if (!out.length) return "beat";
+    return out[Math.min(out.length - 1, Math.floor(rnd(k * 3.1 + 19) * out.length))];
+  }
+
   function layCourse(lead){
     var w = spikeSpan(), R = reachPx();
     while (courseAt < lead + view.w + 900){
       var k = clusters++;
-      courseAt += TUNE.gapMin + rnd(k * 7.3 + 401) * (TUNE.gapMax - TUNE.gapMin);
-      if (courseAt < TUNE.leadIn) continue;
-      var pick = rnd(k * 2.9 + 55);
+      courseAt += restGap(k, R);
+      if (courseAt < TUNE.leadIn){ restDebt = 0; continue; }
 
-      /* ---- a platform ----------------------------------
-         Both kinds get a clear jump's reach either side of them,
-         because both kinds are decided in the air: one has to be
-         landed on, the other has to be passed without leaving the
-         ground. Neither can be asked for while a marble is still
-         committed to the jump before it. */
-      if (pick < TUNE.riseUp + TUNE.slabUp && pick >= TUNE.riseUp){
-        var hr = ground[ground.length - 1].hr,
-            len = rnd(k * 8.9 + 271),
-            n2, deck;
-        courseAt += R;
+      /* The debt is spent on the choice, not before it: a heavy piece
+         buys both the longer rest in front of the next one AND the
+         promise that the next one is light. */
+      var name = choosePiece(k);
+      restDebt = 0;
+      courseAt = PIECES[name](k, courseAt, w, R);
 
-        if (rnd(k * 5.3 + 199) < TUNE.slabSpike){
-          /* Covered end to end, so there is nothing up there to land
-             on: a roof. The road under it is left clear, and the only
-             way through is to stay on it. */
-          n2 = Math.max(2, Math.round((TUNE.roofMin + len * (TUNE.roofMax - TUNE.roofMin)) * R / w));
-          deck = { x:courseAt - w / 2, w:n2 * w, hr:hr + TUNE.slabLift, spiked:true, done:-1 };
-          slabs.push(deck);
-          hazards.push({ x:courseAt, n:n2, tall:-1, plat:deck, deck:null, done:-1 });
-          courseAt += (n2 - 1) * w + w / 2;
-        } else {
-          /* Bare, and bridging a field of spikes longer than any jump
-             covers. The field is why the deck is there and the deck is
-             the only way over the field — the pad at each end is the
-             landing room and the run-off. */
-          var pad = TUNE.slabPad * R;
-          n2 = Math.max(2, Math.round((TUNE.fieldMin + len * (TUNE.fieldMax - TUNE.fieldMin)) * R / w));
-          deck = { x:courseAt - w / 2 - pad, w:n2 * w + pad * 2, hr:hr + TUNE.slabLift, spiked:false, done:-1 };
-          slabs.push(deck);
-          hazards.push({ x:courseAt, n:n2, tall:-1, plat:null, deck:deck, done:-1 });
-          courseAt += (n2 - 1) * w + w / 2 + pad;
-        }
-        courseAt += R;
-        continue;
-      }
-
-      /* A quarter of the time the road changes level instead of
-         biting. It climbs one level at a time, because one level is
-         what a jump comfortably clears, and it can fall two at once,
-         because falling is free. */
-      if (pick < TUNE.riseUp){
-        /* Often a whole run rather than a single change: two or three
-           transitions in a row, packed tighter than a normal gap, so
-           the ground reads as a staircase or a plateau instead of an
-           isolated bump. */
-        var roll2 = rnd(k * 13.1 + 211),
-            runs = roll2 < TUNE.stairUp ? (roll2 < TUNE.stairUp * .4 ? 3 : 2) : 1;
-        for (var q = 0; q < runs; q++){
-          var lvl = ground[ground.length - 1].hr / TUNE.levelH,
-              up  = lvl <= 0 ? true : (lvl >= TUNE.maxLevel ? false : rnd(k * 6.1 + 77 + q * 3.3) < .55),
-              nxt = up ? lvl + 1 : Math.max(0, lvl - (rnd(k * 9.7 + 131 + q * 5.7) < .35 ? 2 : 1));
-          if (nxt === lvl) continue;
-          ground.push({ x:courseAt, hr:nxt * TUNE.levelH, rise:(nxt - lvl) * TUNE.levelH });
-          if (q < runs - 1){
-            courseAt += TUNE.stairMin + rnd(k * 17.9 + 307 + q * 7.1) * (TUNE.stairMax - TUNE.stairMin);
-          }
-        }
-        continue;
-      }
-
-      /* A tall spike never stands on its own — it always comes paired
-         with a normal one, on one side or the other. `tall` is which
-         member of the cluster is the big one, or -1 for none. */
-      var roll = rnd(k * 11.7 + 907), n = 1, tall = -1;
-      if (roll < TUNE.threeUp) n = 3;
-      else if (roll < TUNE.threeUp + TUNE.twoUp) n = 2;
-      else if (roll < TUNE.threeUp + TUNE.twoUp + TUNE.tallUp){
-        n = 2;
-        tall = rnd(k * 4.9 + 613) < .5 ? 0 : 1;   // left or right
-      }
-      hazards.push({ x:courseAt, n:n, tall:tall, plat:null, deck:null, done:-1 });
-      courseAt += (n - 1) * w;
+      climbRun = name === "climb" ? climbRun + 1 : (name === "drop" ? 0 : climbRun);
+      if (HEAVY.indexOf(name) >= 0) restDebt = 1;
+      lastPiece = name;
+      laid++;
     }
   }
 
@@ -2211,17 +2382,25 @@ body.is-mobile .dialog-foot{ display:none; }
     }
     for (i = 1; i < ground.length; i++){
       var g = ground[i];
+      if (g.void){                                    // a hole, and the run-up to it
+        var end = i + 1 < ground.length ? ground[i + 1].x : g.x + 1e5;
+        if (d > end + TUNE.dropBack) continue;
+        if (d < g.x - ahead) continue;
+        return false;
+      }
       if (g.rise <= 0) continue;                      // a drop is nothing to land under
       if (d > g.x) continue;                          // past the wall
       if (d < g.x - ahead) continue;                  // well short of it
       return false;                                    // would land right under the wall
     }
+    /* Every deck now stands over spikes, so anywhere under one is a
+       place a marble cannot be put down — and short of one there has
+       to be room left to make the climb. */
     for (i = 0; i < slabs.length; i++){
       var p = slabs[i];
-      if (p.spiked) continue;                         // a roof is only a roof: the road under it is clear
-      if (d > p.x) continue;                          // past the edge, or already under the deck
-      if (d < p.x - ahead) continue;
-      return false;                                    // no room left to make the climb
+      if (d > p.x + p.w + TUNE.dropBack) continue;    // the whole crossing is behind
+      if (d < p.x - ahead) continue;                  // well short of it
+      return false;
     }
     return true;
   }
@@ -2241,41 +2420,45 @@ body.is-mobile .dialog-foot{ display:none; }
      ground for, whether that is a spike or the face of a step. -1 when
      the road ahead is clear. */
   function nextJump(m){
-    var d = m.dist, best = -1, i;
-    if (m.on) return -1;                    // riding a deck: nothing down there to leave it for
+    var d = m.dist, best = -1, i, e;
+
+    /* A spike is cleared by the marble's centre; a deck has to be
+       cleared by its shoulder, which arrives a whole radius sooner.
+       The frame the decision lands on adds to that — on a slow
+       machine a frame is a fifth of a marble-width of road — so the
+       aim is a radius plus one slow frame early. That is what lets
+       the same reaction band that clears every spike also land every
+       deck, and it is what carries a marble from one stone in a
+       chain to the next. */
+    for (i = 0; i < slabs.length; i++){
+      var p = slabs[i];
+      if (p === m.on) continue;
+      e = p.x - m.r - TUNE.speed * .04;
+      if (e > d && (best < 0 || e < best)) best = e;
+    }
+    /* Up on a deck, the next deck is the only thing worth leaving for:
+       the road and everything on it is a long way down. */
+    if (m.on) return best;
+
     for (i = 0; i < hazards.length; i++){
       var z = hazards[i];
-      if (z.plat || z.deck) continue;       // on a roof, or bridged — the deck is the thing to aim at
+      if (z.deck) continue;                 // bridged — the deck is the thing to aim at
       if (z.x > d && (best < 0 || z.x < best)) best = z.x;
     }
     for (i = 1; i < ground.length; i++){
       var g = ground[i];
+      if (g.void){
+        /* A spike is left early; a hole is left late. Folding the
+           rival's own reaction back into the target makes every rival
+           leave the lip at the same place, which is the only place a
+           hole can be left from. */
+        e = g.x - TUNE.gapAim * reachPx() + m.react;
+        if (e > d && (best < 0 || e < best)) best = e;
+        continue;
+      }
       if (g.rise > 0 && g.x > d && (best < 0 || g.x < best)) best = g.x;
     }
-    for (i = 0; i < slabs.length; i++){
-      var p = slabs[i];
-      if (p.spiked) continue;               // covered: there is nothing up there to land on
-      /* A spike is cleared by the marble's centre; a deck has to be
-         cleared by its shoulder, which arrives a whole radius sooner.
-         Aim that much earlier and the same reaction band that clears
-         every spike also lands every deck. */
-      var e = p.x - m.r;
-      if (e > d && (best < 0 || e < best)) best = e;
-    }
     return best;
-  }
-
-  /* A roof ends any jump taken near it. A rival will not take one
-     whose arc reaches under a covered platform — which is the same
-     thing a player works out the first time it costs them. */
-  function roofNear(m){
-    var far = m.dist + reachPx();
-    for (var i = 0; i < slabs.length; i++){
-      var p = slabs[i];
-      if (!p.spiked) continue;
-      if (far > p.x - m.r && m.dist < p.x + p.w + m.r) return true;
-    }
-    return false;
   }
 
   /* ---- debris and pops ----------------------------------- */
@@ -2384,7 +2567,8 @@ body.is-mobile .dialog-foot{ display:none; }
     slabs.length = 0;
     ground.length = 1;
     ground[0] = { x:-1e9, hr:0, rise:0 };
-    courseAt = clusters = 0;
+    courseAt = clusters = laid = restDebt = climbRun = 0;
+    lastPiece = "";
     layCourse(runners[runners.length - 1].home - laneX());
     bits.length = rings.length = 0;
     keys.jump = false;
@@ -2401,6 +2585,7 @@ body.is-mobile .dialog-foot{ display:none; }
       if (running) return;
       running = true;
       last = 0;                    // the pause must not arrive as one huge frame
+      bank = 0;
       raf = requestAnimationFrame(frame);
     } else {
       running = false;
@@ -2426,12 +2611,24 @@ body.is-mobile .dialog-foot{ display:none; }
     (on ? btnResume : btnPause).focus();
   }
 
+  /* The world is stepped at a fixed rate and drawn at whatever rate
+     the screen runs at. Stepping by the frame time instead looks the
+     same but is not: integrating a jump in big steps quietly loses
+     apex height — about a fifth of a radius by 30fps — and the arc
+     is what every clearance on the course is measured against. A
+     marble on a slow machine would be jumping lower than the course
+     was laid for. Fixed steps mean one arc everywhere. */
+  var FIXED = 1 / 120, bank = 0;
+
   function frame(t){
     if (!running) return;
     if (!last) last = t;
-    var dt = Math.min((t - last) / 1000, .05);   // clamped so a background tab cannot teleport the world
+    var dt = Math.min((t - last) / 1000, .25);   // clamped so a background tab cannot teleport the world
     last = t;
-    step(dt);
+    bank += dt;
+    var guard = 0;
+    while (bank >= FIXED && guard++ < 60){ step(FIXED); bank -= FIXED; }
+    if (guard >= 60) bank = 0;                   // too far behind to catch up: drop it
     draw();
     raf = requestAnimationFrame(frame);
   }
@@ -2518,7 +2715,7 @@ body.is-mobile .dialog-foot{ display:none; }
         m.target = next;
         m.miss = Math.random() > m.skill;
       }
-      if (!m.miss && m.down && next > 0 && next - m.dist < m.react && !roofNear(m)){
+      if (!m.miss && m.down && next > 0 && next - m.dist < m.react){
         m.vy = -G.jump;
         m.down = false;
       }
@@ -2541,7 +2738,8 @@ body.is-mobile .dialog-foot{ display:none; }
     if (m.y >= rest){ m.y = rest; m.vy = 0; m.down = true; m.on = restSlab; }
     else m.on = null;
 
-    if (spikeHit(m, fy) || wallHit(m, fy) || slabHit(m, fy)){
+    if (m.y - m.r > fy + TUNE.pitDeep * m.r ||
+        spikeHit(m, fy) || wallHit(m, fy) || slabHit(m, fy)){
       burst(m);
       m.state = "dead";
       m.timer = TUNE.dieFor;
@@ -2634,8 +2832,9 @@ body.is-mobile .dialog-foot{ display:none; }
     var step = 54;
     for (var i = Math.floor(shift / step) - 1; i * step - shift < view.w + step; i++){
       if (rnd(i + 401) < .45) continue;
-      var x = i * step - shift + rnd(i + 457) * 28,
-          top = surfaceY(x + cam, fy, r),
+      var x = i * step - shift + rnd(i + 457) * 28;
+      if (!solidAt(x + cam)) continue;              // nothing to lie on
+      var top = surfaceY(x + cam, fy, r),
           band = h - top;
       ctx.fillRect(Math.round(x), Math.round(top + band * (.10 + rnd(i + 503) * .28)),
                    5 + rnd(i + 599) * 9, 2);
@@ -2703,50 +2902,66 @@ body.is-mobile .dialog-foot{ display:none; }
   }
 
   /* ---- terrain -------------------------------------------
-     One polyline for the whole visible profile: run at a level,
-     step, run at the next. Filling under it and stroking along it
-     means the ground, the walls and the drops are all the same
-     object, which is what makes the terrain read as terrain rather
-     than as furniture standing on a floor. */
-  function groundLine(cam, fy, r){
-    var pts = [], i = segAt(cam), top = fy - ground[i].hr * r;
-    pts.push([0, top]);
+     The visible profile, cut into the runs of solid ground between
+     holes: run at a level, step, run at the next, stop dead at a lip
+     and pick up again at the far one. Filling under each run and
+     stroking along it means the ground, the walls, the drops and the
+     sides of a hole are all the same object, which is what makes the
+     terrain read as terrain rather than as furniture on a floor. */
+  function groundRuns(cam, fy, r){
+    var runs = [], pts = null, i = segAt(cam), g = ground[i],
+        top = fy - g.hr * r, x, t;
+    if (!g.void) pts = [[0, top]];
     for (i = i + 1; i < ground.length && ground[i].x - cam <= view.w; i++){
-      var x = ground[i].x - cam, t = fy - ground[i].hr * r;
-      pts.push([x, top]);                 // run out to the transition
-      pts.push([x, t]);                   // and step
+      g = ground[i];
+      x = g.x - cam;
+      t = fy - g.hr * r;
+      if (pts) pts.push([x, top]);        // run out to the transition
+      if (g.void){
+        if (pts){ runs.push(pts); pts = null; }   // the ground stops here
+      } else {
+        if (pts) pts.push([x, t]);        // a step
+        else pts = [[x, t]];              // the far lip of a hole
+      }
       top = t;
     }
-    pts.push([view.w, top]);
-    return pts;
+    if (pts){ pts.push([view.w, top]); runs.push(pts); }
+    return runs;
   }
 
   function drawGround(cam, fy, r, h, d){
-    var pts = groundLine(cam, fy, r), i;
+    var runs = groundRuns(cam, fy, r), crust = Math.max(5, r * .5), n, pts, i;
 
-    ctx.beginPath();
-    ctx.moveTo(0, h);
-    for (i = 0; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
-    ctx.lineTo(view.w, h);
-    ctx.closePath();
-    ctx.fillStyle = WORLD.ground;
-    ctx.fill();
+    for (n = 0; n < runs.length; n++){
+      pts = runs[n];
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0], h);
+      for (i = 0; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+      ctx.lineTo(pts[pts.length - 1][0], h);
+      ctx.closePath();
+      ctx.fillStyle = WORLD.ground;
+      ctx.fill();
 
-    /* crust along each level run, so the surface reads as a surface */
-    ctx.fillStyle = WORLD.soil;
-    var crust = Math.max(5, r * .5);
-    for (i = 0; i + 1 < pts.length; i += 2){
-      ctx.fillRect(pts[i][0], pts[i][1], pts[i + 1][0] - pts[i][0], crust);
+      /* crust along each level run, so the surface reads as a surface */
+      ctx.fillStyle = WORLD.soil;
+      for (i = 0; i + 1 < pts.length; i += 2){
+        ctx.fillRect(pts[i][0], pts[i][1], pts[i + 1][0] - pts[i][0], crust);
+      }
     }
 
     pebbles(d, fy, h, r, cam);
 
-    ctx.beginPath();
-    ctx.moveTo(pts[0][0], pts[0][1] + TUNE.line / 2);
-    for (i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1] + TUNE.line / 2);
     ctx.strokeStyle = "#000";
     ctx.lineWidth = TUNE.line;
-    ctx.stroke();
+    for (n = 0; n < runs.length; n++){
+      pts = runs[n];
+      ctx.beginPath();
+      /* the sides of a hole are drawn, the edges of the view are not */
+      if (pts[0][0] > .5) ctx.moveTo(pts[0][0], h); else ctx.moveTo(pts[0][0], pts[0][1] + TUNE.line / 2);
+      for (i = 0; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1] + TUNE.line / 2);
+      if (pts[pts.length - 1][0] < view.w - .5) ctx.lineTo(pts[pts.length - 1][0], h);
+      ctx.stroke();
+    }
   }
 
   /* ---- platforms -----------------------------------------
