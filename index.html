@@ -1759,7 +1759,8 @@ body.is-mobile .dialog-foot{ display:none; }
 
     fieldMin:1.25,  // a bridged spike field — over one reach, so no jump crosses it
     fieldMax: 2.6,
-    slabPad:   .5,  // deck sticking out past each end of a bridged field
+    slabPad:   .5,  // deck added at each end of a bridged crossing — landing
+                    // room, not clear road: the spikes run under it too
     stoneLen:  .70, // a stepping stone, and how much longer it may run
     stoneVary: .30,
     stoneGap:  .36, // clear air between two stones, and how much it may vary
@@ -2149,9 +2150,17 @@ body.is-mobile .dialog-foot{ display:none; }
   }
 
   /* A field of spikes on the ground from a to b, tagged with the deck
-     that crosses it so nothing on the ground tries to jump it. */
+     that crosses it so nothing on the ground tries to jump it.
+
+     Which way the count rounds is decided by what is overhead, because
+     the two cases want opposite answers. Under a deck the field has to
+     reach the far end or it leaves a strip of clear road with a roof
+     over it, so it rounds up. Under open sky it has to stay inside the
+     crossing it was measured for, so it rounds down — a spike past the
+     far lip lands where the marble does. */
   function layField(a, b, w, deck, lipX){
-    var n = Math.max(1, Math.round((b - a) / w));
+    var runs = (b - a) / w,
+        n = Math.max(1, deck ? Math.ceil(runs - 1e-6) : Math.floor(runs));
     hazards.push({ x:a + w / 2, n:n, tall:-1, plat:null, deck:deck,
                    lipX:(lipX === undefined ? null : lipX), done:-1 });
   }
@@ -2279,14 +2288,18 @@ body.is-mobile .dialog-foot{ display:none; }
 
     /* One deck over a field of spikes too long for any jump. The
        field is why the deck is there and the deck is the only way
-       over the field. */
+       over the field. The spikes run the deck's whole length, ends
+       included: a stretch of clear road under a deck is a lie — it
+       reads as a way through right up to the moment the spikes start,
+       and by then there is a roof overhead and no way out of it. A
+       deck says "not down here" from its first pixel to its last. */
     bridge: function(k, at, w, R){
       var hr = ground[ground.length - 1].hr,
           span = R * (TUNE.fieldMin + rnd(k * 8.9 + 271) * (TUNE.fieldMax - TUNE.fieldMin)),
           pad = TUNE.slabPad * R,
           deck = { x:at, w:span + pad * 2, hr:hr + TUNE.slabLift, done:-1 };
       slabs.push(deck);
-      layField(at + pad, at + pad + span, w, deck);
+      layField(deck.x, deck.x + deck.w, w, deck);
       return at + deck.w;
     },
 
