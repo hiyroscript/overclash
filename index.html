@@ -1768,6 +1768,23 @@ body.is-mobile .dialog-foot{ display:none; }
     stairRise: 2.2, // one deck step above the last, in radii
     stairMax2:   3, // most decks in a flight
 
+    /* Rings. A ring does nothing on contact — it is a place where the
+       jump button works a second time, in the air. It floats half a
+       reach past the lip, which puts first contact right at the top of
+       the arc: from there every moment of contact, from the first
+       frame to the last, carries the marble further than the crossing
+       is wide, so holding the button through a ring works as well as
+       timing it. The crossing itself is wider than one jump — that is
+       what makes the ring the way across rather than a shortcut. */
+    orbLift:  4.6,  // where the ring floats, in radii above the ground
+    orbR:     1.5,  // ring radius, in marble radii — wider than the marble,
+                    // so a marble passes through it rather than over it
+    orbAt:     .5,  // how far past the lip it floats, in jump reaches
+    orbPad:    .3,  // a sea under a ring starts this far in, so the marble
+                    // leaves from solid ground at the lip either way
+    orbGapMin:1.15, // the crossing under it — one jump covers 1.0
+    orbGapMax:1.35,
+
     /* Holes. A hole is the one hazard on the course that is left
        LATE — the ground has to last as long as it can — so it carries
        its own aim rather than the reaction band the spikes use. An
@@ -1820,7 +1837,11 @@ body.is-mobile .dialog-foot{ display:none; }
     mid:    "#AC9ED4",   // rolling hills
     ground: "#8C7CBE",
     soil:   "#7A6AAC",   // the crust under the surface, and on top of a step
-    hazard: "#5F4E86"    // spikes — darker than any terrain, so they read as danger
+    hazard: "#5F4E86",   // spikes — darker than any terrain, so they read as danger
+    /* The ring stays the palette's Electric Blue in every world. It is
+       the one thing in the world that is a control rather than
+       scenery, and it should not read as local colour. */
+    ring:   "#1F7AFF"
   };
 
   var cv  = $("playCanvas"),
@@ -1839,7 +1860,7 @@ body.is-mobile .dialog-foot{ display:none; }
   }
 
   var view    = { w:0, h:0 };
-  var world   = { dist:0, seed:0, phase:"count", clock:COUNT, shown:0, flash:0 };
+  var world   = { dist:0, seed:0, phase:"count", clock:COUNT, shown:0, flash:0, t:0 };
   var runners = [];              // [0] is the player, the rest are rivals
   var keys    = { jump:false };
   var running = false, raf = 0, last = 0, sky = null;
@@ -1940,7 +1961,7 @@ body.is-mobile .dialog-foot{ display:none; }
      only after a delay, so nothing can wink out from under anyone.
      By the time the delay expires it is over a thousand pixels
      behind the last marble, well off the left edge. */
-  var hazards = [], slabs = [], courseAt = 0, clusters = 0;
+  var hazards = [], slabs = [], orbs = [], courseAt = 0, clusters = 0;
 
   /* One jump, in ground covered. Every structure that has to be
      jumped onto, ducked under or bridged is measured against this
@@ -2075,6 +2096,25 @@ body.is-mobile .dialog-foot{ display:none; }
     return y;
   }
 
+  /* ---- rings ---------------------------------------------
+     Contact does nothing at all. A ring is a place where the button
+     works again, in the air — so the only thing it changes is what
+     pressing jump means while the marble is inside it. Each marble
+     spends a given ring once: the field travels one way, so
+     remembering the last one spent is enough. */
+  function ringAt(m, fy){
+    var R = m.r + TUNE.orbR * m.r, dx, dy, o;
+    for (var i = 0; i < orbs.length; i++){
+      o = orbs[i];
+      if (o === m.ring) continue;
+      dx = m.dist - o.x;
+      if (dx < -R || dx > R) continue;
+      dy = m.y - (fy - o.hr * m.r);
+      if (dx * dx + dy * dy < R * R) return o;
+    }
+    return null;
+  }
+
   function spikeSpan(){ return radius() * TUNE.spikeW; }
   function tipHeight(z, j, r){ return r * (j === z.tall ? TUNE.tallH : TUNE.spikeH); }
   function lastTip(z){ return z.x + (z.n - 1) * spikeSpan(); }
@@ -2110,9 +2150,10 @@ body.is-mobile .dialog-foot{ display:none; }
 
   /* A field of spikes on the ground from a to b, tagged with the deck
      that crosses it so nothing on the ground tries to jump it. */
-  function layField(a, b, w, deck){
+  function layField(a, b, w, deck, lipX){
     var n = Math.max(1, Math.round((b - a) / w));
-    hazards.push({ x:a + w / 2, n:n, tall:-1, plat:null, deck:deck, done:-1 });
+    hazards.push({ x:a + w / 2, n:n, tall:-1, plat:null, deck:deck,
+                   lipX:(lipX === undefined ? null : lipX), done:-1 });
   }
 
   /* A chain of decks over one spike sea. Same height and it is
@@ -2148,7 +2189,7 @@ body.is-mobile .dialog-foot{ display:none; }
           n = 2; tall = 1;
         }
       }
-      hazards.push({ x:at, n:n, tall:tall, plat:null, deck:null, done:-1 });
+      hazards.push({ x:at, n:n, tall:tall, plat:null, deck:null, lipX:null, done:-1 });
       return at + (n - 1) * w;
     },
 
@@ -2160,7 +2201,7 @@ body.is-mobile .dialog-foot{ display:none; }
       var n = TUNE.rhythmMin + Math.floor(rnd(k * 5.7 + 83) * (TUNE.rhythmMax - TUNE.rhythmMin + 1)),
           step = R * (TUNE.rhythmStep + Math.floor(rnd(k * 9.1 + 157) * 2) * .2), i;
       for (i = 0; i < n; i++){
-        hazards.push({ x:at + i * step, n:1, tall:-1, plat:null, deck:null, done:-1 });
+        hazards.push({ x:at + i * step, n:1, tall:-1, plat:null, deck:null, lipX:null, done:-1 });
       }
       return at + (n - 1) * step;
     },
@@ -2178,7 +2219,7 @@ body.is-mobile .dialog-foot{ display:none; }
       end = at + (n - 1) * step;
       if (rnd(k * 8.3 + 211) < .5){
         end += R * 1.3;
-        hazards.push({ x:end, n:1, tall:-1, plat:null, deck:null, done:-1 });
+        hazards.push({ x:end, n:1, tall:-1, plat:null, deck:null, lipX:null, done:-1 });
       }
       return end;
     },
@@ -2194,6 +2235,28 @@ body.is-mobile .dialog-foot{ display:none; }
         ground.push({ x:at + i * step, hr:(lvl - i - 1) * TUNE.levelH, rise:-TUNE.levelH });
       }
       return at + (n - 1) * step;
+    },
+
+    /* A crossing no single jump covers, with a ring floating over it
+       at the top of the arc. Leave at the lip, spend the ring, and the
+       second arc carries the rest. What lies under it — a hole or a
+       spike sea — makes no difference to the jump and a good deal of
+       difference to the look, so it is a coin toss. */
+    ring: function(k, at, w, R){
+      var hr = ground[ground.length - 1].hr,
+          span = R * (TUNE.orbGapMin + rnd(k * 7.1 + 523) * (TUNE.orbGapMax - TUNE.orbGapMin));
+      if (rnd(k * 2.7 + 61) < .5){
+        ground.push({ x:at, hr:hr, rise:0, void:true });
+        ground.push({ x:at + span, hr:hr, rise:0, pit:true });
+      } else {
+        /* The sea starts a little way in. A hole is safe to leave from
+           right at its lip; a sea is not — the first spike stands two
+           radii tall exactly there — so the clear strip is what lets
+           both kinds be left from the same place. */
+        layField(at + TUNE.orbPad * R, at + span, w, null, at);
+      }
+      orbs.push({ x:at + TUNE.orbAt * R, hr:hr + TUNE.orbLift, done:-1 });
+      return at + span;
     },
 
     /* Holes in the road, at one island length apart. A hole asks the
@@ -2254,7 +2317,7 @@ body.is-mobile .dialog-foot{ display:none; }
      pieces are punctuation: a course that is all crossings has no
      shape to it, and one that never reaches a crossing has nothing
      to build to. */
-  var WEIGHT = { beat:3, rhythm:2, drop:2, climb:2, gap:2, bridge:1, stones:1, deckstair:1 };
+  var WEIGHT = { beat:3, rhythm:2, drop:2, climb:2, gap:2, ring:2, bridge:1, stones:1, deckstair:1 };
 
   /* What may follow what. The course opens on plain road so the first
      jump teaches the button, never repeats a piece back to back, and
@@ -2268,7 +2331,7 @@ body.is-mobile .dialog-foot{ display:none; }
 
     if (laid < TUNE.warmUp) pool = ["beat", "rhythm"];
     else if (restDebt > 0)  pool = LIGHT;
-    else                    pool = LIGHT.concat(["climb", "gap"]).concat(HEAVY);
+    else                    pool = LIGHT.concat(["climb", "gap", "ring"]).concat(HEAVY);
 
     for (i = 0; i < pool.length; i++){
       var name = pool[i], n;
@@ -2320,6 +2383,7 @@ body.is-mobile .dialog-foot{ display:none; }
   function sweepCourse(tail, dt){
     retire(hazards, dt, function(z){ return tail > lastTip(z) + TUNE.clearBy; });
     retire(slabs,   dt, function(p){ return tail > p.x + p.w + TUNE.clearBy; });
+    retire(orbs,    dt, function(o){ return tail > o.x + TUNE.clearBy; });
     /* The profile is continuous, so a segment is dropped only once the
        one after it is comfortably behind the last marble — the same
        three-second grace the spikes get. */
@@ -2443,7 +2507,11 @@ body.is-mobile .dialog-foot{ display:none; }
     for (i = 0; i < hazards.length; i++){
       var z = hazards[i];
       if (z.deck) continue;                 // bridged — the deck is the thing to aim at
-      if (z.x > d && (best < 0 || z.x < best)) best = z.x;
+      /* A sea under a ring is left at the lip of the crossing, like a
+         hole, not early like a spike: the arc has to reach as far as
+         it can, and the ring is waiting at the top of it. */
+      e = z.lipX === null ? z.x : z.lipX - TUNE.gapAim * reachPx() + m.react;
+      if (e > d && (best < 0 || e < best)) best = e;
     }
     for (i = 1; i < ground.length; i++){
       var g = ground[i];
@@ -2518,7 +2586,7 @@ body.is-mobile .dialog-foot{ display:none; }
            broken bot rather than a mistake. */
         react:84 + Math.random() * 16,    // how early this rival leaves its jump
         skill:.80 + Math.random() * .15,  // how often it actually sees one coming
-        target:-1, miss:false, on:null,
+        target:-1, miss:false, on:null, ring:null,
         home:x + i * gap,        // the lane it settles into
         from:-(r + 40),          // off the left edge, out of sight
         wait:0, span:1
@@ -2559,12 +2627,14 @@ body.is-mobile .dialog-foot{ display:none; }
     world.clock = COUNT;
     world.shown = COUNT;
     world.flash = 0;
+    world.t = 0;
     countdown.hidden = false;
     tickCount(COUNT);
 
     buildField();
     hazards.length = 0;
     slabs.length = 0;
+    orbs.length = 0;
     ground.length = 1;
     ground[0] = { x:-1e9, hr:0, rise:0 };
     courseAt = clusters = laid = restDebt = climbRun = 0;
@@ -2634,6 +2704,7 @@ body.is-mobile .dialog-foot{ display:none; }
   }
 
   function step(dt){
+    world.t += dt;                 // the rings beat on their own clock
     if (world.phase === "count"){ countIn(dt); return; }
 
     if (world.flash > 0){
@@ -2698,10 +2769,15 @@ body.is-mobile .dialog-foot{ display:none; }
         m.state = "run";
         m.down  = false;
         m.on    = null;
+        m.ring  = null;
         m.vy    = 0;
       }
       return;
     }
+
+    /* A ring rewrites what the button does while the marble is inside
+       it: not a jump off the ground, a jump off nothing. */
+    var ring = ringAt(m, fy);
 
     if (m.bot){
       /* A rival watches the road, not a clock. Jumping late still
@@ -2715,10 +2791,17 @@ body.is-mobile .dialog-foot{ display:none; }
         m.target = next;
         m.miss = Math.random() > m.skill;
       }
-      if (!m.miss && m.down && next > 0 && next - m.dist < m.react){
+      /* A ring is spent at the top of the arc, which is what a player
+         works out too: the higher it is spent, the further the second
+         arc reaches. */
+      if (ring && m.vy >= 0) useRing(m, ring);
+      else if (!m.miss && m.down && next > 0 && next - m.dist < m.react){
         m.vy = -G.jump;
         m.down = false;
       }
+    } else if (keys.jump && ring){
+      useRing(m, ring);
+      jumpCount.textContent = ++jumps;
     } else if (keys.jump && m.down){
       /* Held, not tapped: on the ground with the button down is a
          jump, so holding it keeps the marble hopping. */
@@ -2745,6 +2828,18 @@ body.is-mobile .dialog-foot{ display:none; }
       m.timer = TUNE.dieFor;
       m.on = null;
     }
+  }
+
+  /* Spending a ring is the same jump, from wherever the marble
+     happens to be: the launch speed is set, not added, so a ring
+     cannot be stacked into a rocket. The ring is remembered so the
+     button cannot be held through it twice. */
+  function useRing(m, o){
+    m.vy = -G.jump;
+    m.down = false;
+    m.ring = o;
+    m.on = null;
+    popRing(m, m.r * TUNE.orbR * 1.6);
   }
 
   /* The start. Nothing scrolls and no button does anything until the
@@ -2989,6 +3084,40 @@ body.is-mobile .dialog-foot{ display:none; }
     }
   }
 
+  /* ---- rings ---------------------------------------------
+     Hollow, so it can never be mistaken for a marble: the sky reads
+     straight through the middle of it. Same black hairline every
+     other object in the world carries, on both edges of the band. It
+     beats on the world clock rather than on distance travelled, so a
+     ring keeps pulsing while the field is stopped on the line. */
+  function drawOrbs(cam, fy, r){
+    var R = TUNE.orbR * r;
+    for (var i = 0; i < orbs.length; i++){
+      var o = orbs[i], x = o.x - cam, y = fy - o.hr * r;
+      if (x < -R * 3 || x > view.w + R * 3) continue;
+      var rr = R * (1 + Math.sin(world.t * 3.4 + o.x * .01) * .07);
+
+      var glow = ctx.createRadialGradient(x, y, rr * .55, x, y, rr * 1.9);
+      glow.addColorStop(0, "rgba(31,122,255,.34)");
+      glow.addColorStop(1, "rgba(31,122,255,0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(x - rr * 1.9, y - rr * 1.9, rr * 3.8, rr * 3.8);
+
+      ctx.lineWidth = rr * .30;
+      ctx.strokeStyle = WORLD.ring;
+      ctx.beginPath(); ctx.arc(x, y, rr * .74, 0, Math.PI * 2); ctx.stroke();
+
+      ctx.lineWidth = Math.max(1, TUNE.line * .7);
+      ctx.strokeStyle = "#000";
+      ctx.beginPath(); ctx.arc(x, y, rr * .89, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x, y, rr * .59, 0, Math.PI * 2); ctx.stroke();
+
+      ctx.beginPath(); ctx.arc(x, y, rr * .16, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,255,255,.88)";
+      ctx.fill();
+    }
+  }
+
   /* ---- spikes -------------------------------------------- */
   function drawSpikes(cam, fy, r){
     var w = r * TUNE.spikeW;
@@ -3033,7 +3162,9 @@ body.is-mobile .dialog-foot{ display:none; }
 
     var cam = world.dist - laneX(), rad = radius();
     drawGround(cam, fy, rad, h, d);
-    if (world.phase !== "count"){ drawSlabs(cam, fy, rad); drawSpikes(cam, fy, rad); }
+    if (world.phase !== "count"){
+      drawSlabs(cam, fy, rad); drawSpikes(cam, fy, rad); drawOrbs(cam, fy, rad);
+    }
 
     /* debris from anything that was destroyed this second */
     for (var b = 0; b < bits.length; b++){
