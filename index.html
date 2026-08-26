@@ -1,0 +1,3393 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>OVERCLASH</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   OVERCLASH — shell build 0.2
+   Palette is locked to the brief. Change values here only.
+   ============================================================ */
+:root{
+  --blue:      #1F7AFF;   /* Electric Blue   — main UI            */
+  --blue-hi:   #6BB1FF;   /* Electric Blue   — highlight          */
+  --blue-dim:  rgba(31,122,255,.16);
+  --red:       #FF2D46;   /* Battle Red      — interactive        */
+  --red-deep:  #B4132A;
+  --char:      #14171A;   /* Deep Charcoal   — surfaces           */
+  --char-deep: #0A0C0E;   /* Deep Charcoal   — background         */
+  --char-line: #232930;   /* Deep Charcoal   — hairlines          */
+  --yellow:    #FFD60A;   /* Bright Yellow   — press only         */
+  --ink:       #C9D4DE;   /* Cool White-Gray — icons + text       */
+  --ink-dim:   #6E7A87;
+
+  /* ball colors — the roster reads from these. Three come straight
+     out of the brief; green is the one the brief did not carry, so it
+     is pitched at the same chroma as the other three. */
+  --ball-blue:   #1F7AFF;
+  --ball-red:    #FF2D46;
+  --ball-green:  #21D96A;
+  --ball-yellow: #FFD60A;
+  --ball-line:   #000000;
+
+  --rail: 68px;
+  --f-display: "Big Shoulders Display", "Arial Narrow", sans-serif;
+  --f-ui: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
+  --ease: cubic-bezier(.2,.7,.2,1);
+}
+
+*,*::before,*::after{ box-sizing:border-box; margin:0; padding:0; }
+
+html,body{ height:100%; }
+body{
+  background:var(--char-deep);
+  color:var(--ink);
+  font-family:var(--f-ui);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+  user-select:none;
+  cursor:default;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
+button{ font:inherit; color:inherit; background:none; border:none; cursor:pointer; }
+:focus{ outline:none; }
+:focus-visible{ outline:2px solid var(--blue); outline-offset:3px; }
+
+/* ---------- ambient background ---------- */
+.bg{ position:fixed; inset:0; z-index:0; pointer-events:none; }
+.bg-grid{
+  position:absolute; inset:0;
+  background-image:
+    linear-gradient(to right, rgba(201,212,222,.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(201,212,222,.045) 1px, transparent 1px);
+  background-size:44px 44px;
+  mask-image:radial-gradient(ellipse 80% 70% at 50% 45%, #000 20%, transparent 78%);
+  -webkit-mask-image:radial-gradient(ellipse 80% 70% at 50% 45%, #000 20%, transparent 78%);
+}
+.bg-glow{
+  position:absolute; inset:0;
+  background:radial-gradient(circle 46vw at 72% 50%, rgba(31,122,255,.13), transparent 62%);
+}
+.bg-vignette{
+  position:absolute; inset:0;
+  background:radial-gradient(ellipse 90% 90% at 50% 50%, transparent 40%, rgba(0,0,0,.72) 100%);
+}
+
+/* ============================================================
+   SPLASH
+   ============================================================ */
+#splash{
+  position:fixed; inset:0; z-index:100;
+  background:#000;
+  display:flex; align-items:flex-end; justify-content:center;
+  padding-bottom:clamp(40px,9vh,90px);
+  transition:opacity .55s var(--ease);
+}
+#splash.is-out{ opacity:0; pointer-events:none; }
+#splash[hidden]{ display:none; }
+.splash-byline{
+  font-family:var(--f-ui);
+  font-size:13px; font-weight:500;
+  letter-spacing:.34em; text-transform:lowercase;
+  color:var(--ink-dim);
+  opacity:0;
+}
+#splash.is-live .splash-byline{
+  animation:bylineIn 1.1s var(--ease) .45s forwards;
+}
+.splash-byline span{ color:var(--ink); }
+@keyframes bylineIn{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
+
+/* ============================================================
+   APP SHELL
+   ============================================================ */
+#app{
+  position:relative; z-index:1;
+  height:100%;
+  display:grid; grid-template-columns:var(--rail) 1fr;
+}
+
+/* ---------- left rail ---------- */
+.rail{
+  border-right:1px solid var(--char-line);
+  background:linear-gradient(180deg, rgba(20,23,26,.85), rgba(10,12,14,.85));
+  display:flex; flex-direction:column; align-items:center;
+  padding:20px 0 18px;
+}
+.rail-spacer{ flex:1; }
+.rail-tools{ display:flex; flex-direction:column; gap:6px; }
+.icon-btn{
+  width:42px; height:42px;
+  display:grid; place-items:center;
+  color:var(--ink-dim);
+  border:1px solid transparent;
+  transition:color .18s var(--ease), border-color .18s var(--ease), background-color .12s var(--ease);
+}
+.icon-btn svg{ width:20px; height:20px; }
+.icon-btn:hover{ color:var(--ink); border-color:var(--char-line); }
+.icon-btn:active{ color:var(--char-deep); background:var(--yellow); border-color:var(--yellow); }
+.icon-btn.is-on{ color:var(--blue); border-color:var(--blue-dim); }
+
+/* ---------- main column ---------- */
+.main{ display:grid; grid-template-rows:1fr auto; min-width:0; }
+
+/* ============================================================
+   HOME
+   ============================================================ */
+.home{
+  display:grid; grid-template-columns:minmax(0,1fr) minmax(0,.9fr);
+  align-items:center;
+  padding:0 clamp(28px,5vw,80px);
+  min-height:0;
+}
+.home[hidden]{ display:none; }
+
+.eyebrow{
+  display:flex; align-items:center; gap:12px;
+  font-size:11px; font-weight:600; letter-spacing:.3em;
+  color:var(--ink-dim); text-transform:uppercase;
+  margin-bottom:18px;
+}
+.eyebrow::before{ content:""; width:26px; height:1px; background:var(--red); }
+
+.wordmark{
+  font-family:var(--f-display);
+  font-weight:800;
+  font-size:clamp(72px,11.5vw,168px);
+  line-height:.82;
+  letter-spacing:-.012em;
+  text-transform:uppercase;
+}
+.wm-line{ display:block; overflow:hidden; }
+.wm-line > i{ display:block; font-style:normal; }
+.wm-a{ color:var(--ink); }
+.wm-b{
+  color:transparent;
+  -webkit-text-stroke:2px var(--blue);
+  text-stroke:2px var(--blue);
+}
+
+.tagline{
+  margin-top:22px;
+  font-size:12px; font-weight:500;
+  letter-spacing:.26em; text-transform:uppercase;
+  color:var(--ink-dim);
+  max-width:34ch;
+}
+
+/* ---------- play button ---------- */
+.play-row{ margin-top:44px; display:flex; align-items:center; gap:22px; }
+.play{
+  position:relative;
+  padding:19px 62px 19px 46px;
+  background:var(--red);
+  color:#fff;
+  font-size:19px; font-weight:700;
+  letter-spacing:.24em; text-transform:uppercase;
+  clip-path:polygon(0 0, 100% 0, calc(100% - 18px) 100%, 0 100%);
+  transition:background-color .12s var(--ease), transform .16s var(--ease), color .12s var(--ease);
+}
+.play::after{
+  content:""; position:absolute; inset:0;
+  border:1px solid var(--blue);
+  clip-path:polygon(0 0, 100% 0, calc(100% - 18px) 100%, 0 100%);
+  opacity:0; transition:opacity .18s var(--ease);
+}
+.play-shadow{ position:relative; display:inline-block; }
+.play-shadow::before{
+  content:""; position:absolute; inset:0;
+  transform:translate(9px,9px);
+  border:1px solid var(--char-line);
+  clip-path:polygon(0 0, 100% 0, calc(100% - 18px) 100%, 0 100%);
+  transition:transform .16s var(--ease), border-color .16s var(--ease);
+}
+.play-shadow:hover::before{ transform:translate(13px,13px); border-color:var(--blue-dim); }
+.play:hover{ background:#ff4258; transform:translate(-2px,-2px); }
+.play:hover::after{ opacity:1; }
+.play:active{ background:var(--yellow); color:var(--char-deep); transform:translate(2px,2px); }
+
+.hint{ font-size:11px; letter-spacing:.2em; color:var(--ink-dim); text-transform:uppercase; }
+.key{
+  display:inline-block; padding:3px 8px; margin-right:7px;
+  border:1px solid var(--char-line); color:var(--ink);
+  font-size:10px; letter-spacing:.12em;
+}
+
+/* ---------- signature: arena ---------- */
+.arena{ position:relative; display:grid; place-items:center; height:100%; min-width:0; }
+.arena svg{ width:min(100%, 62vh); height:auto; overflow:visible; }
+.ring{ fill:none; stroke:var(--blue); transform-origin:200px 200px; }
+.r1{ stroke-width:1; opacity:.28; animation:spin 64s linear infinite; }
+.r2{ stroke-width:1; opacity:.5;  animation:spin 44s linear infinite reverse; }
+.r3{ stroke-width:1.5; opacity:.85; animation:spin 30s linear infinite; }
+.r4{ stroke:var(--red); stroke-width:1.5; opacity:.9; animation:spin 20s linear infinite reverse; }
+.node{ fill:var(--blue); }
+.slash{ stroke:var(--red); stroke-width:2; opacity:.55; }
+.core{ fill:var(--blue); opacity:.9; animation:pulse 3.4s ease-in-out infinite; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+@keyframes pulse{ 0%,100%{ opacity:.35; } 50%{ opacity:1; } }
+
+/* ---------- footer ---------- */
+.footer{
+  border-top:1px solid var(--char-line);
+  padding:14px clamp(28px,5vw,80px);
+  display:flex; align-items:center; gap:20px;
+  font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--ink-dim);
+}
+.footer strong{ color:var(--ink); font-weight:600; letter-spacing:.24em; }
+
+/* ============================================================
+   MODE SELECT
+   ============================================================ */
+.modes{
+  display:grid; place-items:center;
+  padding:0 clamp(28px,5vw,80px); min-height:0;
+}
+.modes[hidden]{ display:none; }
+.modes-inner{ width:100%; max-width:1080px; }
+
+.modes-head{
+  display:flex; align-items:flex-end;
+  gap:24px; margin-bottom:26px;
+}
+.modes-head h2{
+  font-family:var(--f-display); font-weight:700;
+  font-size:clamp(38px,5vw,62px); line-height:.88;
+  text-transform:uppercase; color:var(--ink);
+}
+.mode-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+
+.mode{
+  padding:24px 22px 20px; text-align:left;
+  background:var(--char);
+  border:1px solid var(--char-line);
+  border-top:2px solid var(--char-line);
+  transition:border-color .16s var(--ease), transform .16s var(--ease), background-color .12s var(--ease);
+}
+.mode:hover, .mode:focus-visible{ border-color:var(--blue); transform:translateY(-3px); }
+.mode:active{ background:var(--yellow); border-color:var(--yellow); transform:none; }
+
+.mode b{
+  display:block; font-family:var(--f-display); font-weight:700;
+  font-size:clamp(24px,2.3vw,31px); line-height:1.05;
+  text-transform:uppercase; color:var(--ink);
+}
+.mode:hover b, .mode:focus-visible b{ color:var(--blue-hi); }
+.mode:active b{ color:var(--char-deep); }
+
+.mode-desc{
+  display:block; margin-top:10px;
+  font-size:12px; font-weight:400; line-height:1.6;
+  letter-spacing:.02em; color:var(--ink-dim);
+}
+.mode:active .mode-desc{ color:var(--char-deep); }
+
+.mode-tag{
+  display:block; margin-top:16px; padding-top:13px;
+  border-top:1px solid var(--char-line);
+  font-size:10px; font-weight:600; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--ink-dim);
+}
+.mode:hover .mode-tag, .mode:focus-visible .mode-tag{ color:var(--blue); border-top-color:var(--blue-dim); }
+.mode:active .mode-tag{ color:var(--char-deep); border-top-color:rgba(10,12,14,.3); }
+
+.modes-foot{
+  margin-top:24px;
+  font-size:10px; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--ink-dim);
+}
+
+/* two-card grid */
+.mode-grid.two{ grid-template-columns:repeat(2,1fr); max-width:720px; }
+
+/* format diagram — the shape of the match itself */
+.diagram{ display:flex; align-items:center; height:42px; margin-bottom:20px; }
+.diagram svg{ height:40px; width:auto; }
+.diagram .d-line{ fill:none; stroke:var(--ink-dim); stroke-width:1.4; }
+.diagram .d-tok{ fill:none; stroke:var(--ink-dim); stroke-width:1.5; }
+.diagram .d-fill{ fill:var(--blue); stroke:var(--blue); stroke-width:1.5; }
+.diagram .d-slash{ stroke:var(--red); stroke-width:1.6; }
+.mode:hover .d-line, .mode:focus-visible .d-line,
+.mode:hover .d-tok,  .mode:focus-visible .d-tok{ stroke:var(--ink); }
+.mode:active .d-line, .mode:active .d-tok, .mode:active .d-slash{ stroke:var(--char-deep); }
+.mode:active .d-fill{ fill:var(--char-deep); stroke:var(--char-deep); }
+
+/* breadcrumb — says which branch you are standing in */
+.crumb{
+  display:inline-flex; align-items:center; gap:12px;
+  margin-bottom:14px;
+  font-size:11px; font-weight:600; letter-spacing:.3em;
+  text-transform:uppercase; color:var(--blue);
+}
+.crumb::before{ content:""; width:26px; height:1px; background:var(--red); }
+
+/* back — one control, same spot on every screen */
+.nav-back{
+  display:inline-flex; align-items:center; gap:10px;
+  margin-bottom:18px; padding:9px 18px 9px 13px;
+  border:1px solid var(--char-line);
+  color:var(--ink-dim);
+  font-size:10px; font-weight:600; letter-spacing:.24em; text-transform:uppercase;
+  transition:border-color .16s var(--ease), color .16s var(--ease), background-color .12s var(--ease);
+}
+.nav-back svg{ width:13px; height:13px; }
+.nav-back:hover, .nav-back:focus-visible{ border-color:var(--blue); color:var(--blue-hi); }
+.nav-back:active{ background:var(--yellow); border-color:var(--yellow); color:var(--char-deep); }
+
+/* ============================================================
+   CHARACTER PICK — icon grid, rule, live preview
+   ============================================================ */
+.chars{
+  display:grid; place-items:center;
+  padding:0 clamp(28px,5vw,80px); min-height:0;
+}
+.chars[hidden]{ display:none; }
+.chars-inner{ width:100%; max-width:1080px; }
+
+.chars-body{
+  display:grid;
+  grid-template-columns:minmax(220px,300px) 1px minmax(0,1fr);
+  gap:clamp(22px,4vw,54px);
+  align-items:stretch;
+}
+.chars-rule{ background:var(--char-line); }
+
+.char-side{ display:flex; flex-direction:column; align-items:flex-start; }
+.char-grid{
+  width:100%;
+  display:grid; grid-template-columns:repeat(2,1fr);
+  gap:12px; align-content:start;
+}
+
+.char-cell{
+  padding:16px 16px 14px; text-align:left;
+  background:var(--char);
+  border:1px solid var(--char-line);
+  border-top:2px solid var(--char-line);
+  transition:border-color .16s var(--ease), transform .16s var(--ease), background-color .12s var(--ease);
+}
+.char-cell:hover, .char-cell:focus-visible{ border-color:var(--blue); transform:translateY(-3px); }
+.char-cell:active{ background:var(--yellow); border-color:var(--yellow); transform:none; }
+.char-cell.is-picked{ border-color:var(--blue); border-top-color:var(--blue); }
+
+/* the icon is the whole idea: the ball itself, shrunk. The canvas
+   inside carries the pattern; the circle and the hairline are CSS, so
+   the outline stays hairline however small the swatch gets. */
+.chip{
+  display:block; width:100%; height:auto; aspect-ratio:1 / 1; min-height:56px;
+  border-radius:50%;
+  background:var(--ball);
+  border:1px solid var(--ball-line);
+}
+
+.char-cell b{
+  display:block; margin-top:13px;
+  font-family:var(--f-display); font-weight:700;
+  font-size:22px; line-height:1; text-transform:uppercase; color:var(--ink);
+}
+.char-cell.is-picked b{ color:var(--blue-hi); }
+.char-cell:active b{ color:var(--char-deep); }
+
+.char-go{
+  margin-top:18px;
+  padding:15px 44px 15px 30px;
+  background:var(--red); color:#fff;
+  font-size:14px; font-weight:700;
+  letter-spacing:.24em; text-transform:uppercase;
+  clip-path:polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+  transition:background-color .12s var(--ease), transform .16s var(--ease), color .12s var(--ease);
+}
+.char-go:hover{ background:#ff4258; transform:translate(-2px,-2px); }
+.char-go:active{ background:var(--yellow); color:var(--char-deep); transform:translate(2px,2px); }
+
+.preview{
+  display:grid; grid-template-rows:minmax(0,1fr) auto;
+  justify-items:center; align-items:center;
+  min-height:clamp(240px,40vh,440px);
+}
+.stage{ position:relative; display:grid; place-items:center; width:100%; height:100%; }
+/* the ball sits in a soft pool of light, so it reads as standing on
+   the stage rather than floating flat on the page */
+.stage::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(ellipse 44% 50% at 50% 46%, rgba(126,141,156,.22), transparent 72%);
+}
+.preview-foot{
+  width:100%; margin-top:16px; padding-top:13px;
+  border-top:1px solid var(--char-line);
+}
+.preview-name{
+  display:block;
+  font-family:var(--f-display); font-weight:800;
+  font-size:clamp(30px,4vw,48px); line-height:.9;
+  letter-spacing:.01em; text-transform:uppercase; color:var(--ink);
+}
+
+/* ------------------------------------------------------------
+   THE BALL
+   One element. The colour rides in on --ball, which every
+   [data-char] carries, so the swatch in the grid, the ball on
+   the stage and the slot on the select screen all read the same
+   value and can never drift apart. The outline stays hairline
+   at both sizes — it is there to hold the edge against the
+   background, not to be seen as a ring.
+   ------------------------------------------------------------ */
+[data-char="blue"]  { --ball:var(--ball-blue); }
+[data-char="red"]   { --ball:var(--ball-red); }
+[data-char="green"] { --ball:var(--ball-green); }
+[data-char="yellow"]{ --ball:var(--ball-yellow); }
+
+.ball{
+  display:block;
+  width:clamp(120px, 27vh, 210px); height:auto; aspect-ratio:1 / 1;
+  border-radius:50%;
+  background:var(--ball);
+  border:2px solid var(--ball-line);
+  animation:ballIdle 3s ease-in-out infinite;
+}
+/* picked or poked: squash on the way down, stretch on the way up */
+.ball.is-hit{ animation:ballHit .46s var(--ease); }
+@keyframes ballIdle{
+  0%,100%{ transform:translateY(0) scale(1,1); }
+  50%    { transform:translateY(-9px) scale(.985,1.015); }
+}
+@keyframes ballHit{
+  0%  { transform:translateY(0) scale(1,1); }
+  20% { transform:translateY(7px) scale(1.14,.86); }
+  52% { transform:translateY(-16px) scale(.93,1.07); }
+  78% { transform:translateY(2px) scale(1.04,.96); }
+  100%{ transform:translateY(0) scale(1,1); }
+}
+
+/* ============================================================
+   CHARACTER SELECT — roster lands here
+   ============================================================ */
+.select{
+  display:grid; place-items:center; text-align:center;
+  padding:0 clamp(28px,5vw,80px);
+}
+.select[hidden]{ display:none; }
+.select h2{
+  font-family:var(--f-display); font-weight:700;
+  font-size:clamp(40px,5.5vw,66px); line-height:.9;
+  text-transform:uppercase; color:var(--ink);
+}
+.slot-row{ display:flex; justify-content:center; gap:14px; margin-top:32px; }
+.slot{ width:clamp(84px,10vw,118px); }
+.slot svg{ display:block; width:100%; height:auto; }
+.slot polygon{
+  fill:rgba(20,23,26,.55);
+  stroke:var(--char-line); stroke-width:1.5; stroke-dasharray:5 6;
+}
+.slot.is-player polygon{ stroke:rgba(31,122,255,.5); }
+/* a filled slot carries the fighter that was picked */
+.slot[data-char] polygon{ stroke-dasharray:none; stroke:var(--blue); }
+.slot[data-char] polygon{ fill:var(--ball); }
+.slot span{
+  display:block; margin-top:12px;
+  font-size:10px; font-weight:600; letter-spacing:.24em;
+  text-transform:uppercase; color:var(--ink-dim);
+}
+.slot.is-player span{ color:var(--blue); }
+.select-body{
+  margin-top:30px;
+  font-size:12px; letter-spacing:.24em;
+  text-transform:uppercase; color:var(--ink-dim);
+}
+.back{
+  margin-top:34px; padding:13px 30px;
+  border:1px solid var(--char-line); color:var(--ink);
+  font-size:12px; font-weight:600; letter-spacing:.24em; text-transform:uppercase;
+  transition:border-color .16s var(--ease), color .16s var(--ease), background-color .12s var(--ease);
+}
+.back:hover{ border-color:var(--blue); color:var(--blue-hi); }
+.back:active{ background:var(--yellow); border-color:var(--yellow); color:var(--char-deep); }
+
+/* ============================================================
+   LANGUAGE DIALOG
+   ============================================================ */
+.scrim{
+  position:fixed; inset:0; z-index:60;
+  background:rgba(6,8,10,.86);
+  backdrop-filter:blur(7px); -webkit-backdrop-filter:blur(7px);
+  display:grid; place-items:center;
+  animation:fade .35s var(--ease);
+}
+.scrim[hidden]{ display:none; }
+@keyframes fade{ from{ opacity:0; } to{ opacity:1; } }
+
+.dialog{
+  width:min(560px, calc(100vw - 56px));
+  background:var(--char);
+  border:1px solid var(--char-line);
+  border-top:2px solid var(--blue);
+  padding:38px 38px 30px;
+  animation:riseIn .4s var(--ease);
+}
+@keyframes riseIn{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:none; } }
+.dialog h2{
+  font-family:var(--f-display); font-weight:700;
+  font-size:38px; line-height:1; letter-spacing:.01em;
+  text-transform:uppercase; color:var(--ink);
+}
+.dialog p{
+  margin-top:10px; font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-dim);
+}
+.lang-grid{ margin-top:28px; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.lang{
+  padding:24px 20px; text-align:left;
+  border:1px solid var(--char-line);
+  background:var(--char-deep);
+  transition:border-color .16s var(--ease), background-color .12s var(--ease), transform .16s var(--ease);
+}
+.lang b{
+  display:block; font-family:var(--f-display); font-weight:700;
+  font-size:30px; line-height:1; text-transform:uppercase; color:var(--ink);
+}
+.lang em{
+  display:block; margin-top:8px; font-style:normal;
+  font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--ink-dim);
+}
+.lang:hover, .lang:focus-visible{ border-color:var(--blue); transform:translateY(-2px); }
+.lang:hover b, .lang:focus-visible b{ color:var(--blue-hi); }
+.lang:active{ background:var(--yellow); border-color:var(--yellow); transform:none; }
+.lang:active b, .lang:active em{ color:var(--char-deep); }
+.dialog-foot{
+  margin-top:22px; padding-top:16px; border-top:1px solid var(--char-line);
+  font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-dim);
+}
+
+/* ---------- entrance stagger ---------- */
+.reveal{ opacity:0; transform:translateY(16px); }
+.home.is-in .reveal{
+  opacity:1; transform:none;
+  transition:opacity .6s var(--ease), transform .6s var(--ease);
+}
+.home.is-in .d1{ transition-delay:.05s; }
+.home.is-in .d2{ transition-delay:.14s; }
+.home.is-in .d3{ transition-delay:.23s; }
+.home.is-in .d4{ transition-delay:.34s; }
+.home.is-in .d5{ transition-delay:.46s; }
+
+/* ============================================================
+   DESKTOP GATE — this game is keyboard + mouse only
+   ============================================================ */
+.gate{
+  position:fixed; inset:0; z-index:200;
+  background:var(--char-deep);
+  display:grid; place-items:center; text-align:center;
+  padding:32px;
+}
+.gate[hidden]{ display:none; }
+.gate-icon{
+  display:block; margin:0 auto 28px;
+  width:54px; height:54px; color:var(--blue);
+}
+.gate h2{
+  font-family:var(--f-display); font-weight:700;
+  font-size:clamp(34px,6vw,52px); line-height:.95;
+  text-transform:uppercase; color:var(--ink);
+}
+.gate p{
+  margin:14px auto 0; max-width:34ch;
+  font-size:11px; font-weight:500; line-height:2;
+  letter-spacing:.2em; text-transform:uppercase; color:var(--ink-dim);
+}
+.gate p.gate-dims{
+  margin-top:24px; color:var(--red); letter-spacing:.26em;
+  font-variant-numeric:tabular-nums;
+}
+.gate-foot{
+  position:absolute; left:0; right:0; bottom:30px;
+  font-size:10px; letter-spacing:.26em; text-transform:uppercase; color:var(--ink-dim);
+}
+.gate-foot strong{ color:var(--ink); font-weight:600; }
+
+/* ============================================================
+   MOBILE — portrait only
+   The desktop layout is a vertical rail standing beside a
+   two-column stage. In portrait there is no room beside
+   anything, so the rail lies down across the top and every
+   side-by-side pair stacks. Keyboard hints are dropped, since
+   there is no keyboard to hint at, and hover lifts are dropped
+   too, because on a touchscreen hover sticks after the tap.
+   Nothing in here can reach the desktop build: the class is
+   only ever set on a touch device.
+   ============================================================ */
+@supports (height:100dvh){ body.is-mobile #app{ height:100dvh; } }
+
+/* The glow is aimed at wherever the arena stands. On a wide window
+   that is out to the right; in portrait the arena drops below the
+   wordmark, so the glow drops with it — the layout turned a quarter,
+   and the light turns the same quarter (46vw across becomes 46vh
+   down). Left alone it would sit off to the side of the octagons
+   instead of behind them. */
+body.is-mobile .bg-glow{
+  background:radial-gradient(circle 46vh at 50% 70%, rgba(31,122,255,.13), transparent 62%);
+}
+
+body.is-mobile #app{
+  grid-template-columns:minmax(0,1fr);
+  grid-template-rows:auto minmax(0,1fr);
+}
+body.is-mobile .rail{
+  flex-direction:row; align-items:center;
+  border-right:none; border-bottom:1px solid var(--char-line);
+  padding:10px clamp(16px,4vw,26px);
+  padding-top:calc(10px + env(safe-area-inset-top));
+}
+body.is-mobile .rail-tools{ flex-direction:row; }
+body.is-mobile .main{ min-height:0; grid-template-rows:minmax(0,1fr) auto; }
+
+body.is-mobile .home,
+body.is-mobile .modes,
+body.is-mobile .chars,
+body.is-mobile .select{
+  min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding:clamp(18px,4vh,34px) clamp(18px,5vw,34px);
+}
+
+/* home — wordmark first, arena under it */
+body.is-mobile .home{
+  grid-template-columns:minmax(0,1fr);
+  grid-template-rows:auto auto;
+  align-content:center; gap:clamp(18px,4vh,40px);
+}
+body.is-mobile .wordmark{ font-size:clamp(58px,17vw,104px); }
+body.is-mobile .arena{ height:auto; }
+body.is-mobile .arena svg{ width:min(62%,28vh); }
+body.is-mobile .play-row{ margin-top:30px; }
+body.is-mobile .play{ padding:17px 48px 17px 34px; font-size:17px; }
+
+/* card screens — one card per row */
+body.is-mobile .modes-head{ flex-direction:column; align-items:flex-start; gap:14px; }
+body.is-mobile .mode-grid,
+body.is-mobile .mode-grid.two{ grid-template-columns:minmax(0,1fr); max-width:none; }
+body.is-mobile .mode{ padding:18px 18px 16px; }
+body.is-mobile .mode:hover, body.is-mobile .mode:focus-visible{ transform:none; }
+
+/* Headings and back controls run tighter in portrait, so a whole
+   screen lands above the fold instead of trailing off the bottom. */
+body.is-mobile .nav-back{ margin-bottom:14px; }
+body.is-mobile .crumb{ margin-bottom:10px; }
+body.is-mobile .modes-head{ margin-bottom:18px; }
+body.is-mobile .modes-head h2{ font-size:clamp(30px,8vw,44px); }
+
+/* Colour pick — preview on top, the four swatches in one row under
+   it. Full-width swatches stacked two deep ran the Confirm button
+   off the bottom of the screen; four across fits the whole pick,
+   preview included, without a scroll. */
+body.is-mobile .chars-body{
+  grid-template-columns:minmax(0,1fr);
+  grid-template-rows:auto auto;
+  gap:16px;
+}
+body.is-mobile .chars-rule{ display:none; }
+body.is-mobile .preview{ order:-1; min-height:clamp(150px,24vh,230px); }
+body.is-mobile .ball{ width:clamp(88px,15vh,140px); }
+body.is-mobile .preview-foot{ margin-top:12px; padding-top:10px; }
+body.is-mobile .preview-name{ font-size:clamp(26px,8vw,38px); }
+body.is-mobile .char-side{ align-items:stretch; }
+body.is-mobile .char-grid{ grid-template-columns:repeat(4,1fr); gap:10px; }
+body.is-mobile .char-cell{ padding:11px 9px 9px; text-align:center; }
+body.is-mobile .chip{ min-height:0; }
+body.is-mobile .char-cell b{ margin-top:9px; font-size:15px; }
+body.is-mobile .char-go{ margin-top:14px; padding:14px 22px; text-align:center; }
+body.is-mobile .char-cell:hover, body.is-mobile .char-cell:focus-visible{ transform:none; }
+
+/* the roster slots fit one row in portrait once they stop being
+   sized for a desktop column */
+body.is-mobile .select h2{ font-size:clamp(32px,8.5vw,46px); }
+body.is-mobile .slot{ width:clamp(58px,16vw,86px); }
+body.is-mobile .slot span{ margin-top:8px; }
+body.is-mobile .slot-row{ gap:10px; margin-top:22px; }
+body.is-mobile .select-body{ margin-top:22px; }
+body.is-mobile .back{ margin-top:24px; }
+
+body.is-mobile .footer{
+  padding:12px clamp(18px,5vw,34px);
+  padding-bottom:calc(12px + env(safe-area-inset-bottom));
+}
+
+/* no keyboard, so no keyboard legends */
+body.is-mobile .hint,
+body.is-mobile .modes-foot,
+body.is-mobile .dialog-foot{ display:none; }
+
+/* ============================================================
+   PLAY — the world
+   The shell is dark and the world is not, so this screen covers
+   the whole viewport rather than sitting inside it: no dark rail
+   or footer framing a lit stage. The background here is only a
+   fallback for the frame before the canvas paints; the real sky
+   comes from the theme. (The .play class further up is the red
+   Play button on the home screen — unrelated.)
+   ============================================================ */
+#play{
+  position:fixed; inset:0; z-index:80;
+  background:#fff;
+}
+#play[hidden]{ display:none; }
+#playCanvas{ display:block; width:100%; height:100%; touch-action:none; }
+
+.play-hud{
+  position:absolute; inset:0; pointer-events:none;
+  display:flex; flex-direction:column; justify-content:space-between; align-items:center;
+  padding:clamp(14px,2.4vw,26px);
+  padding-top:calc(clamp(14px,2.4vw,26px) + env(safe-area-inset-top));
+  padding-bottom:calc(clamp(14px,2.4vw,26px) + env(safe-area-inset-bottom));
+}
+.play-top{
+  width:100%; display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
+}
+.play-world{
+  font-size:10px; font-weight:600; letter-spacing:.28em;
+  text-transform:uppercase; color:rgba(0,0,0,.5);
+}
+.play-left{ display:flex; flex-direction:column; align-items:flex-start; gap:9px; }
+.play-btn{
+  pointer-events:auto;
+  display:inline-flex; align-items:center; gap:9px;
+  padding:8px 15px 8px 11px;
+  border:1.5px solid #000; background:#fff; color:#000;
+  font-size:10px; font-weight:600; letter-spacing:.24em; text-transform:uppercase;
+  transition:background-color .14s var(--ease), color .14s var(--ease);
+}
+.play-btn svg{ width:12px; height:12px; }
+.play-btn:hover{ background:#000; color:#fff; }
+.play-btn:active{ background:var(--yellow); color:#000; }
+
+/* the tally sits in the world rather than on top of it: the sky
+   reads straight through the fill, only the outline holds the shape */
+.play-count{
+  min-width:72px;
+  padding:6px 12px 7px;
+  background:rgba(255,255,255,.5);
+  border:1.5px solid #000;
+}
+.play-count span{
+  display:block;
+  font-size:9px; font-weight:600; letter-spacing:.22em;
+  text-transform:uppercase; color:rgba(0,0,0,.6);
+}
+.play-count b{
+  display:block; margin-top:1px;
+  font-family:var(--f-display); font-weight:800;
+  font-size:26px; line-height:1; color:#000;
+  font-variant-numeric:tabular-nums;
+}
+
+/* ---------- the start clock ---------- */
+.countdown{
+  position:absolute; inset:0;
+  display:grid; place-items:center;
+  pointer-events:none;
+}
+.countdown[hidden]{ display:none; }
+.countdown b{
+  font-family:var(--f-display); font-weight:800;
+  font-size:clamp(64px,15vh,170px); line-height:.8;
+  text-transform:uppercase; color:#000;
+  font-variant-numeric:tabular-nums;
+}
+.countdown b.is-tick{ animation:tick .5s var(--ease); }
+@keyframes tick{
+  0%  { opacity:0; transform:scale(1.45); }
+  24% { opacity:1; transform:scale(1); }
+  100%{ opacity:.88; transform:scale(1); }
+}
+
+/* ---------- pause ---------- */
+.pause-sheet{
+  position:absolute; inset:0;
+  display:grid; place-items:center;
+  background:rgba(0,0,0,.34);
+  animation:fade .2s var(--ease);
+}
+.pause-sheet[hidden]{ display:none; }
+.pause-card{
+  width:min(300px, calc(100vw - 56px));
+  background:#fff; border:2px solid #000;
+  padding:24px 22px 20px; text-align:center;
+}
+.pause-card h2{
+  font-family:var(--f-display); font-weight:700;
+  font-size:34px; line-height:1; text-transform:uppercase; color:#000;
+  margin-bottom:6px;
+}
+.pause-btn{
+  display:block; width:100%; margin-top:10px;
+  padding:13px 16px;
+  border:2px solid #000;
+  font-size:11px; font-weight:700; letter-spacing:.24em; text-transform:uppercase;
+  transition:background-color .14s var(--ease), color .14s var(--ease);
+}
+.pause-btn.is-go{ background:var(--red); color:#fff; }
+.pause-btn.is-go:hover{ background:#ff4258; }
+.pause-btn.is-quit{ background:#fff; color:#000; }
+.pause-btn.is-quit:hover{ background:#000; color:#fff; }
+.pause-btn:active{ background:var(--yellow); color:#000; }
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+  #splash.is-live .splash-byline{ opacity:1; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg" aria-hidden="true">
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+  <div class="bg-vignette"></div>
+</div>
+
+<!-- ============ DESKTOP GATE ============ -->
+<section class="gate" id="gate" hidden>
+
+  <!-- touch device: permanent stop -->
+  <div id="gateDevice" hidden>
+    <svg class="gate-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+      <rect x="7" y="7" width="34" height="22"/>
+      <path d="M21 29v3M27 29v3"/>
+      <rect x="10" y="35" width="28" height="8"/>
+      <path d="M15 39h18"/>
+    </svg>
+    <h2 data-i18n="gateDeviceTitle">Computer required</h2>
+    <p data-i18n="gateDeviceBody">This game runs on keyboard and mouse. Open it on a desktop or laptop.</p>
+  </div>
+
+  <!-- desktop, window just too small: clears on resize -->
+  <div id="gateSize" hidden>
+    <svg class="gate-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+      <rect x="7" y="9" width="34" height="30"/>
+      <path d="M18 30 30 18"/>
+      <path d="M18 24v6h6"/>
+      <path d="M30 24v-6h-6"/>
+    </svg>
+    <h2 data-i18n="gateSizeTitle">Window too small</h2>
+    <p data-i18n="gateSizeBody">Make the window bigger to fit the arena.</p>
+    <p class="gate-dims" id="gateDims">0 &times; 0</p>
+  </div>
+
+  <!-- computer, window taller than it is wide: clears on resize -->
+  <div id="gateShape" hidden>
+    <svg class="gate-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+      <rect x="17" y="8" width="14" height="32"/>
+      <path d="M4 24h7M44 24h-7"/>
+      <path d="M8 20 4 24l4 4"/>
+      <path d="M40 20l4 4-4 4"/>
+    </svg>
+    <h2 data-i18n="gateShapeTitle">Landscape required</h2>
+    <p data-i18n="gateShapeBody">The arena runs wide. Make the window wider than it is tall.</p>
+    <p class="gate-dims" id="gateShapeDims">0 &times; 0</p>
+  </div>
+
+  <!-- phone or tablet turned sideways: clears on rotation -->
+  <div id="gateRotate" hidden>
+    <svg class="gate-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+      <rect x="6" y="20" width="36" height="21"/>
+      <path d="M11 24v13"/>
+      <path d="M16 12a15 15 0 0 1 21 4"/>
+      <path d="M31 15h6V9"/>
+    </svg>
+    <h2 data-i18n="gateRotateTitle">Rotate to portrait</h2>
+    <p data-i18n="gateRotateBody">On a phone or tablet this game plays upright. Turn the device.</p>
+  </div>
+
+  <p class="gate-foot">A game by <strong>hiyroscript</strong></p>
+</section>
+
+<!-- ============ SPLASH ============ -->
+<section id="splash" aria-label="Loading">
+  <p class="splash-byline">a game by <span>hiyroscript</span></p>
+</section>
+
+<!-- ============ APP ============ -->
+<div id="app">
+
+  <nav class="rail" aria-label="Menu">
+    <div class="rail-spacer"></div>
+
+    <div class="rail-tools">
+      <button class="icon-btn" id="btnLang" data-tip="language" aria-label="Language">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M3 12h18"/>
+          <path d="M12 3c2.6 2.6 3.9 5.6 3.9 9s-1.3 6.4-3.9 9c-2.6-2.6-3.9-5.6-3.9-9S9.4 5.6 12 3Z"/>
+        </svg>
+      </button>
+    </div>
+  </nav>
+
+  <div class="main">
+
+    <!-- ---------- HOME ---------- -->
+    <section class="home" id="home">
+      <div class="home-left">
+        <p class="eyebrow reveal d1" data-i18n="eyebrow">Local versus</p>
+
+        <h1 class="wordmark reveal d2">
+          <span class="wm-line"><i class="wm-a" id="wmA">Over</i></span>
+          <span class="wm-line"><i class="wm-b" id="wmB">Clash</i></span>
+        </h1>
+
+        <p class="tagline reveal d3" data-i18n="tagline">Four fighters. One stage. Knock them off it.</p>
+
+        <div class="play-row reveal d4">
+          <span class="play-shadow">
+            <button class="play" id="btnPlay" data-i18n="play">Play</button>
+          </span>
+          <p class="hint"><span class="key">ENTER</span><span data-i18n="hint">Start</span></p>
+        </div>
+      </div>
+
+      <div class="arena reveal d5" id="arena" aria-hidden="true">
+        <svg viewBox="0 0 400 400">
+          <polygon class="ring r1" points="375.6,272.7 272.7,375.6 127.3,375.6 24.4,272.7 24.4,127.3 127.3,24.4 272.7,24.4 375.6,127.3"/>
+          <polygon class="ring r2" points="334,255.5 255.5,334 144.5,334 66,255.5 66,144.5 144.5,66 255.5,66 334,144.5"/>
+          <polygon class="ring r3" points="292.4,238.3 238.3,292.4 161.7,292.4 107.6,238.3 107.6,161.7 161.7,107.6 238.3,107.6 292.4,161.7"/>
+          <polygon class="ring r4" points="250.8,221.1 221.1,250.8 178.9,250.8 149.2,221.1 149.2,178.9 178.9,149.2 221.1,149.2 250.8,178.9"/>
+          <line class="slash" x1="52" y1="348" x2="348" y2="52"/>
+          <g class="node">
+            <circle cx="200" cy="10" r="3"/><circle cx="200" cy="390" r="3"/>
+            <circle cx="10" cy="200" r="3"/><circle cx="390" cy="200" r="3"/>
+          </g>
+          <circle class="core" cx="200" cy="200" r="5"/>
+        </svg>
+      </div>
+    </section>
+
+    <!-- ---------- MODE SELECT ---------- -->
+    <section class="modes" id="modes" hidden>
+      <div class="modes-inner">
+
+        <button class="nav-back" data-back type="button">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 4 6 10l6 6"/></svg>
+          <span data-i18n="back">Back</span>
+        </button>
+
+        <div class="modes-head">
+          <h2 data-i18n="modesTitle">Single player or multiplayer</h2>
+        </div>
+
+        <div class="mode-grid two">
+
+          <button class="mode" data-mode="solo">
+            <b data-i18n="modeSolo">Solo play</b>
+            <span class="mode-desc" data-i18n="modeSoloDesc">One player against the computer.</span>
+            <span class="mode-tag" data-i18n="modeSoloTag">1 player</span>
+          </button>
+
+          <button class="mode" data-mode="local">
+            <b data-i18n="modeLocal">Local play</b>
+            <span class="mode-desc" data-i18n="modeLocalDesc">Up to four people on one keyboard.</span>
+            <span class="mode-tag" data-i18n="modeLocalTag">2 to 4 players</span>
+          </button>
+
+        </div>
+
+        <p class="modes-foot">
+          <span class="key">←</span><span class="key">→</span>
+          <span data-i18n="modesFoot">Move — Enter to select — Escape to go back</span>
+        </p>
+
+      </div>
+    </section>
+
+    <!-- ---------- SOLO: GAME TYPE ---------- -->
+    <section class="modes" id="games" hidden>
+      <div class="modes-inner">
+
+        <button class="nav-back" data-back type="button">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 4 6 10l6 6"/></svg>
+          <span data-i18n="back">Back</span>
+        </button>
+
+        <div class="modes-head">
+          <div>
+            <p class="crumb" id="gameCrumb">Solo play</p>
+            <h2 data-i18n="gamesTitle">Choose a game</h2>
+          </div>
+        </div>
+
+        <div class="mode-grid two">
+
+          <button class="mode" data-game="race">
+            <b data-i18n="gameRace">Marble race</b>
+            <span class="mode-desc" data-i18n="gameRaceDesc">Every marble on the same course. First one down wins.</span>
+            <span class="mode-tag" data-i18n="gameRaceTag">First to finish</span>
+          </button>
+
+          <button class="mode" data-game="endless">
+            <b data-i18n="gameEndless">Endless run</b>
+            <span class="mode-desc" data-i18n="gameEndlessDesc">The course keeps coming. Roll as far as you can.</span>
+            <span class="mode-tag" data-i18n="gameEndlessTag">No finish line</span>
+          </button>
+
+        </div>
+
+        <p class="modes-foot">
+          <span class="key">←</span><span class="key">→</span>
+          <span data-i18n="modesFoot">Move — Enter to select — Escape to go back</span>
+        </p>
+
+      </div>
+    </section>
+
+    <!-- ---------- SOLO: CHARACTER PICK ---------- -->
+    <section class="chars" id="chars" hidden>
+      <div class="chars-inner">
+
+        <button class="nav-back" data-back type="button">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 4 6 10l6 6"/></svg>
+          <span data-i18n="back">Back</span>
+        </button>
+
+        <div class="modes-head">
+          <div>
+            <p class="crumb" id="charsCrumb">Solo play</p>
+            <h2 data-i18n="charsTitle">Choose your color</h2>
+          </div>
+        </div>
+
+        <div class="chars-body">
+
+          <div class="char-side">
+            <div class="char-grid" id="charGrid"></div>
+            <button class="char-go" id="btnCharGo" data-i18n="charsConfirm">Confirm</button>
+          </div>
+
+          <div class="chars-rule" aria-hidden="true"></div>
+
+          <div class="preview">
+            <div class="stage" id="charStage" aria-hidden="true"></div>
+            <div class="preview-foot">
+              <span class="preview-name" id="charName">—</span>
+            </div>
+          </div>
+
+        </div>
+
+        <p class="modes-foot">
+          <span class="key">←</span><span class="key">→</span>
+          <span data-i18n="charsFoot">Move — Enter to confirm — Escape to go back</span>
+        </p>
+
+      </div>
+    </section>
+
+    <!-- ---------- SOLO: FORMAT ---------- -->
+    <section class="modes" id="formats" hidden>
+      <div class="modes-inner">
+
+        <button class="nav-back" data-back type="button">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 4 6 10l6 6"/></svg>
+          <span data-i18n="back">Back</span>
+        </button>
+
+        <div class="modes-head">
+          <div>
+            <p class="crumb" id="fmtCrumb">Play against bots</p>
+            <h2 data-i18n="fmtTitle">Choose a format</h2>
+          </div>
+        </div>
+
+        <div class="mode-grid two">
+
+          <button class="mode" data-format="quick">
+            <span class="diagram" aria-hidden="true">
+              <svg viewBox="0 0 72 42">
+                <polygon class="d-fill" points="18.5,23.7 14.7,27.5 9.3,27.5 5.5,23.7 5.5,18.3 9.3,14.5 14.7,14.5 18.5,18.3"/>
+                <path class="d-line" d="M21 21H32M40 21H51"/>
+                <path class="d-slash" d="M34 26 38 16"/>
+                <polygon class="d-tok" points="66.5,23.7 62.7,27.5 57.3,27.5 53.5,23.7 53.5,18.3 57.3,14.5 62.7,14.5 66.5,18.3"/>
+              </svg>
+            </span>
+            <b data-i18n="fmtQuick">Quick battle</b>
+            <span class="mode-desc" data-i18n="fmtQuickDesc">One match, straight into it.</span>
+            <span class="mode-tag" data-i18n="fmtQuickTag">Single match</span>
+          </button>
+
+          <button class="mode" data-format="tournament">
+            <span class="diagram" aria-hidden="true">
+              <svg viewBox="0 0 64 42">
+                <path class="d-line" d="M4 6H18V16H4M18 11H30M4 26H18V36H4M18 31H30M30 11V31M30 21H44"/>
+                <polygon class="d-fill" points="60.5,23.7 56.7,27.5 51.3,27.5 47.5,23.7 47.5,18.3 51.3,14.5 56.7,14.5 60.5,18.3"/>
+              </svg>
+            </span>
+            <b data-i18n="fmtTournament">Tournament</b>
+            <span class="mode-desc" data-i18n="fmtTournamentDesc">A bracket of matches. Last fighter standing wins.</span>
+            <span class="mode-tag" data-i18n="fmtTournamentTag">Bracket — 4 fighters</span>
+          </button>
+
+        </div>
+
+        <p class="modes-foot">
+          <span class="key">←</span><span class="key">→</span>
+          <span data-i18n="modesFoot">Move — Enter to select — Escape to go back</span>
+        </p>
+
+      </div>
+    </section>
+
+    <!-- ---------- CHARACTER SELECT (empty until the roster exists) ---------- -->
+    <section class="select" id="select" hidden>
+      <div>
+        <p class="crumb" id="selectCrumb">—</p>
+        <h2 data-i18n="selectTitle">Character select</h2>
+        <div class="slot-row" id="slotRow"></div>
+        <p class="select-body" data-i18n="selectBody">The roster is the next build step.</p>
+        <button class="back" id="btnBack" data-i18n="back">Back</button>
+      </div>
+    </section>
+
+    <!-- ---------- FOOTER ---------- -->
+    <footer class="footer">
+      <p>A game by <strong>hiyroscript</strong></p>
+    </footer>
+
+  </div>
+</div>
+
+<!-- ============ PLAY ============ -->
+<section id="play" hidden>
+  <canvas id="playCanvas"></canvas>
+  <div class="play-hud">
+    <div class="play-top">
+      <div class="play-left">
+        <button class="play-btn" id="btnPause" type="button">
+          <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <rect x="5" y="4" width="3.6" height="12"/><rect x="11.4" y="4" width="3.6" height="12"/>
+          </svg>
+          <span data-i18n="playPause">Pause</span>
+        </button>
+        <div class="play-count">
+          <span data-i18n="playJumps">Jumps</span>
+          <b id="jumpCount">0</b>
+        </div>
+      </div>
+      <span class="play-world" id="playWorld"></span>
+    </div>
+  </div>
+
+  <div class="countdown" id="countdown" hidden><b id="countNum">3</b></div>
+
+  <!-- pause takes the whole world, because it is also the only way out -->
+  <div class="pause-sheet" id="pauseSheet" hidden>
+    <div class="pause-card">
+      <h2 data-i18n="pauseTitle">Paused</h2>
+      <button class="pause-btn is-go" id="btnResume" type="button" data-i18n="pauseResume">Resume</button>
+      <button class="pause-btn is-quit" id="btnQuit" type="button" data-i18n="playQuit">Quit</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LANGUAGE DIALOG ============ -->
+<div class="scrim" id="langScrim" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="langTitle">
+    <h2 id="langTitle" data-i18n="langTitle">Choose your language</h2>
+    <p data-i18n="langSub">Change it any time from the menu rail.</p>
+
+    <div class="lang-grid">
+      <button class="lang" data-lang="en">
+        <b>English</b>
+        <em>English</em>
+      </button>
+      <button class="lang" data-lang="fr">
+        <b>Français</b>
+        <em>French</em>
+      </button>
+    </div>
+
+    <p class="dialog-foot"><span class="key">←</span><span class="key">→</span> <span data-i18n="langFoot">Move — Enter to confirm</span></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ==========================================================
+     1. CONFIG — rename the game here
+     ========================================================== */
+  var CONFIG = {
+    titleTop: "Over",     // solid line
+    titleBottom: "Clash", // outlined line
+    splashHold: 2200,     // ms before the splash fades out
+
+    /* The gate has two lanes. A computer plays in a landscape
+       window; a phone or tablet plays upright. Each lane carries
+       its own smallest playable size. Set allowMobile to false to
+       go back to turning touch devices away at the door. */
+    allowMobile: true,
+    minWidth: 900,        // computer — landscape
+    minHeight: 540,
+    mobileMinWidth: 320,  // phone or tablet — portrait
+    mobileMinHeight: 480
+  };
+
+  /* ==========================================================
+     2. TEXT
+     ========================================================== */
+  var STRINGS = {
+    en: {
+      eyebrow:   "Single screen",
+      tagline:   "Four fighters. One stage. Knock them off it.",
+      play:      "Play",
+      hint:      "Start",
+      modesTitle:"Single player or multiplayer",
+      modesFoot: "Move — Enter to select — Escape to go back",
+      modeSolo:  "Solo play",
+      modeSoloDesc:"One player against the computer.",
+      modeSoloTag: "1 player",
+      modeLocal: "Local play",
+      modeLocalDesc:"Up to four people on one keyboard.",
+      modeLocalTag: "2 to 4 players",
+      gamesTitle:"Choose a game",
+      gameRace:  "Marble race",
+      gameRaceDesc:"Every marble on the same course. First one down wins.",
+      gameRaceTag: "First to finish",
+      gameEndless:"Endless run",
+      gameEndlessDesc:"The course keeps coming. Roll as far as you can.",
+      gameEndlessTag:"No finish line",
+      charsTitle:"Choose your color",
+      charsFoot: "Move — Enter to confirm — Escape to go back",
+      charsConfirm:"Confirm",
+      charBlue:  "Blue",
+      charRed:   "Red",
+      charGreen: "Green",
+      charYellow:"Yellow",
+      fmtTitle:  "Choose a format",
+      fmtQuick:  "Quick battle",
+      fmtQuickDesc:"One match, straight into it.",
+      fmtQuickTag: "Single match",
+      fmtTournament:"Tournament",
+      fmtTournamentDesc:"A bracket of matches. Last fighter standing wins.",
+      fmtTournamentTag:"Bracket — 4 fighters",
+      playPause: "Pause",
+      playJumps: "Jumps",
+      playGo:    "Go",
+      playQuit:  "Quit",
+      pauseTitle:"Paused",
+      pauseResume:"Resume",
+      selectTitle:"Character select",
+      selectBody:"The roster is the next build step.",
+      back:      "Back",
+      langTitle: "Choose your language",
+      langSub:   "Change it any time from the menu rail.",
+      langFoot:  "Move — Enter to confirm",
+      gateDeviceTitle:"Computer required",
+      gateDeviceBody: "This game runs on keyboard and mouse. Open it on a desktop or laptop.",
+      gateSizeTitle:  "Window too small",
+      gateSizeBody:   "Make the window bigger to fit the arena.",
+      gateShapeTitle: "Landscape required",
+      gateShapeBody:  "The arena runs wide. Make the window wider than it is tall.",
+      gateRotateTitle:"Rotate to portrait",
+      gateRotateBody: "On a phone or tablet this game plays upright. Turn the device."
+    },
+    fr: {
+      eyebrow:   "Écran unique",
+      tagline:   "Quatre combattants. Une arène. Éjectez-les.",
+      play:      "Jouer",
+      hint:      "Démarrer",
+      modesTitle:"Solo ou multijoueur",
+      modesFoot: "Déplacer — Entrée pour choisir — Échap pour revenir",
+      modeSolo:  "Jeu solo",
+      modeSoloDesc:"Un joueur contre l'ordinateur.",
+      modeSoloTag: "1 joueur",
+      modeLocal: "Jeu local",
+      modeLocalDesc:"Jusqu'à quatre personnes sur un clavier.",
+      modeLocalTag: "2 à 4 joueurs",
+      gamesTitle:"Choisissez un jeu",
+      gameRace:  "Course de billes",
+      gameRaceDesc:"Toutes les billes sur le même parcours. La première arrivée gagne.",
+      gameRaceTag: "Première à l'arrivée",
+      gameEndless:"Course sans fin",
+      gameEndlessDesc:"Le parcours ne s'arrête jamais. Allez le plus loin possible.",
+      gameEndlessTag:"Sans ligne d'arrivée",
+      charsTitle:"Choisissez votre couleur",
+      charsFoot: "Déplacer — Entrée pour confirmer — Échap pour revenir",
+      charsConfirm:"Confirmer",
+      charBlue:  "Bleu",
+      charRed:   "Rouge",
+      charGreen: "Vert",
+      charYellow:"Jaune",
+      fmtTitle:  "Choisissez un format",
+      fmtQuick:  "Combat rapide",
+      fmtQuickDesc:"Un match, sans détour.",
+      fmtQuickTag: "Match unique",
+      fmtTournament:"Tournoi",
+      fmtTournamentDesc:"Un tableau de matchs. Le dernier debout l'emporte.",
+      fmtTournamentTag:"Tableau — 4 combattants",
+      playPause: "Pause",
+      playJumps: "Sauts",
+      playGo:    "Partez",
+      playQuit:  "Quitter",
+      pauseTitle:"En pause",
+      pauseResume:"Reprendre",
+      selectTitle:"Sélection des personnages",
+      selectBody:"Le roster arrive à la prochaine étape.",
+      back:      "Retour",
+      langTitle: "Choisissez votre langue",
+      langSub:   "Modifiable à tout moment depuis le menu latéral.",
+      langFoot:  "Déplacer — Entrée pour confirmer",
+      gateDeviceTitle:"Ordinateur requis",
+      gateDeviceBody: "Ce jeu se joue au clavier et à la souris. Ouvrez-le sur un ordinateur.",
+      gateSizeTitle:  "Fenêtre trop petite",
+      gateSizeBody:   "Agrandissez la fenêtre pour afficher l'arène.",
+      gateShapeTitle: "Format paysage requis",
+      gateShapeBody:  "L'arène est large. Rendez la fenêtre plus large que haute.",
+      gateRotateTitle:"Passez en portrait",
+      gateRotateBody: "Sur téléphone ou tablette, ce jeu se joue à la verticale. Tournez l'appareil."
+    }
+  };
+
+  /* ==========================================================
+     3. SAVE — localStorage with an in-memory fallback,
+        so the file never throws inside sandboxed previews.
+     ========================================================== */
+  var save = (function(){
+    var mem = {}, ok = false;
+    try { localStorage.setItem("__t","1"); localStorage.removeItem("__t"); ok = true; } catch(e){ ok = false; }
+    return {
+      get: function(k){ try { return ok ? localStorage.getItem(k) : (k in mem ? mem[k] : null); } catch(e){ return mem[k] || null; } },
+      set: function(k,v){ try { if(ok) localStorage.setItem(k,v); else mem[k]=v; } catch(e){ mem[k]=v; } }
+    };
+  })();
+
+  var KEY_LANG = "overclash.lang";
+
+  /* ==========================================================
+     4. ELEMENTS
+     ========================================================== */
+  var $ = function(id){ return document.getElementById(id); };
+  var splash   = $("splash"),
+      home     = $("home"),
+      modes    = $("modes"),
+      games    = $("games"),
+      chars    = $("chars"),
+      formats  = $("formats"),
+      select   = $("select"),
+      play     = $("play"),
+      playWorld= $("playWorld"),
+      btnQuit  = $("btnQuit"),
+      btnPause = $("btnPause"),
+      btnResume= $("btnResume"),
+      pauseSheet=$("pauseSheet"),
+      jumpCount= $("jumpCount"),
+      countdown= $("countdown"),
+      countNum = $("countNum"),
+      scrim    = $("langScrim"),
+      gameCrumb = $("gameCrumb"),
+      charsCrumb= $("charsCrumb"),
+      fmtCrumb = $("fmtCrumb"),
+      selectCrumb = $("selectCrumb"),
+      slotRow  = $("slotRow"),
+      charGrid = $("charGrid"),
+      charStage= $("charStage"),
+      charName = $("charName"),
+      btnPlay  = $("btnPlay"),
+      btnBack  = $("btnBack"),
+      btnCharGo= $("btnCharGo"),
+      btnLang  = $("btnLang");
+
+  var langButtons = Array.prototype.slice.call(document.querySelectorAll(".lang"));
+  var modeButtons = Array.prototype.slice.call(document.querySelectorAll("[data-mode]"));
+  var gameButtons = Array.prototype.slice.call(document.querySelectorAll("[data-game]"));
+  var fmtButtons  = Array.prototype.slice.call(document.querySelectorAll("[data-format]"));
+  var lang = "en";
+  var focusIndex = 0;
+
+  /* STRINGS keys for the breadcrumb, and who fills each slot */
+  var MODE_KEY = { solo:"modeSolo", local:"modeLocal" };
+  var GAME_KEY = { race:"gameRace", endless:"gameEndless" };
+  var FMT_KEY  = { quick:"fmtQuick", tournament:"fmtTournament" };
+  var CHAR_KEY = { blue:"charBlue", red:"charRed", green:"charGreen", yellow:"charYellow" };
+  var ROSTER   = {
+    solo:  ["P1","CPU","CPU","CPU"],
+    local: ["P1","P2","P3","P4"]
+  };
+  var chosenMode = null, chosenGame = null, chosenFormat = null, chosenChar = null;
+
+  $("wmA").textContent = CONFIG.titleTop;
+  $("wmB").textContent = CONFIG.titleBottom;
+
+  /* ==========================================================
+     5. LANGUAGE
+     ========================================================== */
+  function applyLang(code){
+    lang = STRINGS[code] ? code : "en";
+    var dict = STRINGS[lang];
+    document.documentElement.lang = lang;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-i18n]"), function(el){
+      var k = el.getAttribute("data-i18n");
+      if (dict[k]) el.textContent = dict[k];
+    });
+    // these screens are built from state, not from data-i18n keys
+    refreshCharText();
+    playWorld.textContent = worldName();
+    renderCrumbs();
+    if (chosenMode) renderSelect();
+  }
+
+  function openLangDialog(){
+    scrim.hidden = false;
+    btnLang.classList.add("is-on");
+    focusIndex = lang === "fr" ? 1 : 0;
+    langButtons[focusIndex].focus();
+  }
+
+  function closeLangDialog(){
+    scrim.hidden = true;
+    btnLang.classList.remove("is-on");
+    focusScreen(screen);   // the dialog can be opened from any screen
+  }
+
+  langButtons.forEach(function(btn, i){
+    btn.addEventListener("click", function(){
+      focusIndex = i;
+      applyLang(btn.getAttribute("data-lang"));
+      save.set(KEY_LANG, lang);
+      closeLangDialog();
+    });
+  });
+
+  btnLang.addEventListener("click", openLangDialog);
+
+  /* ==========================================================
+     6. THE ROSTER
+     Add a ball by adding a line here and a --ball-* token up in
+     the palette: the swatch grid, the preview and the filled
+     slot on the select screen all read from this list.
+     ========================================================== */
+  var CHARS = [
+    { id:"blue",   key:"charBlue"   },
+    { id:"red",    key:"charRed"    },
+    { id:"green",  key:"charGreen"  },
+    { id:"yellow", key:"charYellow" }
+  ];
+  var CHAR_COLS = 2;              // columns in the swatch grid
+  var charIndex = 0;
+  var charCells = [];
+  var stagedChar = null;
+
+  /* The swatch, the preview and the marble on the track are the same
+     picture at three sizes. Painting all three from one routine and one
+     MARBLE table is the only way they cannot drift apart. The canvas
+     carries colour and pattern; the round edge and the hairline outline
+     stay in CSS, so they hold at whatever size each one is shown. */
+  function paintMarble(el, id){
+    var px = 168, c = el.getContext("2d"), r = px / 2;
+    el.width = el.height = px;
+    c.save();
+    c.translate(r, r);
+    var col = ballHex(id);
+    c.fillStyle = col;
+    c.fillRect(-r, -r, px, px);        // CSS rounds the corners away
+    var pattern = MARBLE[id];
+    if (pattern){
+      c.fillStyle = c.strokeStyle = patternInk(col);
+      pattern(c, r);
+    }
+    c.restore();
+  }
+
+  function ballNode(id){
+    var el = document.createElement("canvas");
+    el.className = "ball";
+    el.setAttribute("data-char", id);
+    paintMarble(el, id);
+    return el;
+  }
+
+  function buildCharGrid(){
+    charGrid.innerHTML = "";
+    charCells = [];
+    CHARS.forEach(function(c, i){
+      var cell = document.createElement("button");
+      cell.className = "char-cell" + (i === charIndex ? " is-picked" : "");
+      cell.setAttribute("data-char", c.id);
+      var chip = document.createElement("canvas");
+      chip.className = "chip";
+      paintMarble(chip, c.id);
+      cell.appendChild(chip);
+      cell.insertAdjacentHTML("beforeend", '<b>' + STRINGS[lang][c.key] + '</b>');
+      cell.addEventListener("click", function(){ pickChar(i); });
+      charGrid.appendChild(cell);
+      charCells.push(cell);
+    });
+    renderPreview(true);
+  }
+
+  /* Poke it and it bounces. Clicking the ball, picking it in the
+     grid and locking it in all run the same beat, so the stage
+     answers every one of them. */
+  function strike(){
+    var ball = charStage.firstChild;
+    if (!ball) return;
+    ball.classList.remove("is-hit");
+    void ball.offsetWidth;             // restart the bounce
+    ball.classList.add("is-hit");
+  }
+
+  charStage.addEventListener("click", strike);
+
+  /* The preview is rebuilt only when the colour changes, so the
+     idle restarts on a real switch and never on a repeat click. */
+  function renderPreview(force){
+    var id = CHARS[charIndex].id;
+    if (!force && stagedChar === id) return;
+    stagedChar = id;
+    charStage.innerHTML = "";
+    charStage.appendChild(ballNode(id));
+  }
+
+  function pickChar(i){
+    if (i < 0 || i >= CHARS.length) return;
+    charIndex = i;
+    charCells.forEach(function(el, n){
+      if (n === i) el.classList.add("is-picked"); else el.classList.remove("is-picked");
+    });
+    charName.textContent = STRINGS[lang][CHARS[i].key];
+    renderPreview(false);
+    strike();
+    charCells[i].focus();
+  }
+
+  function refreshCharText(){
+    if (!charCells.length) return;
+    charCells.forEach(function(el, i){
+      el.querySelector("b").textContent = STRINGS[lang][CHARS[i].key];
+    });
+    charName.textContent = STRINGS[lang][CHARS[charIndex].key];
+  }
+
+  function confirmChar(){
+    chosenChar = CHARS[charIndex].id;
+    renderCrumbs();
+    startGame();
+  }
+
+  btnCharGo.addEventListener("click", confirmChar);
+
+  /* ==========================================================
+     7. SCREENS
+     ========================================================== */
+  var SCREENS = { home:home, modes:modes, games:games, chars:chars, formats:formats, select:select, play:play };
+
+  /* The three card screens are the same screen with different cards,
+     so they share one keyboard, one focus rule and one click handler.
+     `i` is where the cursor sits on each. */
+  var DECKS = {
+    modes:   { list:modeButtons, i:0, attr:"data-mode",   pick:chooseMode   },
+    games:   { list:gameButtons, i:0, attr:"data-game",   pick:chooseGame   },
+    formats: { list:fmtButtons,  i:0, attr:"data-format", pick:chooseFormat }
+  };
+
+  /* Each screen says out loud how you got there: solo play, then the
+     game, then the colour. Rebuilt on every pick and on a language
+     change, so the trail never goes stale. */
+  var SEP = "  \u2014  ";
+  function renderCrumbs(){
+    var d = STRINGS[lang];
+    var mode = d[MODE_KEY[chosenMode || "solo"]];
+    var game = mode + (chosenGame ? SEP + d[GAME_KEY[chosenGame]] : "");
+    gameCrumb.textContent  = mode;
+    charsCrumb.textContent = game;
+    fmtCrumb.textContent   = game + (chosenChar ? SEP + d[CHAR_KEY[chosenChar]] : "");
+  }
+  var screen = "home";
+  var trail  = [];          // where Escape and Back retreat to
+
+  function show(name){
+    if (screen === "play" && name !== "play") stopGame();
+    for (var k in SCREENS) SCREENS[k].hidden = (k !== name);
+    screen = name;
+    focusScreen(name);
+  }
+
+  function focusScreen(name){
+    if (name === "home")        btnPlay.focus();
+    else if (name === "chars")  { if (charCells[charIndex]) charCells[charIndex].focus(); }
+    else if (name === "select") btnBack.focus();
+    else if (name === "play")   btnPause.focus();
+    else if (DECKS[name])       DECKS[name].list[DECKS[name].i].focus();
+  }
+
+  function go(name){ trail.push(screen); show(name); }
+
+  function goBack(){
+    show(trail.pop() || "home");
+  }
+
+  /* --- home -> modes --- */
+  function openModes(){
+    DECKS.modes.i = 0;
+    go("modes");
+  }
+
+  /* --- modes -> game type (solo) or straight to select --- */
+  function chooseMode(id){
+    chosenMode = id;
+    chosenGame = null;
+    chosenFormat = null;
+    chosenChar = null;
+    if (id === "solo"){ DECKS.games.i = 0; renderCrumbs(); go("games"); }
+    else { renderSelect(); go("select"); }
+  }
+
+  /* --- game type -> ball pick. Both cards land in the same place. --- */
+  function chooseGame(id){
+    chosenGame = id;
+    renderCrumbs();
+    renderPreview(true);
+    go("chars");
+  }
+
+  /* --- formats -> select --- */
+  function chooseFormat(id){
+    chosenFormat = id;
+    renderSelect();
+    go("select");
+  }
+
+  /* Builds the empty roster slots from whichever mode got picked,
+     so the four frames already say who will fill them. The player
+     slot carries the fighter chosen on the pick screen. */
+  function renderSelect(){
+    var dict = STRINGS[lang];
+    var label = dict[MODE_KEY[chosenMode]];
+    if (chosenGame)   label += SEP + dict[GAME_KEY[chosenGame]];
+    if (chosenChar)   label += SEP + dict[CHAR_KEY[chosenChar]];
+    if (chosenFormat) label += SEP + dict[FMT_KEY[chosenFormat]];
+    selectCrumb.textContent = label;
+
+    slotRow.innerHTML = "";
+    ROSTER[chosenMode].forEach(function(who){
+      var slot = document.createElement("div");
+      slot.className = "slot" + (who === "CPU" ? "" : " is-player");
+      if (chosenChar && who === "P1") slot.setAttribute("data-char", chosenChar);
+      slot.innerHTML =
+        '<svg viewBox="0 0 100 100" aria-hidden="true"><polygon points="' +
+        '92.5,67.6 67.6,92.5 32.4,92.5 7.5,67.6 7.5,32.4 32.4,7.5 67.6,7.5 92.5,32.4' +
+        '"/></svg><span>' + who + '</span>';
+      slotRow.appendChild(slot);
+    });
+  }
+
+  btnPlay.addEventListener("click", openModes);
+  btnBack.addEventListener("click", goBack);
+
+  /* every screen's back control retreats along the same trail */
+  Array.prototype.forEach.call(document.querySelectorAll("[data-back]"), function(btn){
+    btn.addEventListener("click", goBack);
+  });
+
+  /* one wiring pass for all three card screens */
+  Object.keys(DECKS).forEach(function(name){
+    var deck = DECKS[name];
+    deck.list.forEach(function(btn, i){
+      btn.addEventListener("click", function(){
+        deck.i = i;
+        deck.pick(btn.getAttribute(deck.attr));
+      });
+    });
+  });
+
+  /* ==========================================================
+     8. THE GAME
+     A one-button runner. Every marble holds its own lane and
+     never moves sideways — the world slides past instead, so a
+     jump is timed against scenery rather than aimed. A race
+     opens with a clock: the field rolls in from off the left
+     edge, furthest lane first, and the marble you steer is the
+     last one through the gate.
+     ========================================================== */
+  var TUNE = {
+    /* The jump is described the way it is felt, not in px/s²: how
+       high in marble radii, and how long off the ground. Both then
+       scale with the marble, so a phone plays the same game a
+       desktop does instead of getting a jump five times its own
+       size. Geometry Dash's cube clears about two of itself and is
+       back down in half a second — that is these two numbers. */
+    jumpH:   4.0,   // apex, in radii — two marble-widths
+    airTime:  .50,  // seconds between leaving the ground and landing
+    /* Reach, not pace, is why this number is what it is. A jump has
+       to carry the marble five of its own widths for a three-spike
+       cluster to be fair — that is the proportion Geometry Dash
+       runs at, and 480 against a 0.50s airtime is exactly five. At
+       360 a triple left three frames to time it in. */
+    speed:  480,    // how fast the world slides past
+    lane:    .22,   // how far in from the left the player stands
+    line:     2,    // every outline in the world is this thick
+
+    spikeW:  1.7,   // spike width, in marble radii
+    spikeH:  2.0,   // spike height
+    tallH:   3.0,   // the tall one — half again as high, and the apex is only 4.0
+    twoUp:    .30,  // chance a cluster is a pair
+    threeUp:  .12,  // chance it is a trio
+    tallUp:   .16,  // chance it is a tall spike with a small one beside it
+
+    /* Platforms. A deck sits a fixed height above whatever ground it
+       spans, and the two numbers below share one budget: the top has
+       to stay inside the jump apex to be landable, and the underside
+       has to stay above the spikes a bridge is built over. 3.3 up,
+       0.9 thick — 0.7 of a radius under the apex, and 0.4 of a radius
+       both over a spike tip and over the head of a marble running
+       underneath. Thicker than this and the road under a roof stops
+       looking passable; higher and the landing window closes. */
+    slabLift: 3.3,  // the deck, in radii above the ground under it
+    slabT:     .9,  // how thick the slab is
+
+    /* ---- set pieces ----------------------------------
+       Everything below is measured in jump reaches, never in pixels,
+       so a shape asks the same jump of a small marble as of a big
+       one. Spacing INSIDE a piece is one fixed number repeated —
+       that is what makes a piece read as something a person drew
+       rather than as dice landing next to each other. */
+    restMin: 1.45,  // clear road between pieces
+    restStep: .25,  // rests come in three fixed lengths, this far apart
+    restHeavy: .35, // and a big piece earns extra road after it
+    warmUp:     3,  // pieces of plain road-and-spikes before anything big
+
+    fieldMin:1.25,  // a bridged spike field — over one reach, so no jump crosses it
+    fieldMax: 2.6,
+    slabPad:   .5,  // deck sticking out past each end of a bridged field
+    stoneLen:  .70, // a stepping stone, and how much longer it may run
+    stoneVary: .30,
+    stoneGap:  .36, // clear air between two stones, and how much it may vary
+    stoneVar2: .08,
+    stoneMax:    4, // most stones in a chain
+    stairRise: 2.2, // one deck step above the last, in radii
+    stairMax2:   3, // most decks in a flight
+
+    /* Holes. A hole is the one hazard on the course that is left
+       LATE — the ground has to last as long as it can — so it carries
+       its own aim rather than the reaction band the spikes use. An
+       island is a jump reach wide, which is what leaves room to land
+       out of one hole and set up for the next. */
+    gapMin:   .34,  // a hole, in jump reaches
+    gapMax:   .66,
+    gapIsle:  .95,  // island between two holes in a run
+    gapRun:     3,  // most holes in one run
+    gapAim:   .18,  // how far short of the lip a rival leaves the ground
+    pitDeep:  1.2,  // how far under the floor line a fall turns fatal, in radii
+
+    rhythmMin:  3,  // singles in a metronome run, and the fixed step between
+    rhythmMax:  5,
+    rhythmStep:1.3,
+    climbStep:1.15, // spacing inside a staircase of ground
+    dropStep:   .8, // and inside a run of terraces going back down
+
+    levelH:     2,  // one level, in marble radii
+    maxLevel:   3,  // how far above the datum the ground may climb
+    leadIn:  900,   // clear road before the first hazard of a race
+    dieFor:     2,  // seconds a destroyed marble stays gone
+    clearBy:  160,  // how far past a hazard counts as having passed it
+    linger:     3,  // seconds after the LAST marble is past before it retires
+    dropBack:  60,  // a bubble will not let go this close behind a cluster
+    dropAhead:240,  // nor this close in front of the next one
+    floatMin:  .9,  // shortest carry, so the bubble is always seen
+    floatMax:   4   // it stops looking for a gap after this and drops anyway
+  };
+
+  var COUNT   = 3,    // seconds on the start clock
+      GO_HOLD = .7,   // how long "Go" stays up once the clock runs out
+      IN_SPAN = 1.9,  // the longest roll-in, in seconds
+      IN_STEP = .25;  // gap between one marble entering and the next
+
+  /* One world for now. Violet on purpose: none of the four ball
+     colours live in that family, so every ball stays distinct
+     against every layer of it. Sky and hills stay light because
+     the ball's outline is black and has to keep reading; the
+     ground is the only dark mass, which is what makes the
+     horizon line land. More worlds slot in beside this one
+     later without the renderer changing. */
+  var WORLD = {
+    en:"Dusk", fr:"Crépuscule",
+    skyTop: "#CFC3EC",   // overhead
+    skyLow: "#FBDCC4",   // the warm band at the horizon
+    sun:    "#FFF1D6",
+    cloud:  "#E7DEF6",
+    far:    "#BCAFDD",   // distant range
+    mid:    "#AC9ED4",   // rolling hills
+    ground: "#8C7CBE",
+    soil:   "#7A6AAC",   // the crust under the surface, and on top of a step
+    hazard: "#5F4E86"    // spikes — darker than any terrain, so they read as danger
+  };
+
+  var cv  = $("playCanvas"),
+      ctx = cv.getContext("2d");
+
+  var IRIS = ["rgba(120,240,255,.55)", "rgba(255,150,214,.50)", "rgba(255,244,168,.46)"];
+
+  /* Launch speed and gravity are solved from jumpH and airTime every
+     time the marble is resized, so the shape of the arc is fixed and
+     only its scale moves. */
+  var G = { jump:0, grav:0 };
+  function tuneJump(){
+    var r = radius();
+    G.jump = 4 * TUNE.jumpH * r / TUNE.airTime;
+    G.grav = 2 * G.jump / TUNE.airTime;
+  }
+
+  var view    = { w:0, h:0 };
+  var world   = { dist:0, seed:0, phase:"count", clock:COUNT, shown:0, flash:0 };
+  var runners = [];              // [0] is the player, the rest are rivals
+  var keys    = { jump:false };
+  var running = false, raf = 0, last = 0, sky = null;
+  var paused = false, jumps = 0;
+
+  /* One pattern per marble, drawn in the same ink and clipped to the
+     glass. Every one of them is asymmetric on purpose — a design with
+     rotational symmetry would turn without ever looking like it had.
+     The pattern is what shows the roll now. */
+  var MARBLE = {
+    /* a single ribbon straight across the middle */
+    blue: function(c, r){
+      c.fillRect(-r, -r * .24, r * 2, r * .48);
+    },
+    /* cat's eye: two arcs meeting at the poles */
+    red: function(c, r){
+      c.beginPath();
+      c.moveTo(0, -r * .80);
+      c.quadraticCurveTo(r * .84, 0, 0, r * .80);
+      c.quadraticCurveTo(-r * .84, 0, 0, -r * .80);
+      c.fill();
+    },
+    /* one curl, left open at the near side */
+    green: function(c, r){
+      c.lineWidth = r * .34;
+      c.lineCap = "round";
+      c.beginPath();
+      c.arc(0, 0, r * .50, -Math.PI * .85, Math.PI * .35);
+      c.stroke();
+    },
+    /* a wedge pressed into the glass */
+    yellow: function(c, r){
+      c.beginPath();
+      c.moveTo(0, 0);
+      c.arc(0, 0, r * 1.1, -Math.PI * .30, Math.PI * .30);
+      c.closePath();
+      c.fill();
+    }
+  };
+
+  /* The pattern has to hold against its own marble, so it flips to a
+     deep tone on a base colour that is already bright, and stays white
+     on the three that are not. */
+  function patternInk(hex){
+    var n = parseInt(hex.slice(1), 16),
+        R = (n >> 16) & 255, G = (n >> 8) & 255, B = n & 255;
+    if (.299 * R + .587 * G + .114 * B <= 170) return "#FFFFFF";
+    return "rgb(" + Math.round(R * .42) + "," + Math.round(G * .42) + "," + Math.round(B * .42) + ")";
+  }
+
+  /* The ball colours live in the palette and nowhere else, so the
+     ball on the canvas cannot drift from the swatch that picked it. */
+  function ballHex(id){
+    var v = getComputedStyle(document.documentElement)
+              .getPropertyValue("--ball-" + id).trim();
+    return v || "#1F7AFF";
+  }
+  /* Deterministic noise: the same seed rebuilds the same skyline
+     every frame, so the far blocks hold still as the view scrolls
+     instead of flickering into new shapes. */
+  function rnd(i){
+    var x = Math.sin(i * 12.9898 + world.seed) * 43758.5453;
+    return x - Math.floor(x);
+  }
+
+  function sizeCanvas(){
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    view.w = cv.clientWidth;
+    view.h = cv.clientHeight;
+    cv.width  = Math.round(view.w * dpr);
+    cv.height = Math.round(view.h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    sky = ctx.createLinearGradient(0, 0, 0, floorY());
+    sky.addColorStop(0, WORLD.skyTop);
+    sky.addColorStop(1, WORLD.skyLow);
+  }
+  /* Sizes key to the short side of the view, not to its height. A
+     computer is gated to landscape, so there the short side IS the
+     height and nothing moves; in portrait it is the width, which is
+     what stops a phone's long axis from inflating the ground and the
+     ball to the size they were. */
+  function span(){ return Math.min(view.w, view.h); }
+  function floorY(){ return view.h - Math.max(38, Math.min(span() * .11, 100)); }
+  function radius(){ return Math.max(10, Math.min(span() * .032, 24)); }
+  function laneX(){ return Math.max(80, Math.min(view.w * TUNE.lane, 280)); }
+  function laneGap(){ return Math.max(56, Math.min(view.w * .11, 120)); }
+
+  /* ---- the course ----------------------------------------
+     One canonical course, laid out once. Slots are decided by the
+     same seeded noise the scenery uses, but a hazard is turned into
+     a real object the moment it is first needed and then kept —
+     it is never regenerated from the camera. That is what makes it
+     canon to every marble: a rival four screens ahead meets the
+     same spikes a marble four screens behind has still to meet,
+     and neither of them can see a hazard the other cannot.
+
+     A hazard retires only once EVERY marble is past it, and then
+     only after a delay, so nothing can wink out from under anyone.
+     By the time the delay expires it is over a thousand pixels
+     behind the last marble, well off the left edge. */
+  var hazards = [], slabs = [], courseAt = 0, clusters = 0;
+
+  /* One jump, in ground covered. Every structure that has to be
+     jumped onto, ducked under or bridged is measured against this
+     rather than against a pixel count, so a course laid for a small
+     marble asks exactly the same jumps of it as a big one. */
+  function reachPx(){ return TUNE.speed * TUNE.airTime; }
+
+  /* The ground is a profile, not a floor with blocks on it. It runs
+     at a level until a transition, then runs at the new one — so the
+     whole terrain rises and falls the way a Geometry Dash level does
+     rather than the marble hopping over slabs on a flat floor.
+     Levels are counted in radii so the climb is the same number of
+     marble-heights on every screen. */
+  var ground = [{ x:-1e9, hr:0, rise:0 }];
+
+  function segAt(d){
+    for (var i = ground.length - 1; i > 0; i--) if (ground[i].x <= d) return i;
+    return 0;
+  }
+  function groundHR(d){ return ground[segAt(d)].hr; }
+  /* A hole keeps the level of the ground it cuts through, so scenery,
+     bubbles and the camera all still have a line to read; only what
+     holds a marble up consults this. */
+  function solidAt(d){ return !ground[segAt(d)].void; }
+  function surfaceY(d, fy, r){ return fy - groundHR(d) * r; }
+
+  /* ---- platforms ----------------------------------------
+     A slab of ground floating over the road. The deck can be stood on
+     and everything else about it kills: run into its edge or come up
+     under it and the marble is destroyed. Every deck stands over
+     spikes — that is what it is for — so there is never a reason to
+     put spikes on top of one as well. `plat` on a hazard is the hook
+     for that if it is ever wanted; nothing sets it now. */
+  function slabTopY(p, fy, r){ return fy - p.hr * r; }
+  function slabBotY(p, fy, r){ return fy - p.hr * r + TUNE.slabT * r; }
+
+  /* What the marble may stand on. A level only holds it up if the
+     marble came down onto it — judged on where the underside sat
+     BEFORE this frame's move, because a drop from the apex covers
+     nine pixels in a frame and would otherwise end up below the
+     surface with the ground declining to hold it. */
+  var restSlab = null;    // what restY last stood the marble on, or null for the ground
+
+  function restY(m, fy, was){
+    var t = surfaceY(m.dist, fy, m.r), on = null, i, p, top;
+
+    /* A deck holds a marble up on exactly the same terms the ground
+       does — only if the marble came down onto it. Rising into it or
+       catching its edge is not standing on it, and falls through to
+       slabHit, which is what makes the underside lethal. */
+    for (i = 0; i < slabs.length; i++){
+      p = slabs[i];
+      if (m.dist < p.x || m.dist > p.x + p.w) continue;   // the centre carries it, so it rolls off the end
+      top = slabTopY(p, fy, m.r);
+      if (was > top + 1) continue;
+      if (top < t){ t = top; on = p; }
+    }
+    restSlab = on;
+    if (on) return t - m.r;
+
+    /* Over a hole there is nothing to land on at all. The marble keeps
+       falling, and the depth check in advance() ends it. */
+    if (!solidAt(m.dist)) return Infinity;
+
+    if (was <= t + 1) return t - m.r;
+    /* Beside a wall rather than on top of it: stay on the level it
+       was running along, and let the wall decide what happens. */
+    var back = solidAt(m.dist - m.r * 2)
+             ? surfaceY(m.dist - m.r * 2, fy, m.r) : Infinity;
+    return (t > back ? t : back) - m.r;
+  }
+
+  /* Only a rising wall can be run into — the marble travels one way,
+     so a drop is something it falls off, never something it hits.
+     That also removes the corner-graze problem entirely: the face of
+     a descent is simply not part of the lethal shape. */
+  function wallHit(m, fy){
+    var r2 = m.r * m.r;
+    for (var i = 1; i < ground.length; i++){
+      var g = ground[i], top, foot;
+      if (g.pit){
+        /* The far lip of a hole is a face with no bottom to it: clear
+           it and you land, catch it and the run ends there. */
+        top = fy - g.hr * m.r;
+        foot = fy + 1e5;
+      } else {
+        if (g.rise <= 0) continue;
+        top  = fy - g.hr * m.r;                      // top of the wall
+        foot = fy - (g.hr - g.rise) * m.r;           // the level it climbs from
+      }
+      if (m.dist < g.x - m.r || m.dist > g.x + m.r) continue;
+      var cy = m.y < top ? top : (m.y > foot ? foot : m.y),
+          dx = m.dist - g.x, dy = m.y - cy;
+      if (dx * dx + dy * dy < r2 - .5) return true;
+    }
+    return false;
+  }
+
+  /* Circle against the slab, exactly as drawn. Landing is not a hit:
+     restY has already parked the marble one radius clear of the deck,
+     so the circle touches the top edge and never crosses it. Anything
+     else that reaches the rectangle — the head under the underside,
+     the shoulder against the leading edge — is a hit. */
+  function slabHit(m, fy){
+    var r2 = m.r * m.r;
+    for (var i = 0; i < slabs.length; i++){
+      var p = slabs[i];
+      /* Past the far end there is nothing left to hit: a marble only
+         ever travels one way, so the trailing face is something it
+         rolls off, never something it runs into — the same rule the
+         ground uses to keep a descending step from being lethal. */
+      if (m.dist + m.r < p.x || m.dist > p.x + p.w) continue;
+      var top = slabTopY(p, fy, m.r),
+          bot = top + TUNE.slabT * m.r,
+          cx  = m.dist < p.x ? p.x : m.dist,
+          cy  = m.y < top ? top : (m.y > bot ? bot : m.y),
+          dx  = m.dist - cx, dy = m.y - cy;
+      if (dx * dx + dy * dy < r2 - .5) return true;
+    }
+    return false;
+  }
+
+  /* The lowest deck standing over a point, for a bubble to duck under. */
+  function lidY(d, fy, r){
+    var y = -Infinity;
+    for (var i = 0; i < slabs.length; i++){
+      var p = slabs[i];
+      if (d < p.x || d > p.x + p.w) continue;
+      var b = slabBotY(p, fy, r);
+      if (b > y) y = b;
+    }
+    return y;
+  }
+
+  function spikeSpan(){ return radius() * TUNE.spikeW; }
+  function tipHeight(z, j, r){ return r * (j === z.tall ? TUNE.tallH : TUNE.spikeH); }
+  function lastTip(z){ return z.x + (z.n - 1) * spikeSpan(); }
+  /* A spike stands on whatever holds it up: the ground it is planted
+     in, or a deck, if a hazard is ever given one. */
+  function hazBase(z, fy, r){ return z.plat ? slabTopY(z.plat, fy, r) : surfaceY(z.x, fy, r); }
+
+  /* ---- the composer -------------------------------------
+     The course is laid in set pieces, not in single obstacles. Each
+     piece is a shape somebody could have drawn — a metronome run of
+     spikes, a staircase, a flight of decks over a spike sea — and it
+     lays its own ground, hazards and platforms in one go. The seed
+     picks which piece comes next and how big it is; the rules about
+     what may follow what are what turn a bag of dice into something
+     that reads as built. Piece k always rolls the same way for a
+     given seed, and a piece is never regenerated once laid, so the
+     course is canon to every marble in the race.
+
+     Two habits do most of the work. Spacing inside a piece is one
+     number repeated, so the eye reads a phrase instead of a scatter.
+     And every piece is followed by clear road, so each one lands as
+     its own idea rather than running into the next. */
+  var lastPiece = "", laid = 0, restDebt = 0, climbRun = 0;
+
+  function level(){ return ground[ground.length - 1].hr / TUNE.levelH; }
+
+  /* Rests come in a few fixed lengths rather than anywhere in a
+     range: repetition is what makes spacing feel deliberate. */
+  function restGap(k, R){
+    return R * (TUNE.restMin + Math.floor(rnd(k * 7.3 + 401) * 3) * TUNE.restStep)
+         + (restDebt > 0 ? R * TUNE.restHeavy : 0);
+  }
+
+  /* A field of spikes on the ground from a to b, tagged with the deck
+     that crosses it so nothing on the ground tries to jump it. */
+  function layField(a, b, w, deck){
+    var n = Math.max(1, Math.round((b - a) / w));
+    hazards.push({ x:a + w / 2, n:n, tall:-1, plat:null, deck:deck, done:-1 });
+  }
+
+  /* A chain of decks over one spike sea. Same height and it is
+     stepping stones; climbing and it is a staircase. Both are one
+     routine because they are one idea — the gaps and the rise are
+     the only difference, and both are sized off the jump. */
+  function layChain(at, w, R, n, len, gap, rise){
+    var hr = ground[ground.length - 1].hr, x = at, first = null, i, deck;
+    for (i = 0; i < n; i++){
+      deck = { x:x, w:len, hr:hr + TUNE.slabLift + i * rise, done:-1 };
+      slabs.push(deck);
+      if (!first) first = deck;
+      x += len + (i < n - 1 ? gap : 0);
+    }
+    layField(at, x, w, first);
+    return x;
+  }
+
+  var PIECES = {
+    /* The plain beat: one to three spikes, sometimes with a tall one
+       leaning on a small one. */
+    beat: function(k, at, w, R){
+      var roll = rnd(k * 11.7 + 907), n = 1, tall = -1;
+      if (laid >= 2){
+        if (roll < TUNE.threeUp) n = 3;
+        else if (roll < TUNE.threeUp + TUNE.twoUp) n = 2;
+        else if (roll < TUNE.threeUp + TUNE.twoUp + TUNE.tallUp){
+          /* The tall one always stands second. Leading with it asks
+             the marble to be three radii up at the very start of its
+             arc, which is the one shape on the course that stops
+             being clearable when the frame rate drops; behind a small
+             one it is met at the apex instead. */
+          n = 2; tall = 1;
+        }
+      }
+      hazards.push({ x:at, n:n, tall:tall, plat:null, deck:null, done:-1 });
+      return at + (n - 1) * w;
+    },
+
+    /* A metronome. Three to five singles at one fixed step, so the
+       whole run is jumped on a beat instead of read one spike at a
+       time. This is the piece that does the most to make a generated
+       course feel authored. */
+    rhythm: function(k, at, w, R){
+      var n = TUNE.rhythmMin + Math.floor(rnd(k * 5.7 + 83) * (TUNE.rhythmMax - TUNE.rhythmMin + 1)),
+          step = R * (TUNE.rhythmStep + Math.floor(rnd(k * 9.1 + 157) * 2) * .2), i;
+      for (i = 0; i < n; i++){
+        hazards.push({ x:at + i * step, n:1, tall:-1, plat:null, deck:null, done:-1 });
+      }
+      return at + (n - 1) * step;
+    },
+
+    /* The ground climbing a level at a time, evenly spaced: a
+       staircase, not three unrelated bumps. Half the time there is a
+       spike waiting on the top landing. */
+    climb: function(k, at, w, R){
+      var lvl = level(),
+          n = Math.min(2 + Math.floor(rnd(k * 6.1 + 77) * 2), TUNE.maxLevel - lvl),
+          step = R * TUNE.climbStep, i, end;
+      for (i = 0; i < n; i++){
+        ground.push({ x:at + i * step, hr:(lvl + i + 1) * TUNE.levelH, rise:TUNE.levelH });
+      }
+      end = at + (n - 1) * step;
+      if (rnd(k * 8.3 + 211) < .5){
+        end += R * 1.3;
+        hazards.push({ x:end, n:1, tall:-1, plat:null, deck:null, done:-1 });
+      }
+      return end;
+    },
+
+    /* And the ground letting go again — terraces down, evenly
+       spaced. Falling costs nothing, so this is the breath between
+       two hard things. */
+    drop: function(k, at, w, R){
+      var lvl = level(),
+          n = Math.min(1 + Math.floor(rnd(k * 4.3 + 47) * 2), lvl),
+          step = R * TUNE.dropStep, i;
+      for (i = 0; i < n; i++){
+        ground.push({ x:at + i * step, hr:(lvl - i - 1) * TUNE.levelH, rise:-TUNE.levelH });
+      }
+      return at + (n - 1) * step;
+    },
+
+    /* Holes in the road, at one island length apart. A hole asks the
+       opposite of a spike — stay on the ground as long as you can,
+       then go — so a run of them reads as a different rhythm even
+       though it is the same button. */
+    gap: function(k, at, w, R){
+      var hr = ground[ground.length - 1].hr,
+          n = 1 + Math.floor(rnd(k * 6.3 + 149) * TUNE.gapRun),
+          span = R * (TUNE.gapMin + rnd(k * 4.1 + 67) * (TUNE.gapMax - TUNE.gapMin)),
+          isle = R * TUNE.gapIsle,
+          x = at, i;
+      for (i = 0; i < n; i++){
+        ground.push({ x:x, hr:hr, rise:0, void:true });
+        ground.push({ x:x + span, hr:hr, rise:0, pit:true });
+        x += span + (i < n - 1 ? isle : 0);
+      }
+      return x;
+    },
+
+    /* One deck over a field of spikes too long for any jump. The
+       field is why the deck is there and the deck is the only way
+       over the field. */
+    bridge: function(k, at, w, R){
+      var hr = ground[ground.length - 1].hr,
+          span = R * (TUNE.fieldMin + rnd(k * 8.9 + 271) * (TUNE.fieldMax - TUNE.fieldMin)),
+          pad = TUNE.slabPad * R,
+          deck = { x:at, w:span + pad * 2, hr:hr + TUNE.slabLift, done:-1 };
+      slabs.push(deck);
+      layField(at + pad, at + pad + span, w, deck);
+      return at + deck.w;
+    },
+
+    /* Stepping stones: the same crossing broken into pieces, so it is
+       hopped rather than ridden. One gap size for the whole chain. */
+    stones: function(k, at, w, R){
+      var n = 2 + Math.floor(rnd(k * 7.9 + 331) * (TUNE.stoneMax - 1)),
+          len = R * (TUNE.stoneLen + rnd(k * 5.1 + 137) * TUNE.stoneVary),
+          gap = R * (TUNE.stoneGap + rnd(k * 3.3 + 89) * TUNE.stoneVar2);
+      return layChain(at, w, R, n, len, gap, 0);
+    },
+
+    /* The same chain, climbing. Each deck is one step above the last,
+       and the step is small enough that the jump which reached the
+       first one reaches every one after it. */
+    deckstair: function(k, at, w, R){
+      var n = 2 + (rnd(k * 6.7 + 401) < .45 ? 1 : 0),
+          len = R * TUNE.stoneLen,
+          gap = R * TUNE.stoneGap;
+      return layChain(at, w, R, Math.min(n, TUNE.stairMax2), len, gap, TUNE.stairRise);
+    }
+  };
+
+  var LIGHT = ["beat", "rhythm", "drop"],
+      HEAVY = ["bridge", "stones", "deckstair"];
+
+  /* How often a piece comes up when it is allowed at all. The big
+     pieces are punctuation: a course that is all crossings has no
+     shape to it, and one that never reaches a crossing has nothing
+     to build to. */
+  var WEIGHT = { beat:3, rhythm:2, drop:2, climb:2, gap:2, bridge:1, stones:1, deckstair:1 };
+
+  /* What may follow what. The course opens on plain road so the first
+     jump teaches the button, never repeats a piece back to back, and
+     always spends a light piece after a heavy one — a course with no
+     rests in it stops reading as a course. The ground is kept honest
+     too: it cannot climb past the ceiling, cannot fall through the
+     floor, and after two climbs it is made to come back down, so the
+     terrain breathes instead of pinning itself at the top. */
+  function choosePiece(k){
+    var lvl = level(), pool, out = [], i;
+
+    if (laid < TUNE.warmUp) pool = ["beat", "rhythm"];
+    else if (restDebt > 0)  pool = LIGHT;
+    else                    pool = LIGHT.concat(["climb", "gap"]).concat(HEAVY);
+
+    for (i = 0; i < pool.length; i++){
+      var name = pool[i], n;
+      if (name === lastPiece) continue;                       // never twice running
+      if (name === "climb" && lvl >= TUNE.maxLevel) continue; // no room left above
+      if (name === "drop"  && lvl <= 0) continue;             // already on the floor
+      if (name === "deckstair" && lvl > 1) continue;          // a flight needs headroom
+      for (n = 0; n < WEIGHT[name]; n++) out.push(name);
+    }
+    if (climbRun >= 2 && lvl > 0 && out.indexOf("drop") >= 0) return "drop";
+    if (!out.length) return "beat";
+    return out[Math.min(out.length - 1, Math.floor(rnd(k * 3.1 + 19) * out.length))];
+  }
+
+  function layCourse(lead){
+    var w = spikeSpan(), R = reachPx();
+    while (courseAt < lead + view.w + 900){
+      var k = clusters++;
+      courseAt += restGap(k, R);
+      if (courseAt < TUNE.leadIn){ restDebt = 0; continue; }
+
+      /* The debt is spent on the choice, not before it: a heavy piece
+         buys both the longer rest in front of the next one AND the
+         promise that the next one is light. */
+      var name = choosePiece(k);
+      restDebt = 0;
+      courseAt = PIECES[name](k, courseAt, w, R);
+
+      climbRun = name === "climb" ? climbRun + 1 : (name === "drop" ? 0 : climbRun);
+      if (HEAVY.indexOf(name) >= 0) restDebt = 1;
+      lastPiece = name;
+      laid++;
+    }
+  }
+
+  /* `tail` is the marble furthest back, destroyed ones included —
+     they have not passed anything while they sit there. */
+  function retire(list, dt, endOf){
+    for (var i = list.length - 1; i >= 0; i--){
+      var z = list[i];
+      if (z.done < 0){
+        if (endOf(z)) z.done = TUNE.linger;
+      } else if ((z.done -= dt) <= 0){
+        list.splice(i, 1);
+      }
+    }
+  }
+
+  function sweepCourse(tail, dt){
+    retire(hazards, dt, function(z){ return tail > lastTip(z) + TUNE.clearBy; });
+    retire(slabs,   dt, function(p){ return tail > p.x + p.w + TUNE.clearBy; });
+    /* The profile is continuous, so a segment is dropped only once the
+       one after it is comfortably behind the last marble — the same
+       three-second grace the spikes get. */
+    var keep = tail - TUNE.clearBy - TUNE.linger * TUNE.speed;
+    while (ground.length > 1 && ground[1].x < keep) ground.shift();
+  }
+
+  /* ---- collision ----------------------------------------
+     Exact circle against exact triangle: the centre inside the
+     triangle, or any of the three edges within one radius of it.
+     No profile curve, no shrunken box — the shape that is drawn
+     is the shape that kills. */
+  function segDist2(px, py, ax, ay, bx, by){
+    var vx = bx - ax, vy = by - ay,
+        L  = vx * vx + vy * vy,
+        t  = L > 0 ? ((px - ax) * vx + (py - ay) * vy) / L : 0;
+    t = t < 0 ? 0 : (t > 1 ? 1 : t);
+    var dx = px - (ax + vx * t), dy = py - (ay + vy * t);
+    return dx * dx + dy * dy;
+  }
+
+  function inTri(px, py, ax, ay, bx, by, cx, cy){
+    var d1 = (px - bx) * (ay - by) - (ax - bx) * (py - by),
+        d2 = (px - cx) * (by - cy) - (bx - cx) * (py - cy),
+        d3 = (px - ax) * (cy - ay) - (cx - ax) * (py - ay);
+    return !(((d1 < 0) || (d2 < 0) || (d3 < 0)) && ((d1 > 0) || (d2 > 0) || (d3 > 0)));
+  }
+
+  function spikeHit(m, fy){
+    var w = m.r * TUNE.spikeW, r2 = m.r * m.r;
+    for (var i = 0; i < hazards.length; i++){
+      var z = hazards[i];
+      if (m.dist < z.x - w - m.r || m.dist > z.x + z.n * w + m.r) continue;  // whole cluster missed
+      var base = hazBase(z, fy, m.r);         // the ground it is planted in, or the deck it was laid on
+      for (var j = 0; j < z.n; j++){
+        var sx = z.x + j * w;
+        if (m.dist < sx - w / 2 - m.r || m.dist > sx + w / 2 + m.r) continue;
+        var h = tipHeight(z, j, m.r),
+            fy2 = base,
+            ax = sx - w / 2, bx = sx, cx = sx + w / 2;
+        if (inTri(m.dist, m.y, ax, fy2, bx, fy2 - h, cx, fy2)) return true;
+        if (segDist2(m.dist, m.y, ax, fy2, bx, fy2 - h) <= r2) return true;
+        if (segDist2(m.dist, m.y, bx, fy2 - h, cx, fy2) <= r2) return true;
+        if (segDist2(m.dist, m.y, cx, fy2, ax, fy2) <= r2) return true;
+      }
+    }
+    return false;
+  }
+
+  /* Where a bubble is willing to let go: the first place with room to
+     land behind it and room to set the next jump up in front. */
+  function clearSpot(d, loose){
+    var ahead = loose ? TUNE.dropBack : TUNE.dropAhead, i;
+    for (i = 0; i < hazards.length; i++){
+      var z = hazards[i];
+      if (z.plat) continue;                           // up on a deck, not on the road
+      if (d > lastTip(z) + TUNE.dropBack) continue;   // safely behind it
+      if (d < z.x - ahead) continue;                  // far enough short of it
+      return false;                                    // too close, or inside it
+    }
+    for (i = 1; i < ground.length; i++){
+      var g = ground[i];
+      if (g.void){                                    // a hole, and the run-up to it
+        var end = i + 1 < ground.length ? ground[i + 1].x : g.x + 1e5;
+        if (d > end + TUNE.dropBack) continue;
+        if (d < g.x - ahead) continue;
+        return false;
+      }
+      if (g.rise <= 0) continue;                      // a drop is nothing to land under
+      if (d > g.x) continue;                          // past the wall
+      if (d < g.x - ahead) continue;                  // well short of it
+      return false;                                    // would land right under the wall
+    }
+    /* Every deck now stands over spikes, so anywhere under one is a
+       place a marble cannot be put down — and short of one there has
+       to be room left to make the climb. */
+    for (i = 0; i < slabs.length; i++){
+      var p = slabs[i];
+      if (d > p.x + p.w + TUNE.dropBack) continue;    // the whole crossing is behind
+      if (d < p.x - ahead) continue;                  // well short of it
+      return false;
+    }
+    return true;
+  }
+
+  /* The carry height. Under a deck the bubble ducks so it slides
+     beneath the platform instead of sailing through it, and it will
+     not duck lower than just clear of the ground. */
+  function bubbleY(m, fy){
+    var base = surfaceY(m.dist, fy, m.r),
+        y    = base - m.r * 3.4 + Math.sin(m.bob * 2.4) * m.r * .45,
+        lid  = lidY(m.dist, fy, m.r);
+    if (lid > -Infinity) y = Math.min(base - m.r * 1.15, Math.max(y, lid + m.r * 1.85));
+    return y;
+  }
+
+  /* What a bot is looking at: the nearest thing it has to leave the
+     ground for, whether that is a spike or the face of a step. -1 when
+     the road ahead is clear. */
+  function nextJump(m){
+    var d = m.dist, best = -1, i, e;
+
+    /* A spike is cleared by the marble's centre; a deck has to be
+       cleared by its shoulder, which arrives a whole radius sooner.
+       The frame the decision lands on adds to that — on a slow
+       machine a frame is a fifth of a marble-width of road — so the
+       aim is a radius plus one slow frame early. That is what lets
+       the same reaction band that clears every spike also land every
+       deck, and it is what carries a marble from one stone in a
+       chain to the next. */
+    for (i = 0; i < slabs.length; i++){
+      var p = slabs[i];
+      if (p === m.on) continue;
+      e = p.x - m.r - TUNE.speed * .04;
+      if (e > d && (best < 0 || e < best)) best = e;
+    }
+    /* Up on a deck, the next deck is the only thing worth leaving for:
+       the road and everything on it is a long way down. */
+    if (m.on) return best;
+
+    for (i = 0; i < hazards.length; i++){
+      var z = hazards[i];
+      if (z.deck) continue;                 // bridged — the deck is the thing to aim at
+      if (z.x > d && (best < 0 || z.x < best)) best = z.x;
+    }
+    for (i = 1; i < ground.length; i++){
+      var g = ground[i];
+      if (g.void){
+        /* A spike is left early; a hole is left late. Folding the
+           rival's own reaction back into the target makes every rival
+           leave the lip at the same place, which is the only place a
+           hole can be left from. */
+        e = g.x - TUNE.gapAim * reachPx() + m.react;
+        if (e > d && (best < 0 || e < best)) best = e;
+        continue;
+      }
+      if (g.rise > 0 && g.x > d && (best < 0 || g.x < best)) best = g.x;
+    }
+    return best;
+  }
+
+  /* ---- debris and pops ----------------------------------- */
+  var bits = [], rings = [];
+
+  function burst(m){
+    for (var k = 0; k < 10; k++){
+      var a = -Math.PI * (.12 + Math.random() * .76);
+      bits.push({
+        d:m.dist + (Math.random() - .5) * m.r, y:m.y,
+        vx:Math.cos(a) * (80 + Math.random() * 230),
+        vy:Math.sin(a) * (150 + Math.random() * 250),
+        r:m.r * (.15 + Math.random() * .22),
+        color:m.color, life:.6, max:.6
+      });
+    }
+  }
+
+  function popRing(m, R){ rings.push({ d:m.dist, y:m.y, r:R, life:.34, max:.34 }); }
+
+  function stepDebris(dt){
+    var i, b;
+    for (i = bits.length - 1; i >= 0; i--){
+      b = bits[i];
+      b.life -= dt;
+      if (b.life <= 0){ bits.splice(i, 1); continue; }
+      b.vy += G.grav * .55 * dt;
+      b.d  += b.vx * dt;
+      b.y  += b.vy * dt;
+    }
+    for (i = rings.length - 1; i >= 0; i--){
+      rings[i].life -= dt;
+      if (rings[i].life <= 0) rings.splice(i, 1);
+    }
+  }
+
+  function worldName(){ return WORLD[lang] || WORLD.en; }
+
+  /* The player takes the colour they picked and the rivals take the
+     three that are left, so no two marbles in a race are ever the
+     same colour and the one you steer is always the one you chose. */
+  function buildField(){
+    var gap = laneGap(), x = laneX(), r = radius();
+    var ids = [chosenChar];
+    CHARS.forEach(function(c){ if (c.id !== chosenChar) ids.push(c.id); });
+
+    runners = ids.map(function(id, i){
+      var col = ballHex(id);
+      return {
+        id:id, color:col, ink:patternInk(col), bot:i > 0,
+        r:r, x:0, y:floorY() - r, vy:0, down:true, spin:0,
+        dist:0,                  // how far along the course it has got
+        state:"run", timer:0, bob:0,
+        /* Measured, not guessed: at 60fps the band that clears every
+           feature on a generated course is 82..102px. Outside it a
+           rival fails the same obstacle every time, which reads as a
+           broken bot rather than a mistake. */
+        react:84 + Math.random() * 16,    // how early this rival leaves its jump
+        skill:.80 + Math.random() * .15,  // how often it actually sees one coming
+        target:-1, miss:false, on:null,
+        home:x + i * gap,        // the lane it settles into
+        from:-(r + 40),          // off the left edge, out of sight
+        wait:0, span:1
+      };
+    });
+
+    /* Furthest lane enters first, the player last. One shared speed
+       sets every duration from its own trip length, so nobody
+       overtakes on the way in and they all roll at the same rate. */
+    var far = runners[runners.length - 1];
+    var v = (far.home - far.from) / IN_SPAN;
+    runners.forEach(function(r2, i){
+      r2.wait = (runners.length - 1 - i) * IN_STEP;
+      r2.span = (r2.home - r2.from) / v;
+      r2.x    = r2.from;
+    });
+  }
+
+  /* Restart the pop so each number lands rather than cross-fades. */
+  function tickCount(text){
+    countNum.textContent = text;
+    countNum.classList.remove("is-tick");
+    void countNum.offsetWidth;
+    countNum.classList.add("is-tick");
+  }
+
+  function startGame(){
+    go("play");                 // unhide first: a hidden canvas has no size
+    sizeCanvas();
+    tuneJump();
+
+    world.seed = Math.random() * 1000;   // same world, freshly shaped terrain
+    world.dist = 0;
+    play.style.background = WORLD.skyTop;      // no white flash before the first frame
+    playWorld.textContent = worldName();
+
+    world.phase = "count";
+    world.clock = COUNT;
+    world.shown = COUNT;
+    world.flash = 0;
+    countdown.hidden = false;
+    tickCount(COUNT);
+
+    buildField();
+    hazards.length = 0;
+    slabs.length = 0;
+    ground.length = 1;
+    ground[0] = { x:-1e9, hr:0, rise:0 };
+    courseAt = clusters = laid = restDebt = climbRun = 0;
+    lastPiece = "";
+    layCourse(runners[runners.length - 1].home - laneX());
+    bits.length = rings.length = 0;
+    keys.jump = false;
+
+    jumps = 0;
+    jumpCount.textContent = "0";
+    paused = false;
+    pauseSheet.hidden = true;
+    loop(true);
+  }
+
+  function loop(on){
+    if (on){
+      if (running) return;
+      running = true;
+      last = 0;                    // the pause must not arrive as one huge frame
+      bank = 0;
+      raf = requestAnimationFrame(frame);
+    } else {
+      running = false;
+      cancelAnimationFrame(raf);
+    }
+  }
+
+  function stopGame(){
+    loop(false);
+    paused = false;
+    pauseSheet.hidden = true;
+    countdown.hidden = true;
+  }
+
+  /* Pause is also the way out: on a phone there is no Escape key, so
+     without a sheet behind this button there would be no exit at all. */
+  function pauseGame(on){
+    if (screen !== "play" || paused === on) return;
+    paused = on;
+    pauseSheet.hidden = !on;
+    keys.jump = false;             // a held button does not survive the pause
+    loop(!on);
+    (on ? btnResume : btnPause).focus();
+  }
+
+  /* The world is stepped at a fixed rate and drawn at whatever rate
+     the screen runs at. Stepping by the frame time instead looks the
+     same but is not: integrating a jump in big steps quietly loses
+     apex height — about a fifth of a radius by 30fps — and the arc
+     is what every clearance on the course is measured against. A
+     marble on a slow machine would be jumping lower than the course
+     was laid for. Fixed steps mean one arc everywhere. */
+  var FIXED = 1 / 120, bank = 0;
+
+  function frame(t){
+    if (!running) return;
+    if (!last) last = t;
+    var dt = Math.min((t - last) / 1000, .25);   // clamped so a background tab cannot teleport the world
+    last = t;
+    bank += dt;
+    var guard = 0;
+    while (bank >= FIXED && guard++ < 60){ step(FIXED); bank -= FIXED; }
+    if (guard >= 60) bank = 0;                   // too far behind to catch up: drop it
+    draw();
+    raf = requestAnimationFrame(frame);
+  }
+
+  function step(dt){
+    if (world.phase === "count"){ countIn(dt); return; }
+
+    if (world.flash > 0){
+      world.flash -= dt;
+      if (world.flash <= 0) countdown.hidden = true;
+    }
+
+    /* The course is laid ahead of whoever is furthest along and swept
+       behind whoever is furthest back, so it exists for every marble
+       at once rather than for whoever the camera happens to follow. */
+    var lead = -Infinity, tail = Infinity;
+    for (var i = 0; i < runners.length; i++){
+      if (runners[i].dist > lead) lead = runners[i].dist;
+      if (runners[i].dist < tail) tail = runners[i].dist;
+    }
+    layCourse(lead);
+
+    for (i = 0; i < runners.length; i++) advance(runners[i], dt);
+    sweepCourse(tail, dt);
+    stepDebris(dt);
+
+    /* The camera rides the player, so the parallax and every screen
+       position are read off one number. A player who is destroyed
+       stops gaining ground, the view stops with them, and the field
+       visibly rolls away up the road. */
+    world.dist = runners[0].dist;
+    var cam = world.dist - laneX();
+    for (i = 0; i < runners.length; i++) runners[i].x = runners[i].dist - cam;
+  }
+
+  function advance(m, dt){
+    var fy = floorY(), rest;
+
+    /* destroyed: no ground gained, which is the whole cost of it */
+    if (m.state === "dead"){
+      m.timer -= dt;
+      if (m.timer <= 0){
+        m.state = "bubble";
+        m.timer = 0;
+        m.bob   = 0;
+        m.vy    = 0;
+        m.y     = bubbleY(m, fy);          // it comes back where it went
+        popRing(m, m.r * 1.85);
+      }
+      return;
+    }
+
+    /* Carried, not running: no controls, no collision, no jumping.
+       The bubble drifts at race pace and waits for somewhere it can
+       put the marble down running. It will not hold on forever: past
+       floatMax it drops wherever it is, so a course that fills up
+       later cannot leave anyone floating for good. */
+    if (m.state === "bubble"){
+      m.timer += dt;
+      m.bob   += dt;
+      m.dist  += TUNE.speed * dt;
+      m.y      = bubbleY(m, fy);
+      m.spin  += (TUNE.speed * dt) / m.r * .22;
+      if (m.timer >= TUNE.floatMax ? clearSpot(m.dist, true)
+                                   : (m.timer >= TUNE.floatMin && clearSpot(m.dist, false))){
+        popRing(m, m.r * 1.85);
+        m.state = "run";
+        m.down  = false;
+        m.on    = null;
+        m.vy    = 0;
+      }
+      return;
+    }
+
+    if (m.bot){
+      /* A rival watches the road, not a clock. Jumping late still
+         clears a spike — the marble leaves the ground fast — so a
+         bot that always tries never dies, and a race with no
+         mistakes in it has no lead changes. The mistake is missing
+         the spike altogether: each one gets rolled for once, when it
+         comes into view, and the answer is honoured to the end. */
+      var next = nextJump(m);
+      if (next !== m.target){
+        m.target = next;
+        m.miss = Math.random() > m.skill;
+      }
+      if (!m.miss && m.down && next > 0 && next - m.dist < m.react){
+        m.vy = -G.jump;
+        m.down = false;
+      }
+    } else if (keys.jump && m.down){
+      /* Held, not tapped: on the ground with the button down is a
+         jump, so holding it keeps the marble hopping. */
+      m.vy = -G.jump;
+      m.down = false;
+      jumpCount.textContent = ++jumps;   // written on a jump, not every frame
+    }
+
+    m.dist += TUNE.speed * dt;
+    m.spin += (TUNE.speed * dt) / m.r;   // rolling without slipping
+
+    var was = m.y + m.r;                 // where the underside sat before the move
+    m.vy += G.grav * dt;
+    m.y  += m.vy * dt;
+
+    rest = restY(m, fy, was);
+    if (m.y >= rest){ m.y = rest; m.vy = 0; m.down = true; m.on = restSlab; }
+    else m.on = null;
+
+    if (m.y - m.r > fy + TUNE.pitDeep * m.r ||
+        spikeHit(m, fy) || wallHit(m, fy) || slabHit(m, fy)){
+      burst(m);
+      m.state = "dead";
+      m.timer = TUNE.dieFor;
+      m.on = null;
+    }
+  }
+
+  /* The start. Nothing scrolls and no button does anything until the
+     clock runs out; the only motion is the field rolling in from off
+     the left edge, each marble easing to a stop in its own lane. */
+  function countIn(dt){
+    world.clock -= dt;
+    var t = COUNT - world.clock;
+
+    for (var i = 0; i < runners.length; i++){
+      var r = runners[i],
+          p = (t - r.wait) / r.span,
+          was = r.x;
+      /* Snapped rather than interpolated at the end: easing to p=1
+         lands a rounding error short of the lane, and the player's
+         lane has to be the exact x it would have had with no start
+         sequence at all. */
+      if (p >= 1) r.x = r.home;
+      else if (p <= 0) r.x = r.from;
+      else r.x = r.from + (r.home - r.from) * (1 - Math.pow(1 - p, 3));
+
+      /* Rolling without slipping on the way in as well. Here the ground
+         is still and the marble is what moves, so the turn comes from
+         its own travel rather than from the world's. */
+      r.spin += (r.x - was) / r.r;
+    }
+
+    var n = Math.max(0, Math.ceil(world.clock));
+    if (n !== world.shown){
+      world.shown = n;
+      tickCount(n > 0 ? n : STRINGS[lang].playGo);
+    }
+    if (world.clock <= 0){
+      world.phase = "run";
+      world.flash = GO_HOLD;
+      keys.jump = false;                   // a button held through the clock does not count
+      /* The starting formation is handed over to the race as track
+         distance, so the first frame of the race puts everyone exactly
+         where the roll-in left them. */
+      for (i = 0; i < runners.length; i++){
+        runners[i].x    = runners[i].home;
+        runners[i].dist = runners[i].home - laneX();
+      }
+    }
+  }
+
+  /* --- the world, back to front --------------------------- */
+
+  /* A ridge is one jagged line with the space beneath it filled.
+     Same routine at two scales and two speeds gives the depth; the
+     further a layer is, the lighter and the slower it goes. */
+  function ridge(shift, step, base, amp, seedOff, color, top){
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    var i0 = Math.floor(shift / step) - 1;
+    ctx.moveTo(i0 * step - shift, view.h);
+    for (var i = i0; i * step - shift < view.w + step; i++){
+      ctx.lineTo(i * step - shift, top - base - rnd(i + seedOff) * amp);
+    }
+    ctx.lineTo(view.w + step, view.h);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  /* Three overlapping discs read as a cloud without needing a sprite. */
+  function clouds(shift, fy){
+    ctx.fillStyle = WORLD.cloud;
+    var step = 330;
+    for (var i = Math.floor(shift / step) - 1; i * step - shift < view.w + step; i++){
+      var x = i * step - shift + rnd(i + 41) * 150,
+          y = fy * (.12 + rnd(i + 77) * .26),
+          r = 9 + rnd(i + 13) * 12;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.arc(x + r * 1.5, y - r * .55, r * 1.35, 0, Math.PI * 2);
+      ctx.arc(x + r * 3.1, y, r * .95, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  /* Stones on the surface, moving at the true speed of the ground and
+     sitting on whatever level the ground happens to be at. */
+  function pebbles(shift, fy, h, r, cam){
+    ctx.fillStyle = "rgba(0,0,0,.13)";
+    var step = 54;
+    for (var i = Math.floor(shift / step) - 1; i * step - shift < view.w + step; i++){
+      if (rnd(i + 401) < .45) continue;
+      var x = i * step - shift + rnd(i + 457) * 28;
+      if (!solidAt(x + cam)) continue;              // nothing to lie on
+      var top = surfaceY(x + cam, fy, r),
+          band = h - top;
+      ctx.fillRect(Math.round(x), Math.round(top + band * (.10 + rnd(i + 503) * .28)),
+                   5 + rnd(i + 599) * 9, 2);
+    }
+  }
+
+  /* ---- the respawn bubble --------------------------------
+     Five things stacked, and the order is the whole trick. The
+     film brightens hard just INSIDE the rim rather than on it,
+     which is what stops it reading as a disc and makes it read
+     as a hollow skin with air in the middle. */
+  function drawBubble(cx, cy, R, phase){
+    /* halo — pale blue bleeding out to 1.6R, gone by the edge of
+       its own square, so it never draws a seam */
+    var halo = ctx.createRadialGradient(cx, cy, R * .55, cx, cy, R * 1.6);
+    halo.addColorStop(0,   "rgba(176,222,255,.08)");   // barely any over the marble
+    halo.addColorStop(.38, "rgba(176,222,255,.21)");   // strongest just outside the rim
+    halo.addColorStop(1,   "rgba(176,222,255,0)");
+    ctx.fillStyle = halo;
+    ctx.fillRect(cx - R * 1.6, cy - R * 1.6, R * 3.2, R * 3.2);
+
+    /* film — nearly clear in the middle, a blue haze through the
+       body, a hard white band at 88%, then falling away at the rim */
+    var film = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+    film.addColorStop(0,   "rgba(255,255,255,.03)");
+    film.addColorStop(.42, "rgba(186,224,255,.10)");
+    film.addColorStop(.74, "rgba(206,236,255,.19)");
+    film.addColorStop(.88, "rgba(255,255,255,.62)");
+    film.addColorStop(.96, "rgba(255,255,255,.24)");
+    film.addColorStop(1,   "rgba(255,255,255,.06)");
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.fillStyle = film;
+    ctx.fill();
+
+    /* iridescence — three quarter-arcs of thin-film colour, evenly
+       spaced, sliding round the rim as the road scrolls */
+    ctx.lineWidth = R * .11;
+    ctx.lineCap = "round";
+    for (var k = 0; k < 3; k++){
+      var a0 = phase + k * (Math.PI * 2 / 3);
+      ctx.beginPath();
+      ctx.arc(cx, cy, R * .93, a0, a0 + Math.PI * 2 * .25);
+      ctx.strokeStyle = IRIS[k];
+      ctx.stroke();
+    }
+    ctx.lineCap = "butt";
+
+    /* outline — thin, translucent, closes the whole thing off */
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "rgba(255,255,255,.55)";
+    ctx.stroke();
+
+    /* glints — a big tilted one upper-left, a small dim one lower-right */
+    ctx.beginPath();
+    ctx.ellipse(cx - R * .38, cy - R * .40, R * .29, R * .13, -Math.PI * .28, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,.88)";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx + R * .42, cy + R * .38, R * .085, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,.42)";
+    ctx.fill();
+  }
+
+  /* ---- terrain -------------------------------------------
+     The visible profile, cut into the runs of solid ground between
+     holes: run at a level, step, run at the next, stop dead at a lip
+     and pick up again at the far one. Filling under each run and
+     stroking along it means the ground, the walls, the drops and the
+     sides of a hole are all the same object, which is what makes the
+     terrain read as terrain rather than as furniture on a floor. */
+  function groundRuns(cam, fy, r){
+    var runs = [], pts = null, i = segAt(cam), g = ground[i],
+        top = fy - g.hr * r, x, t;
+    if (!g.void) pts = [[0, top]];
+    for (i = i + 1; i < ground.length && ground[i].x - cam <= view.w; i++){
+      g = ground[i];
+      x = g.x - cam;
+      t = fy - g.hr * r;
+      if (pts) pts.push([x, top]);        // run out to the transition
+      if (g.void){
+        if (pts){ runs.push(pts); pts = null; }   // the ground stops here
+      } else {
+        if (pts) pts.push([x, t]);        // a step
+        else pts = [[x, t]];              // the far lip of a hole
+      }
+      top = t;
+    }
+    if (pts){ pts.push([view.w, top]); runs.push(pts); }
+    return runs;
+  }
+
+  function drawGround(cam, fy, r, h, d){
+    var runs = groundRuns(cam, fy, r), crust = Math.max(5, r * .5), n, pts, i;
+
+    for (n = 0; n < runs.length; n++){
+      pts = runs[n];
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0], h);
+      for (i = 0; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+      ctx.lineTo(pts[pts.length - 1][0], h);
+      ctx.closePath();
+      ctx.fillStyle = WORLD.ground;
+      ctx.fill();
+
+      /* crust along each level run, so the surface reads as a surface */
+      ctx.fillStyle = WORLD.soil;
+      for (i = 0; i + 1 < pts.length; i += 2){
+        ctx.fillRect(pts[i][0], pts[i][1], pts[i + 1][0] - pts[i][0], crust);
+      }
+    }
+
+    pebbles(d, fy, h, r, cam);
+
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = TUNE.line;
+    for (n = 0; n < runs.length; n++){
+      pts = runs[n];
+      ctx.beginPath();
+      /* the sides of a hole are drawn, the edges of the view are not */
+      if (pts[0][0] > .5) ctx.moveTo(pts[0][0], h); else ctx.moveTo(pts[0][0], pts[0][1] + TUNE.line / 2);
+      for (i = 0; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1] + TUNE.line / 2);
+      if (pts[pts.length - 1][0] < view.w - .5) ctx.lineTo(pts[pts.length - 1][0], h);
+      ctx.stroke();
+    }
+  }
+
+  /* ---- platforms -----------------------------------------
+     Built out of the same two tones as the ground, so a deck reads as
+     a piece of the world rather than as a game object standing in it:
+     crust on top, body under. The underside carries a band of the
+     hazard tone — it is the one part of the terrain that kills
+     without being a spike, and it has to say so out loud. */
+  function drawSlabs(cam, fy, r){
+    var t = TUNE.slabT * r,
+        crust = Math.max(3, t * .34),
+        edge  = Math.max(2, t * .22);
+    ctx.lineWidth = TUNE.line;
+    ctx.strokeStyle = "#000";
+    for (var i = 0; i < slabs.length; i++){
+      var p = slabs[i], x = p.x - cam, top = slabTopY(p, fy, r);
+      if (x > view.w + 60 || x + p.w < -60) continue;
+      ctx.fillStyle = WORLD.ground;
+      ctx.fillRect(x, top, p.w, t);
+      ctx.fillStyle = WORLD.soil;
+      ctx.fillRect(x, top, p.w, crust);
+      ctx.fillStyle = WORLD.hazard;
+      ctx.fillRect(x, top + t - edge, p.w, edge);
+      ctx.strokeRect(x, top, p.w, t);
+    }
+  }
+
+  /* ---- spikes -------------------------------------------- */
+  function drawSpikes(cam, fy, r){
+    var w = r * TUNE.spikeW;
+    ctx.fillStyle = WORLD.hazard;
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = TUNE.line;
+    for (var i = 0; i < hazards.length; i++){
+      var z = hazards[i];
+      if (z.x - cam > view.w + w || z.x + z.n * w - cam < -w) continue;  // off screen, still very much there
+      var base = hazBase(z, fy, r);
+      for (var j = 0; j < z.n; j++){
+        var x = z.x + j * w - cam, h = tipHeight(z, j, r);
+        ctx.beginPath();
+        ctx.moveTo(x - w / 2, base);
+        ctx.lineTo(x, base - h);
+        ctx.lineTo(x + w / 2, base);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+  }
+
+  function draw(){
+    var w = view.w, h = view.h, fy = floorY(), d = world.dist;
+
+    ctx.fillStyle = sky || WORLD.skyTop;
+    ctx.fillRect(0, 0, w, fy);
+
+    /* The sun holds still. The runner is what is moving, not the evening. */
+    var sr = Math.max(30, Math.min(fy * .16, 84)),
+        sx = w * .74, sy = fy * .58;
+    ctx.fillStyle = WORLD.sun;
+    ctx.globalAlpha = .45;
+    ctx.beginPath(); ctx.arc(sx, sy, sr * 1.75, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.fill();
+
+    clouds(d * .10, fy);
+    ridge(d * .18, 148, fy * .17, fy * .30, 11, WORLD.far, fy);
+    ridge(d * .34, 102, fy * .08, fy * .17, 53, WORLD.mid, fy);
+
+    var cam = world.dist - laneX(), rad = radius();
+    drawGround(cam, fy, rad, h, d);
+    if (world.phase !== "count"){ drawSlabs(cam, fy, rad); drawSpikes(cam, fy, rad); }
+
+    /* debris from anything that was destroyed this second */
+    for (var b = 0; b < bits.length; b++){
+      var f = bits[b];
+      ctx.globalAlpha = Math.max(0, f.life / f.max);
+      ctx.beginPath();
+      ctx.arc(f.d - cam, f.y, f.r, 0, Math.PI * 2);
+      ctx.fillStyle = f.color;
+      ctx.fill();
+    }
+    for (b = 0; b < rings.length; b++){
+      var g = rings[b], k = 1 - g.life / g.max;
+      ctx.globalAlpha = (1 - k) * .7;
+      ctx.beginPath();
+      ctx.arc(g.d - cam, g.y, g.r * (1 + k * .7), 0, Math.PI * 2);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(255,255,255,.9)";
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    /* Rivals that have been dropped or have pulled away sit off the
+       screen entirely. A pip on the edge keeps the race legible
+       instead of leaving you alone on an empty road. */
+    for (var e = 1; e < runners.length; e++){
+      var o = runners[e];
+      if (o.state === "dead" || (o.x > -o.r && o.x < w + o.r)) continue;
+      ctx.beginPath();
+      ctx.arc(o.x < 0 ? 12 : w - 12, fy - o.r * 1.6, o.r * .5, 0, Math.PI * 2);
+      ctx.fillStyle = o.color;
+      ctx.fill();
+      ctx.lineWidth = TUNE.line;
+      ctx.strokeStyle = "#000";
+      ctx.stroke();
+    }
+
+    /* Back to front, so the marble being steered is never hidden
+       behind a rival that happens to share its patch of ground. */
+    ctx.lineWidth = TUNE.line;
+    ctx.strokeStyle = "#000";
+    for (var i = runners.length - 1; i >= 0; i--){
+      var r = runners[i];
+      if (r.state === "dead") continue;    // destroyed: only the debris is left
+      if (r.x + r.r < 0 || r.x - r.r > w) continue;
+
+      ctx.save();
+      ctx.translate(r.x, r.y);
+      ctx.rotate(r.spin);
+
+      ctx.beginPath();
+      ctx.arc(0, 0, r.r, 0, Math.PI * 2);
+      ctx.fillStyle = r.color;
+      ctx.fill();
+
+      /* Clipped to the glass, so a pattern can run past the edge and
+         still come out shaped like the marble. */
+      var pattern = MARBLE[r.id];
+      if (pattern){
+        ctx.save();
+        ctx.clip();                        // the circle just filled
+        ctx.fillStyle = r.ink;
+        ctx.strokeStyle = r.ink;
+        pattern(ctx, r.r);
+        ctx.restore();
+      }
+
+      ctx.beginPath();
+      ctx.arc(0, 0, r.r, 0, Math.PI * 2);
+      ctx.strokeStyle = "#000";
+      ctx.stroke();
+      ctx.restore();
+
+      /* the bubble goes on last, so the marble is seen through it */
+      if (r.state === "bubble") drawBubble(r.x, r.y, r.r * 1.85, world.dist * .004);
+    }
+  }
+
+  /* --- input: one button ---------------------------------- */
+  function gameKey(e, down){
+    if (screen !== "play" || paused) return;
+    var k = e.key;
+    if (k === " " || k === "Spacebar" || k === "ArrowUp" || k === "w" || k === "W"){
+      keys.jump = down;
+      e.preventDefault();
+    }
+  }
+  document.addEventListener("keydown", function(e){ gameKey(e, true); });
+  document.addEventListener("keyup",   function(e){ gameKey(e, false); });
+
+  /* Pointer is the same button: press anywhere on the world to jump,
+     hold to keep hopping. Works for a finger and for a mouse. */
+  function pointerJump(down){
+    return function(e){
+      if (screen !== "play" || paused) return;
+      keys.jump = down;
+      e.preventDefault();
+    };
+  }
+  cv.addEventListener("pointerdown",   pointerJump(true));
+  cv.addEventListener("pointerup",     pointerJump(false));
+  cv.addEventListener("pointercancel", pointerJump(false));
+  cv.addEventListener("pointerleave",  pointerJump(false));
+
+  btnPause.addEventListener("click", function(){ pauseGame(true); });
+  btnResume.addEventListener("click", function(){ pauseGame(false); });
+  btnQuit.addEventListener("click", goBack);
+
+  /* The world is measured from the window, so it is remeasured when
+     the window changes and the ball is put back on the ground. */
+  window.addEventListener("resize", function(){
+    if (screen !== "play") return;
+    sizeCanvas();
+    tuneJump();
+    var gap = laneGap(), x = laneX(), r = radius();
+    runners.forEach(function(m, i){
+      m.r    = r;
+      m.home = x + i * gap;
+      m.from = -(r + 40);
+      if (world.phase === "run") m.x = m.home;   // mid-race, lanes just move
+      m.y = Math.min(m.y, floorY() - m.r);
+    });
+  });
+
+  /* ==========================================================
+     9. KEYBOARD
+     ========================================================== */
+  document.addEventListener("keydown", function(e){
+    if (gated) return;
+    // Language dialog owns the keyboard while it is open.
+    if (!scrim.hidden){
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft"){
+        e.preventDefault();
+        focusIndex = e.key === "ArrowRight"
+          ? (focusIndex + 1) % langButtons.length
+          : (focusIndex - 1 + langButtons.length) % langButtons.length;
+        langButtons[focusIndex].focus();
+      }
+      if (e.key === "Escape" && save.get(KEY_LANG)) closeLangDialog();
+      return;
+    }
+    if (!splash.hidden) return;
+
+    if (screen === "home"){
+      if ((e.key === "Enter" || e.key === " ") && document.activeElement === document.body){
+        e.preventDefault();
+        openModes();
+      }
+      return;
+    }
+
+    /* fighter pick: arrows move the pick, so the preview follows
+       the focus; Enter locks it in. */
+    if (screen === "chars"){
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft"){
+        e.preventDefault();
+        pickChar(e.key === "ArrowRight"
+          ? (charIndex + 1) % CHARS.length
+          : (charIndex - 1 + CHARS.length) % CHARS.length);
+        return;
+      }
+      if (e.key === "ArrowDown" || e.key === "ArrowUp"){
+        e.preventDefault();
+        var n = charIndex + (e.key === "ArrowDown" ? CHAR_COLS : -CHAR_COLS);
+        if (n >= 0 && n < CHARS.length) pickChar(n);
+        return;
+      }
+      if (e.key === "Enter" || e.key === " "){
+        // Confirm and Back handle their own press; anywhere else, Enter locks the pick in
+        var on = document.activeElement;
+        if (on && on.tagName === "BUTTON" && charCells.indexOf(on) === -1) return;
+        e.preventDefault();
+        confirmChar();
+        return;
+      }
+      if (e.key === "Escape") goBack();
+      return;
+    }
+
+    /* all three card screens navigate the same way */
+    if (DECKS[screen]){
+      var deck = DECKS[screen], list = deck.list;
+
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft"){
+        e.preventDefault();
+        deck.i = e.key === "ArrowRight"
+          ? (deck.i + 1) % list.length
+          : (deck.i - 1 + list.length) % list.length;
+        list[deck.i].focus();
+        return;
+      }
+      if ((e.key === "Enter" || e.key === " ") && document.activeElement === document.body){
+        e.preventDefault();
+        deck.pick(list[deck.i].getAttribute(deck.attr));
+        return;
+      }
+      if (e.key === "Escape") goBack();
+      return;
+    }
+
+    if (screen === "play"){
+      if (e.key === "Escape"){ e.preventDefault(); pauseGame(!paused); }
+      return;
+    }
+
+    if (screen === "select"){
+      if (e.key === "Escape") goBack();
+    }
+  });
+
+  /* ==========================================================
+     10. BOOT
+     ========================================================== */
+  /* Primary pointer coarse + no hover means phone or tablet. A
+     touchscreen laptop still reports a fine primary pointer, so it
+     stays in the computer lane. This is read before the first
+     applyLang, so the layout and the copy agree from frame one. */
+  var isTouchOnly = (function(){
+    try {
+      return window.matchMedia("(pointer: coarse)").matches &&
+             window.matchMedia("(hover: none)").matches;
+    } catch(e){ return false; }
+  })();
+  if (isTouchOnly && CONFIG.allowMobile) document.body.classList.add("is-mobile");
+
+  applyLang(save.get(KEY_LANG) || "en");
+  buildCharGrid();
+  charName.textContent = STRINGS[lang][CHARS[charIndex].key];
+
+  /* --- the gate -------------------------------------------
+     Orientation first, then size. A computer plays in a window
+     that is wider than it is tall; a phone or tablet plays
+     upright. Both rules clear the moment the window is reshaped
+     or the device is turned — the only permanent stop left is a
+     touch device with CONFIG.allowMobile switched off. */
+  var gate       = $("gate"),
+      gateDevice = $("gateDevice"),
+      gateSize   = $("gateSize"),
+      gateShape  = $("gateShape"),
+      gateRotate = $("gateRotate"),
+      gateDims   = $("gateDims"),
+      shapeDims  = $("gateShapeDims");
+
+  var gatePanels = [gateDevice, gateSize, gateShape, gateRotate];
+  var gated = true;
+
+  function raiseGate(panel){
+    for (var i = 0; i < gatePanels.length; i++){
+      gatePanels[i].hidden = (gatePanels[i] !== panel);
+    }
+    gate.hidden = false;
+    gated = true;
+  }
+
+  function sizeLine(minW, minH){
+    return window.innerWidth + " \u00D7 " + window.innerHeight + "   \u2014   " +
+           minW + " \u00D7 " + minH + " needed";
+  }
+
+  function checkGate(){
+    var w = window.innerWidth, h = window.innerHeight;
+    var portrait = h >= w;          // a square window counts as portrait
+
+    if (isTouchOnly){
+      if (!CONFIG.allowMobile){ raiseGate(gateDevice); return; }
+      if (!portrait){ raiseGate(gateRotate); return; }
+      if (w < CONFIG.mobileMinWidth || h < CONFIG.mobileMinHeight){
+        gateDims.textContent = sizeLine(CONFIG.mobileMinWidth, CONFIG.mobileMinHeight);
+        raiseGate(gateSize); return;
+      }
+    } else {
+      if (portrait){
+        shapeDims.textContent = w + " \u00D7 " + h;
+        raiseGate(gateShape); return;
+      }
+      if (w < CONFIG.minWidth || h < CONFIG.minHeight){
+        gateDims.textContent = sizeLine(CONFIG.minWidth, CONFIG.minHeight);
+        raiseGate(gateSize); return;
+      }
+    }
+
+    gate.hidden = true;
+    gated = false;
+    startSplash();
+  }
+
+  window.addEventListener("resize", checkGate);
+  /* iOS still reports the old size for a beat after the turn, so
+     the orientation event is read one frame late on purpose */
+  window.addEventListener("orientationchange", function(){ setTimeout(checkGate, 140); });
+
+  /* --- splash -> home -------------------------------------
+     The hold is measured on a clock that only advances while
+     the page is actually visible and ungated. A plain
+     setTimeout burns down in background tabs and inside
+     Google Sites iframes that load below the fold, which is
+     how the splash ends up already finished before anyone
+     has seen it. */
+  var SKIP_GRACE = 800;   // ms of splash you must see before skip arms
+  var SKIP_KEYS  = { "Enter":1, " ":1, "Spacebar":1, "Escape":1 };
+
+  var splashStarted = false, booted = false;
+  var shown = 0, lastTick = 0, ticker = null;
+
+  function startSplash(){
+    if (splashStarted || document.hidden) return;
+    splashStarted = true;
+    splash.classList.add("is-live");   // byline fades in now, not at load
+    lastTick = Date.now();
+    ticker = setInterval(tick, 80);
+  }
+
+  function tick(){
+    var now = Date.now();
+    if (!document.hidden && !gated) shown += now - lastTick;
+    lastTick = now;
+    if (shown >= CONFIG.splashHold) boot();
+  }
+
+  function boot(){
+    if (booted || gated || document.hidden) return;
+    booted = true;
+    clearInterval(ticker);
+    splash.classList.add("is-out");
+    setTimeout(function(){
+      splash.hidden = true;
+      home.classList.add("is-in");
+      if (!save.get(KEY_LANG)) setTimeout(openLangDialog, 500);
+      else btnPlay.focus();
+    }, 560);
+  }
+
+  document.addEventListener("visibilitychange", function(){
+    lastTick = Date.now();               // discard time spent hidden
+    if (!document.hidden) checkGate();   // starts or resumes the splash
+  });
+
+  /* Skip, but only on purpose. The first click into an embedded
+     iframe is a focus click, and a held Enter from a reload can
+     land on the fresh page — neither should eat the splash. */
+  splash.addEventListener("click", function(){
+    if (shown >= SKIP_GRACE) boot();
+  });
+
+  window.addEventListener("keydown", function(e){
+    if (booted || gated) return;
+    if (e.repeat || !SKIP_KEYS[e.key]) return;
+    if (shown < SKIP_GRACE) return;
+    e.preventDefault();
+    boot();
+  });
+
+  checkGate();
+
+})();
+</script>
+</body>
+</html>
