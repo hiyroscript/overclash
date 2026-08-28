@@ -68,8 +68,6 @@ body.playing #cv{opacity:1}
 /* ---------- splash ---------- */
 #splash{background:#000;color:#EDEFF2;justify-content:space-between;z-index:60}
 #splash .mid{flex:1;display:flex;align-items:center;justify-content:center;width:100%}
-#splash .rule{width:0;height:1px;background:#EDEFF2;opacity:.55;animation:ruleIn .9s .15s cubic-bezier(.2,.8,.2,1) forwards}
-@keyframes ruleIn{to{width:min(260px,54vw)}}
 #splash .credit{font-family:var(--mono);font-size:clamp(10px,2.9vw,13px);letter-spacing:.32em;
   text-transform:lowercase;opacity:0;animation:creditIn .8s .45s ease forwards;text-align:center;
   padding-bottom:max(6px,env(safe-area-inset-bottom))}
@@ -347,6 +345,8 @@ input[type=range]::-moz-range-thumb{ background:var(--fg) }
 .card h2,#langGate h2{ color:var(--fg) }
 .card p,#langGate p{ color:var(--dim) }
 .card .num{ color:var(--fg) }
+.countdown{ background:var(--track) }
+.countdown i{ background:var(--fg) }
 
 /* scroll affordance — panels scroll, so say so */
 .col{ position:relative }
@@ -389,7 +389,7 @@ input[type=range]::-moz-range-thumb{ background:var(--fg) }
 <div id="wipe"></div>
 
 <section id="splash" class="screen on">
-  <div class="mid"><div class="rule"></div></div>
+  <div class="mid"></div>
   <p class="credit">a game by hiyroscript</p>
 </section>
 
@@ -544,7 +544,7 @@ const LANG = {
     "ui.light":"Light", "ui.dark":"Dark",
     "ui.close":"close", "ui.back":"back", "ui.next":"next", "ui.restartDemo":"start over",
     "ui.gotit":"got it", "ui.continue":"continue", "ui.home":"home", "ui.again":"again",
-    "ui.resume":"resume", "ui.restart":"restart", "ui.quit":"quit", "ui.begin":"begin", "ui.reset":"reset", "ui.confirm":"tap again", "ui.startNow":"start now",
+    "ui.resume":"resume", "ui.restart":"restart", "ui.quit":"quit", "ui.begin":"begin", "ui.reset":"reset", "ui.confirm":"tap again",
     "nav.howto":"how to play", "nav.settings":"settings", "nav.levels":"levels",
 
     "home.tagline":"Read the cue. Hit the right one. Don't think.",
@@ -552,7 +552,7 @@ const LANG = {
     "home.playLevel":"hit the pulse \u2014 level {n}",
 
     "howto.title":"How to play",
-    "howto.foot":"One cue sits in the middle. It tells you which orb to hit and how. Everything else on screen is weather. Miss three cues and the game restarts from level 01.",
+    "howto.foot":"One cue sits in the middle. It tells you which orb to hit and how. Everything else on screen is weather. Miss three cues and the level starts over.",
     "demo.try":"tap the arena to try it", "demo.nice":"nice",
 
     "cue.MATCH":"Match",   "line.MATCH":"Hit the orb that matches the cue colour.",
@@ -595,7 +595,7 @@ const LANG = {
     "card.cleared":"Level {n} cleared", "card.next":"Next",
     "card.doneEyebrow":"Thirty of thirty", "card.doneTitle":"Cleared",
     "card.overEyebrow":"Fell at level {n}", "card.overTitle":"Game over",
-    "card.overBody":"Three cues missed. The game restarts from level 01.",
+    "card.overBody":"Three signals missed. This level starts over — your progress is kept.",
     "card.paused":"Paused",
 
     "orient.portrait":"turn your device upright",
@@ -604,9 +604,6 @@ const LANG = {
     /* --- update: theme, tries, chaos --- */
     "set.theme":"Appearance",
     "setd.theme":"Light or dark for the menus. The arena keeps its own colours.",
-    "hud.try":"Try",
-    "card.firstTry":"First try.",
-    "card.inTries":"Cleared on try {n}.",
     "ui.enterChaos":"enter chaos",
     "home.playChaos":"hit the pulse for chaos",
     "chaos.name":"Chaos",
@@ -640,7 +637,7 @@ const LANG = {
     "ui.light":"Clair", "ui.dark":"Sombre",
     "ui.close":"fermer", "ui.back":"retour", "ui.next":"suivant", "ui.restartDemo":"recommencer",
     "ui.gotit":"compris", "ui.continue":"continuer", "ui.home":"accueil", "ui.again":"rejouer",
-    "ui.resume":"reprendre", "ui.restart":"recommencer", "ui.quit":"quitter", "ui.begin":"commencer", "ui.reset":"effacer", "ui.confirm":"confirmer", "ui.startNow":"commencer",
+    "ui.resume":"reprendre", "ui.restart":"recommencer", "ui.quit":"quitter", "ui.begin":"commencer", "ui.reset":"effacer", "ui.confirm":"confirmer",
     "nav.howto":"comment jouer", "nav.settings":"r\u00e9glages", "nav.levels":"niveaux",
 
     "home.tagline":"Lis le signal. Frappe le bon. Ne r\u00e9fl\u00e9chis pas.",
@@ -648,7 +645,7 @@ const LANG = {
     "home.playLevel":"frappe le pouls \u2014 niveau {n}",
 
     "howto.title":"Comment jouer",
-    "howto.foot":"Un seul signal occupe le centre. Il indique quel orbe frapper et comment. Tout le reste n'est que d\u00e9cor. Trois signaux manqu\u00e9s et la partie repart du niveau 01.",
+    "howto.foot":"Un seul signal occupe le centre. Il indique quel orbe frapper et comment. Tout le reste n'est que décor. Trois signaux manqués et le niveau recommence.",
     "demo.try":"touche l'ar\u00e8ne pour essayer", "demo.nice":"bien",
 
     "cue.MATCH":"Accord",   "line.MATCH":"Frappe l'orbe de la m\u00eame couleur que le signal.",
@@ -691,7 +688,7 @@ const LANG = {
     "card.cleared":"Niveau {n} r\u00e9ussi", "card.next":"Suivant",
     "card.doneEyebrow":"Trente sur trente", "card.doneTitle":"Termin\u00e9",
     "card.overEyebrow":"Tomb\u00e9 au niveau {n}", "card.overTitle":"Perdu",
-    "card.overBody":"Trois signaux manqu\u00e9s. La partie repart du niveau 01.",
+    "card.overBody":"Trois signaux manqués. Le niveau recommence — ta progression est conservée.",
     "card.paused":"Pause",
 
     "orient.portrait":"tourne ton appareil \u00e0 la verticale",
@@ -700,9 +697,6 @@ const LANG = {
     /* --- update: theme, tries, chaos --- */
     "set.theme":"Apparence",
     "setd.theme":"Clair ou sombre pour les menus. L'arène garde ses propres couleurs.",
-    "hud.try":"Essai",
-    "card.firstTry":"Du premier coup.",
-    "card.inTries":"Réussi à l'essai {n}.",
     "ui.enterChaos":"entrer dans le chaos",
     "home.playChaos":"frappe le pouls pour le chaos",
     "chaos.name":"Chaos",
@@ -968,9 +962,6 @@ function levelCfg(n) {
     chaos: t, gap: Math.round(lerp(500, 150, t)), lives: 3
   };
 }
-/* how many attempts the player has spent on the level they are on */
-function tryCount() { return (G.tryMap && G.tryMap[G.lv]) || 1; }
-
 /* one signal taken: raise the chain, then re-derive every dial from it */
 function advanceChaos() {
   const chain = G.chain;
@@ -1429,7 +1420,7 @@ const G = {
   shake: 0, shakeA: 0, glareT: 0, heat: 0, streak: 0, best: 0,
   trail: [], drift: [], ptr: { x: 0, y: 0, down: false },
   react: 0, lastReact: 0, lastType: null, prevType: null,
-  chain: 0, bestSeen: 0, twists: [], msBoost: 1, phase: 0, tryMap: {}
+  chain: 0, bestSeen: 0, twists: [], msBoost: 1, phase: 0
 };
 
 function buildOrbs(cfg) {
@@ -1640,12 +1631,16 @@ function onDown(x, y) {
       break;
   }
 }
+function beingSwapped(o) {
+  for (const s of G.swaps) if (s.a === o || s.b === o) return true;
+  return false;
+}
 function onMove(x, y) {
   G.ptr.x = x; G.ptr.y = y;
   if (G.running && !G.paused) pushTrail(x, y);
   const c = G.cue;
   if (!c || G.state !== "live") return;
-  if (c.type === "HOLD" && c.pressed) {
+  if (c.type === "HOLD" && c.pressed && !beingSwapped(c.holdOrb)) {
     if (Math.hypot(c.holdOrb.x - x, c.holdOrb.y - y) > hitRadius() * 1.5) miss("slip", x, y);
   }
 }
@@ -1679,7 +1674,12 @@ function update(dt) {
   /* swaps */
   if (cfg.swap && G.t > G.nextSwap && G.orbs.length > 2) {
     G.nextSwap = G.t + rnd(cfg.swap * 0.6, cfg.swap * 1.4);
-    const a = pick(G.orbs); const rest = G.orbs.filter(o => o !== a); const b = pick(rest);
+    /* never trade away the orb the player is holding or dragging from:
+       their finger is stationary by design, so a teleport under it is unavoidable */
+    const hc = G.cue;
+    const held = (hc && hc.pressed) ? (hc.holdOrb || hc.linkFrom) : null;
+    const pool = G.orbs.filter(o => o !== held);
+    const a = pick(pool); const rest = pool.filter(o => o !== a); const b = pick(rest);
     G.swaps.push({ a: a, b: b, from: a.ang, fromB: b.ang, p: 0 });
     SND.cueUp(1);
   }
@@ -1714,7 +1714,8 @@ function update(dt) {
   if (c && G.state === "live") {
     const e = elapsed();
     if (c.type === "HOLD" && c.pressed) {
-      if (Math.hypot(c.holdOrb.x - G.ptr.x, c.holdOrb.y - G.ptr.y) > hitRadius() * 1.5) {
+      if (!beingSwapped(c.holdOrb) &&
+          Math.hypot(c.holdOrb.x - G.ptr.x, c.holdOrb.y - G.ptr.y) > hitRadius() * 1.5) {
         miss("slip", G.ptr.x, G.ptr.y);
         return;
       }
@@ -1909,18 +1910,15 @@ function paintHud() {
     let lv = "";
     for (let i = 0; i < G.cfg.lives; i++) lv += "<i" + (G.lives > i ? "" : " class='gone'") + "></i>";
     hud.lives.innerHTML = lv;
-    hud.right.innerHTML = t("hud.cue") + " <b>" + pad2(Math.min(G.done + 1, G.cfg.need)) + " / " + G.cfg.need + "</b>"
-      + (tryCount() > 1 ? '<div id="chaosPhase">' + t("hud.try") + " " + pad2(tryCount()) + "</div>" : "");
+    hud.right.innerHTML = t("hud.cue") + " <b>" + pad2(Math.min(G.done + 1, G.cfg.need)) + " / " + G.cfg.need + "</b>";
     hud.streak.innerHTML = G.streak > 2 ? t("hud.streak") + " <b>" + G.streak + "</b>" : "";
   }
 }
 
 /* ---------------- flow ---------------- */
-function startLevel(n, freshRun) {
+function startLevel(n) {
   G.mode = "level"; G.lv = n; G.cfg = levelCfg(n);
-  if (!G.tryMap) G.tryMap = {};
-  /* replaying a cleared level from the level list is a separate run */
-  if (freshRun) G.tryMap[n] = 1; else G.tryMap[n] = G.tryMap[n] || 1;
+  S.level = clamp(n, 1, CHAOS_LV); saveState();   /* progress survives a reload */
   resetRun();
   const nu = newAt(n);
   if (nu && !S.seen[nu.id]) {
@@ -1986,8 +1984,6 @@ function levelClear() {
   saveState();
   const nxt = G.lv + 1;
   setTimeout(function () {
-    const tries = tryCount();
-    const howLong = tries > 1 ? t("card.inTries", { n: tries }) : t("card.firstTry");
     if (G.lv >= LEVELS) {
       showCard({
         eyebrow: t("card.doneEyebrow"),
@@ -2001,7 +1997,6 @@ function levelClear() {
         eyebrow: t("card.cleared", { n: pad2(G.lv) }),
         title: t("card.next"),
         num: pad2(nxt),
-        body: howLong,
         acts: [{ t: t("ui.continue"), solid: true, fn: function () { hideCard(); startLevel(nxt); } },
                { t: t("ui.home"), fn: function () { hideCard(); exitToHome(); } }]
       });
@@ -2012,9 +2007,7 @@ function levelFail() {
   G.state = "over"; G.cue = null; SND.stopMusic();
   SND.fail();
   const fellAt = G.lv;
-  if (!G.tryMap) G.tryMap = {};
-  G.tryMap[fellAt] = (G.tryMap[fellAt] || 1) + 1;   /* this level cost another try */
-  S.level = 1; saveState();          /* losing sends the game back to the start */
+  S.level = fellAt; saveState();     /* progress is kept — only the level restarts */
   const wait = 2800;
   let taken = false;
   const go = function (fn) {
@@ -2025,10 +2018,10 @@ function levelFail() {
     title: t("card.overTitle"),
     body: t("card.overBody"),
     countdown: wait,
-    acts: [{ t: t("ui.startNow"), solid: true, fn: go(function () { startLevel(1); }) },
+    acts: [{ t: t("ui.again"), solid: true, fn: go(function () { startLevel(fellAt); }) },
            { t: t("ui.home"), fn: go(exitToHome) }]
   });
-  G.overT = setTimeout(go(function () { startLevel(1); }), wait);
+  G.overT = setTimeout(go(function () { startLevel(fellAt); }), wait);
 }
 function chaosOver() {
   G.state = "over"; G.cue = null; SND.stopMusic();
@@ -2059,7 +2052,6 @@ function chaosOver() {
 
 function exitToHome() {
   stopRun();
-  G.tryMap = {};
   G.orbs.length = 0; G.cue = null;
   paintProgress();
   show("home");
@@ -2166,7 +2158,7 @@ function pauseGame() {
     title: t("card.paused"),
     acts: [
       { t: t("ui.resume"), solid: true, fn: resumeGame },
-      { t: t("ui.restart"), fn: function () { hideCard(); G.paused = false; if (G.mode === "chaos") startChaos(); else startLevel(G.lv, true); } },
+      { t: t("ui.restart"), fn: function () { hideCard(); G.paused = false; if (G.mode === "chaos") startChaos(); else startLevel(G.lv); } },
       { t: t("ui.quit"), fn: function () { hideCard(); G.paused = false; exitToHome(); } }
     ]
   });
@@ -2230,7 +2222,7 @@ $("#lvGrid").addEventListener("click", function (e) {
   if (!b || b.disabled) return;
   SND.ui(); SND.resume();
   S.level = +b.dataset.lv; saveState(); paintProgress();
-  show(""); startLevel(S.level, true);
+  show(""); startLevel(S.level);
 });
 $("#chaosCell").addEventListener("click", function () {
   if ($("#chaosCell").disabled) return;
@@ -2306,7 +2298,7 @@ function bindSettings() {
     if (b) {
       if (b.dataset.arm) {
         S.level = 1; S.unlocked = 1; S.seen = {}; S.bestChain = 0; S.chaosRuns = 0;
-        G.tryMap = {}; saveState();
+        saveState();
         b.textContent = t("ui.reset"); delete b.dataset.arm;
         paintProgress(); paintResetSub(); paintLevels(); SND.fail();
       } else {
