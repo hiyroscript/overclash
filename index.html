@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
@@ -18,7 +18,10 @@
   --deep:#3D5AFE; --lime:#3DFF7A; --orchid:#E14BFF;
   --disp:"Space Grotesk",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  --pad:clamp(14px,3.2vw,30px);
+  --pad:clamp(16px,3.4vw,32px);
+  --col:min(100%,720px);
+  --top:calc(var(--pad) + env(safe-area-inset-top));
+  --bot:calc(var(--pad) + env(safe-area-inset-bottom));
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;overscroll-behavior:none}
@@ -29,68 +32,78 @@ body{
   -webkit-font-smoothing:antialiased;
 }
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;touch-action:manipulation}
-:focus-visible{outline:2px solid var(--aqua);outline-offset:3px;border-radius:2px}
+:focus-visible{outline:2px solid var(--aqua);outline-offset:3px;border-radius:3px}
 
 /* ---------- canvas ---------- */
 #cv{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:1;opacity:0;transition:opacity .3s}
 body.playing #cv{opacity:1}
 
 /* ---------- screens ---------- */
-.screen{position:fixed;inset:0;z-index:5;display:none;flex-direction:column;
-  padding:calc(var(--pad) + env(safe-area-inset-top)) var(--pad) calc(var(--pad) + env(safe-area-inset-bottom));}
+.screen{position:fixed;inset:0;z-index:5;display:none;flex-direction:column;align-items:center;
+  padding:var(--top) var(--pad) var(--bot)}
 .screen.on{display:flex}
 .screen.paper{background:var(--paper);color:var(--ink)}
-.screen.dark{background:rgba(10,10,16,.94);color:var(--paper);backdrop-filter:blur(14px)}
-.screen.enter{animation:fadeUp .34s cubic-bezier(.2,.8,.2,1) both}
-@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.screen.dark{background:#0B0B12;color:var(--paper)}
+.screen.enter{animation:fadeUp .3s cubic-bezier(.2,.8,.2,1) both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.col{width:var(--col);display:flex;flex-direction:column;min-height:0;flex:1}
 
-/* ---------- shared bits ---------- */
-.tag{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--mute)}
-.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:0 0 auto}
-.bar nav{display:flex;gap:6px}
-.chip{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
-  padding:9px 13px;border-radius:100px;border:1px solid rgba(10,10,16,.16);color:var(--ink);
-  transition:background .16s,border-color .16s,transform .1s}
-.chip:hover{background:rgba(10,10,16,.06)}
+/* ---------- shared ---------- */
+.tag{font-family:var(--mono);font-size:clamp(9px,2.4vw,11px);letter-spacing:.18em;text-transform:uppercase;
+  color:var(--mute);white-space:nowrap}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex:0 0 auto;width:100%}
+.bar nav{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.chip{font-family:var(--mono);font-size:clamp(9px,2.4vw,11px);letter-spacing:.14em;text-transform:uppercase;
+  padding:10px 14px;border-radius:100px;border:1px solid rgba(237,239,242,.24);color:var(--paper);
+  white-space:nowrap;transition:background .16s,border-color .16s,transform .1s,opacity .16s}
+.chip:hover{background:rgba(237,239,242,.1)}
 .chip:active{transform:scale(.96)}
-.dark .chip{border-color:rgba(237,239,242,.22);color:var(--paper)}
-.dark .chip:hover{background:rgba(237,239,242,.1)}
-.chip.solid{background:var(--ink);color:var(--paper);border-color:var(--ink)}
-.dark .chip.solid{background:var(--paper);color:var(--ink);border-color:var(--paper)}
+.chip.solid{background:var(--paper);color:var(--ink);border-color:var(--paper)}
+.chip.solid:hover{background:#fff}
+.paper .chip{border-color:rgba(10,10,16,.18);color:var(--ink)}
+.paper .chip:hover{background:rgba(10,10,16,.06)}
+.paper .chip.solid{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.paper .chip.solid:hover{background:#000}
 
 /* ---------- splash ---------- */
-#splash{background:#000;color:#EDEFF2;align-items:center;justify-content:center;z-index:60}
+#splash{background:#000;color:#EDEFF2;justify-content:space-between;z-index:60}
+#splash .mid{flex:1;display:flex;align-items:center;justify-content:center;width:100%}
 #splash .rule{width:0;height:1px;background:#EDEFF2;opacity:.55;animation:ruleIn .9s .15s cubic-bezier(.2,.8,.2,1) forwards}
-@keyframes ruleIn{to{width:min(240px,52vw)}}
-#splash .credit{font-family:var(--mono);font-size:clamp(11px,3vw,14px);letter-spacing:.34em;
-  text-transform:lowercase;margin-top:20px;opacity:0;animation:creditIn .8s .5s ease forwards}
-@keyframes creditIn{to{opacity:.9}}
-#splash.out{animation:splashOut .5s ease forwards}
+@keyframes ruleIn{to{width:min(260px,54vw)}}
+#splash .credit{font-family:var(--mono);font-size:clamp(10px,2.9vw,13px);letter-spacing:.32em;
+  text-transform:lowercase;opacity:0;animation:creditIn .8s .45s ease forwards;text-align:center;
+  padding-bottom:max(6px,env(safe-area-inset-bottom))}
+@keyframes creditIn{to{opacity:.85}}
+#splash.out{animation:splashOut .45s ease forwards}
 @keyframes splashOut{to{opacity:0}}
 
 /* ---------- home ---------- */
-#home main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;min-height:0}
-.title{font-size:clamp(66px,min(19vw,27vh),230px);font-weight:700;letter-spacing:-.045em;line-height:.82;
-  text-transform:uppercase}
-.title span{display:inline-block;animation:letterIn .6s cubic-bezier(.2,.9,.2,1) both}
-@keyframes letterIn{from{opacity:0;transform:translateY(18px) scaleY(.9)}to{opacity:1;transform:none}}
-.tagline{font-size:clamp(13px,2.2vw,16px);color:#4A515C;margin-top:14px;text-align:center;max-width:30ch}
-.pulse-wrap{margin-top:clamp(26px,5vh,54px);display:flex;flex-direction:column;align-items:center;gap:14px}
-.pulse{position:relative;width:clamp(74px,15vh,104px);height:clamp(74px,15vh,104px);border-radius:50%;
-  display:grid;place-items:center;transition:transform .12s}
+#home .mid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  width:100%;min-height:0;gap:0;padding:16px 0}
+.title{font-size:clamp(58px,min(17vw,23vh),200px);font-weight:700;letter-spacing:-.045em;line-height:.84;
+  text-transform:uppercase;text-align:center}
+.title span{display:inline-block;animation:letterIn .55s cubic-bezier(.2,.9,.2,1) both}
+@keyframes letterIn{from{opacity:0;transform:translateY(16px) scaleY(.92)}to{opacity:1;transform:none}}
+.tagline{font-size:clamp(13px,2.6vw,16px);color:#4A515C;margin-top:clamp(10px,1.6vh,18px);
+  text-align:center;max-width:34ch;text-wrap:balance}
+.pulse-wrap{margin-top:clamp(24px,4.4vh,52px);display:flex;flex-direction:column;align-items:center}
+.pulse{position:relative;width:clamp(72px,13vh,100px);height:clamp(72px,13vh,100px);border-radius:50%;
+  display:grid;place-items:center;transition:transform .12s;flex:0 0 auto}
 .pulse:active{transform:scale(.92)}
 .pulse i{position:absolute;inset:0;border-radius:50%;background:var(--volt);
   animation:hue 6s linear infinite, breathe 1.6s ease-in-out infinite}
 .pulse b{position:absolute;inset:0;border-radius:50%;border:2px solid var(--volt);
   animation:hueBorder 6s linear infinite, halo 1.6s ease-out infinite}
 @keyframes breathe{0%,100%{transform:scale(.86)}50%{transform:scale(1)}}
-@keyframes halo{0%{transform:scale(.9);opacity:.7}100%{transform:scale(1.85);opacity:0}}
+@keyframes halo{0%{transform:scale(.9);opacity:.65}100%{transform:scale(1.42);opacity:0}}
 @keyframes hue{0%{background:var(--volt)}16%{background:var(--sun)}33%{background:var(--lime)}
   50%{background:var(--aqua)}66%{background:var(--deep)}83%{background:var(--orchid)}100%{background:var(--volt)}}
 @keyframes hueBorder{0%{border-color:var(--volt)}16%{border-color:var(--sun)}33%{border-color:var(--lime)}
   50%{border-color:var(--aqua)}66%{border-color:var(--deep)}83%{border-color:var(--orchid)}100%{border-color:var(--volt)}}
-.rail{flex:1;height:2px;background:rgba(10,10,16,.13);position:relative;max-width:340px;border-radius:2px}
-.rail-fill{position:absolute;inset:0 auto 0 0;background:var(--ink);border-radius:2px;transition:width .5s cubic-bezier(.2,.8,.2,1)}
+#startLbl{margin-top:clamp(22px,3vh,30px);text-align:center}
+.rail{flex:1;height:2px;background:rgba(10,10,16,.13);position:relative;border-radius:2px;min-width:40px}
+.rail-fill{position:absolute;inset:0 auto 0 0;background:var(--ink);border-radius:2px;
+  transition:width .5s cubic-bezier(.2,.8,.2,1)}
 
 /* ---------- wipe ---------- */
 #wipe{position:fixed;z-index:50;width:10px;height:10px;border-radius:50%;background:var(--ink);
@@ -98,38 +111,43 @@ body.playing #cv{opacity:1}
 #wipe.go{display:block;animation:wipeOut .62s cubic-bezier(.65,0,.35,1) forwards}
 @keyframes wipeOut{to{transform:scale(var(--sc,60))}}
 
-/* ---------- panels (howto / settings / levels) ---------- */
-.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:16px;flex:0 0 auto}
-.panel-title{font-size:clamp(26px,5.4vw,42px);font-weight:700;letter-spacing:-.03em;text-transform:uppercase}
+/* ---------- panels ---------- */
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding-bottom:clamp(12px,2vh,20px);flex:0 0 auto;width:100%}
+.panel-title{font-size:clamp(24px,5.6vw,40px);font-weight:700;letter-spacing:-.03em;text-transform:uppercase;
+  line-height:1}
 .panel-body{flex:1;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
-  touch-action:pan-y;min-height:0;padding-bottom:20px}
+  touch-action:pan-y;min-height:0;width:100%;padding-bottom:24px}
 .panel-body::-webkit-scrollbar{width:4px}
 .panel-body::-webkit-scrollbar-thumb{background:rgba(237,239,242,.2);border-radius:4px}
 
-/* howto */
-.demo-shell{display:flex;flex-direction:column;gap:14px}
-#demoCv{width:100%;aspect-ratio:16/10;max-height:44vh;border-radius:14px;background:#0E0E16;display:block;
-  border:1px solid rgba(237,239,242,.1)}
-@media (orientation:portrait){#demoCv{aspect-ratio:1/1;max-height:38vh}}
-.demo-name{font-size:clamp(20px,4.4vw,30px);font-weight:700;letter-spacing:-.02em}
-.demo-desc{color:#A7AEBC;font-size:clamp(13px,2.4vw,15px);line-height:1.5;max-width:56ch;min-height:3em}
-.demo-nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.dot-row{display:flex;gap:5px;margin-left:auto}
-.dot-row i{width:6px;height:6px;border-radius:50%;background:rgba(237,239,242,.25);transition:background .2s,transform .2s}
+/* how to play */
+.demo-shell{display:flex;flex-direction:column;gap:clamp(10px,1.8vh,16px)}
+#demoCv{width:100%;max-width:520px;aspect-ratio:1/1;max-height:min(46vh,420px);border-radius:16px;
+  background:#0E0E16;display:block;border:1px solid rgba(237,239,242,.1);margin:0 auto}
+.demo-name{font-size:clamp(19px,4.4vw,28px);font-weight:700;letter-spacing:-.02em}
+.demo-desc{color:#A7AEBC;font-size:clamp(13px,2.4vw,15px);line-height:1.55;max-width:58ch}
+#demoDesc{min-height:3.1em}
+.demo-nav{display:flex;align-items:center;gap:8px}
+.dot-row{display:flex;gap:5px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+.dot-row i{width:6px;height:6px;border-radius:50%;background:rgba(237,239,242,.25);
+  transition:background .2s,transform .2s}
 .dot-row i.on{background:var(--paper);transform:scale(1.35)}
-.legend{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:22px}
-.legend div{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 18px;
+  margin:clamp(18px,3vh,26px) 0}
+.legend div{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;
   text-transform:uppercase;color:#A7AEBC}
-.legend s{width:12px;height:12px;border-radius:50%;flex:0 0 auto}
-.legend em{font-style:normal;opacity:.45}
+.legend s{width:11px;height:11px;border-radius:50%;flex:0 0 auto}
 
 /* settings */
-.set-row{display:flex;align-items:center;gap:16px;padding:17px 0;border-bottom:1px solid rgba(237,239,242,.09)}
+.set-row{display:flex;align-items:center;gap:18px;padding:16px 0;border-bottom:1px solid rgba(237,239,242,.09)}
 .set-row .lbl{flex:1;min-width:0}
 .set-row .lbl b{display:block;font-weight:500;font-size:15px}
-.set-row .lbl span{font-size:12px;color:#8A92A0;line-height:1.4;display:block;margin-top:2px}
-.set-row output{font-family:var(--mono);font-size:12px;color:#A7AEBC;width:44px;text-align:right;flex:0 0 auto}
-input[type=range]{-webkit-appearance:none;appearance:none;width:min(150px,34vw);height:22px;background:none;flex:0 0 auto}
+.set-row .lbl span{font-size:12px;color:#8A92A0;line-height:1.45;display:block;margin-top:3px}
+.set-ctl{display:flex;align-items:center;gap:12px;flex:0 0 auto}
+.set-row output{font-family:var(--mono);font-size:12px;color:#A7AEBC;width:34px;text-align:right;flex:0 0 auto}
+input[type=range]{-webkit-appearance:none;appearance:none;width:clamp(110px,26vw,170px);height:24px;
+  background:none;flex:0 0 auto}
 input[type=range]::-webkit-slider-runnable-track{height:2px;background:rgba(237,239,242,.22);border-radius:2px}
 input[type=range]::-moz-range-track{height:2px;background:rgba(237,239,242,.22);border-radius:2px}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;
@@ -141,72 +159,228 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border:none;border-ra
   background:var(--paper);transition:transform .18s cubic-bezier(.2,.8,.2,1)}
 .sw[aria-pressed=true]{background:var(--lime)}
 .sw[aria-pressed=true]::after{transform:translateX(20px);background:var(--ink)}
+.seg{display:flex;gap:4px;padding:3px;border-radius:100px;background:rgba(237,239,242,.09);flex:0 0 auto}
+.seg button{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  padding:8px 13px;border-radius:100px;color:#A7AEBC;transition:background .16s,color .16s}
+.seg button[aria-pressed=true]{background:var(--paper);color:var(--ink)}
 .danger{color:var(--volt);border-color:rgba(255,45,85,.4)}
+@media (max-width:560px){
+  .set-row{flex-direction:column;align-items:stretch;gap:12px}
+  .set-ctl{justify-content:flex-end}
+  input[type=range]{width:min(210px,58vw)}
+}
 
 /* levels */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:8px}
-.cell{aspect-ratio:1;border-radius:11px;border:1px solid rgba(237,239,242,.14);display:grid;place-items:center;
-  font-family:var(--mono);font-size:14px;color:var(--paper);transition:transform .12s,background .16s,border-color .16s}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:8px}
+.cell{aspect-ratio:1;border-radius:12px;border:1px solid rgba(237,239,242,.14);display:grid;place-items:center;
+  font-family:var(--mono);font-size:14px;color:var(--paper);
+  transition:transform .12s,background .16s,border-color .16s}
 .cell:active{transform:scale(.94)}
 .cell.locked{color:rgba(237,239,242,.22);border-color:rgba(237,239,242,.07);cursor:not-allowed}
 .cell.done{background:rgba(61,255,122,.12);border-color:rgba(61,255,122,.38);color:var(--lime)}
 .cell.next{background:var(--paper);color:var(--ink);border-color:var(--paper)}
-.echo-cell{grid-column:1/-1;aspect-ratio:auto;padding:18px;display:flex;align-items:center;justify-content:space-between;
-  border-radius:14px;margin-top:10px;font-family:var(--disp)}
-.echo-cell b{font-size:19px;letter-spacing:.02em}
-.echo-cell span{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#8A92A0;
-  display:block;margin-top:3px}
-.echo-cell.locked b{color:rgba(237,239,242,.3)}
+.echo-cell{width:100%;aspect-ratio:auto;padding:18px 20px;display:flex;align-items:center;gap:16px;
+  justify-content:space-between;border-radius:14px;margin-top:12px;font-family:var(--disp);text-align:left}
+.echo-cell .ec-l{min-width:0}
+.echo-cell b{font-size:18px;letter-spacing:.01em;display:block}
+.echo-cell span{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:#8A92A0;display:block;margin-top:4px}
+.echo-cell em{font-family:var(--mono);font-style:normal;font-size:16px;flex:0 0 auto;color:var(--paper)}
+.echo-cell.locked b,.echo-cell.locked em{color:rgba(237,239,242,.3)}
 
 /* ---------- HUD ---------- */
 #hud{position:fixed;inset:0;z-index:8;display:none;flex-direction:column;pointer-events:none;
-  padding:calc(12px + env(safe-area-inset-top)) var(--pad) calc(12px + env(safe-area-inset-bottom));color:var(--paper)}
+  padding:calc(14px + env(safe-area-inset-top)) var(--pad) calc(16px + env(safe-area-inset-bottom));
+  color:var(--paper)}
 #hud.on{display:flex}
-.hud-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.hud-bot{margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
-.meta{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:rgba(237,239,242,.5)}
+.hud-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.hud-bot{margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;gap:14px}
+.meta{font-family:var(--mono);font-size:clamp(9px,2.3vw,11px);letter-spacing:.15em;text-transform:uppercase;
+  color:rgba(237,239,242,.5);min-width:0}
 .meta b{color:var(--paper);font-weight:400}
-.lives{display:flex;gap:5px;margin-top:7px}
-.lives i{width:15px;height:3px;border-radius:2px;background:var(--paper);transition:background .25s,transform .25s}
+.lives{display:flex;gap:5px;margin-top:8px}
+.lives i{width:15px;height:3px;border-radius:2px;background:var(--paper);
+  transition:background .25s,transform .25s}
 .lives i.gone{background:rgba(237,239,242,.18);transform:scaleX(.55)}
-#react{font-family:var(--mono);font-size:clamp(22px,4.6vw,32px);letter-spacing:-.02em;line-height:1;
+.hud-right{display:flex;gap:12px;align-items:flex-start;min-width:0}
+#react{font-family:var(--mono);font-size:clamp(20px,4.4vw,30px);letter-spacing:-.02em;line-height:1;
   color:rgba(237,239,242,.85);transition:color .2s}
-#reactLbl{font-family:var(--mono);font-size:9px;letter-spacing:.24em;text-transform:uppercase;
-  color:rgba(237,239,242,.35);margin-top:5px}
-#pauseBtn{pointer-events:auto;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;
-  border:1px solid rgba(237,239,242,.2);color:var(--paper)}
-#pauseBtn::before{content:"";width:4px;height:12px;border-left:3px solid;border-right:3px solid;box-sizing:content-box}
+#reactLbl{font-family:var(--mono);font-size:9px;letter-spacing:.22em;text-transform:uppercase;
+  color:rgba(237,239,242,.56);margin-top:6px}
+#pauseBtn{pointer-events:auto;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;
+  border:1px solid rgba(237,239,242,.2);color:var(--paper);flex:0 0 auto}
+#pauseBtn::before{content:"";width:4px;height:12px;border-left:3px solid;border-right:3px solid;
+  box-sizing:content-box}
 .echo-hud{text-align:right}
-.echo-bar{width:min(190px,42vw);height:3px;background:rgba(237,239,242,.16);border-radius:3px;margin-top:8px;
+.echo-bar{width:min(170px,38vw);height:3px;background:rgba(237,239,242,.16);border-radius:3px;margin-top:8px;
   overflow:hidden;margin-left:auto}
 .echo-bar i{display:block;height:100%;background:var(--aqua);width:100%;transform-origin:right}
 
 /* ---------- overlay cards ---------- */
 #overlay{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;
-  padding:var(--pad);background:rgba(10,10,16,.82);backdrop-filter:blur(10px);color:var(--paper);text-align:center}
+  padding:calc(var(--top) + 8px) var(--pad) calc(var(--bot) + 8px);background:rgba(10,10,16,.86);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:var(--paper);text-align:center;
+  overflow-y:auto;overscroll-behavior:contain}
 #overlay.on{display:flex}
-.card{max-width:440px;width:100%;animation:cardIn .3s cubic-bezier(.2,.8,.2,1) both}
-@keyframes cardIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
-.card .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--mute)}
-.card h2{font-size:clamp(32px,7.5vw,58px);font-weight:700;letter-spacing:-.035em;line-height:.95;margin:10px 0;
+.card{max-width:430px;width:100%;margin:auto;animation:cardIn .28s cubic-bezier(.2,.8,.2,1) both}
+@keyframes cardIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+.card .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--mute)}
+.card h2{font-size:clamp(30px,7vw,54px);font-weight:700;letter-spacing:-.035em;line-height:1;margin:12px 0;
   text-transform:uppercase}
-.card p{color:#A7AEBC;font-size:15px;line-height:1.55;max-width:38ch;margin:0 auto}
-.card .num{font-family:var(--mono);font-size:clamp(44px,12vw,80px);letter-spacing:-.04em;line-height:1;margin:6px 0}
-.card .acts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:26px}
-.glyph{width:78px;height:78px;margin:0 auto 18px}
-.stat-row{display:flex;justify-content:center;gap:26px;margin-top:20px}
+.card p{color:#A7AEBC;font-size:clamp(14px,2.6vw,15px);line-height:1.6;max-width:36ch;margin:0 auto;
+  text-wrap:pretty}
+.card .num{font-family:var(--mono);font-size:clamp(40px,11vw,72px);letter-spacing:-.04em;line-height:1;
+  margin:8px 0}
+.card .acts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:clamp(20px,3.4vh,28px)}
+.card canvas{display:block;margin:0 auto 10px}
+.stat-row{display:flex;justify-content:center;gap:clamp(18px,6vw,30px);margin-top:22px;flex-wrap:wrap}
 .stat-row div{text-align:center}
-.stat-row b{font-family:var(--mono);font-size:20px;font-weight:400;display:block}
-.stat-row span{font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--mute)}
+.stat-row b{font-family:var(--mono);font-size:19px;font-weight:400;display:block}
+.stat-row span{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--mute)}
+.countdown{margin-top:18px;height:2px;width:min(200px,60%);background:rgba(237,239,242,.16);
+  border-radius:2px;margin-inline:auto;overflow:hidden}
+.countdown i{display:block;height:100%;background:var(--paper);width:100%;
+  animation:drain var(--ms,1800ms) linear forwards;transform-origin:left}
+@keyframes drain{to{transform:scaleX(0)}}
+
+/* ---------- language gate ---------- */
+#langGate{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;
+  padding:var(--pad);background:rgba(6,6,10,.94);backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);color:var(--paper);text-align:center}
+#langGate.on{display:flex}
+#langGate .gate{max-width:340px;width:100%;animation:cardIn .32s cubic-bezier(.2,.8,.2,1) both}
+#langGate .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--mute)}
+#langGate h2{font-size:clamp(24px,6vw,34px);font-weight:700;letter-spacing:-.03em;margin:14px 0 6px;
+  line-height:1.15}
+#langGate p{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--mute);margin-bottom:26px}
+#langGate .gate-opts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+#langGate .gate-opts .chip{padding:13px 22px;font-size:11px}
 
 /* ---------- orient ---------- */
 #orient{position:fixed;inset:0;z-index:80;background:var(--ink);color:var(--paper);display:none;
-  flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:32px}
+  flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center;padding:32px}
 #orient.on{display:flex}
-#orient .ph{width:52px;height:82px;border:2px solid var(--paper);border-radius:9px;animation:rot 2.4s ease-in-out infinite}
+#orient .ph{width:50px;height:80px;border:2px solid var(--paper);border-radius:9px;
+  animation:rot 2.4s ease-in-out infinite;flex:0 0 auto}
 @keyframes rot{0%,40%{transform:rotate(90deg)}60%,100%{transform:rotate(0)}}
-#orient p{font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#A7AEBC;max-width:26ch;line-height:1.8}
+#orient p{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#A7AEBC;
+  max-width:28ch;line-height:1.9}
 .hide{display:none !important}
+
+/* ==========================================================================
+   THEME LAYER
+   Light and dark are two designed surfaces, not an inversion. The six signal
+   colours are identical in both so the gameplay language never changes.
+   ========================================================================== */
+:root[data-theme="light"]{
+  --bg:#EDEFF2; --surface:#FFFFFF; --surface-2:#E4E7EC;
+  --fg:#0A0A10; --dim:#4A515C; --faint:#6D7684;
+  --line:rgba(10,10,16,.15); --line-2:rgba(10,10,16,.08); --hover:rgba(10,10,16,.06);
+  --thumb:rgba(10,10,16,.22); --track:rgba(10,10,16,.10);
+  --done:#0E7038; --done-bg:rgba(14,112,56,.10); --done-line:rgba(14,112,56,.40);
+  --danger:#BE0036; --danger-line:rgba(190,0,54,.40);
+}
+:root[data-theme="dark"]{
+  --bg:#0B0B12; --surface:#151520; --surface-2:#1D1D2A;
+  --fg:#EDEFF2; --dim:#A7AEBC; --faint:#8A92A0;
+  --line:rgba(237,239,242,.15); --line-2:rgba(237,239,242,.08); --hover:rgba(237,239,242,.09);
+  --thumb:rgba(237,239,242,.24); --track:rgba(237,239,242,.10);
+  --done:#3DFF7A; --done-bg:rgba(61,255,122,.12); --done-line:rgba(61,255,122,.38);
+  --danger:#FF2D55; --danger-line:rgba(255,45,85,.45);
+}
+html,body{ background:var(--bg) }
+body.playing{ background:#0A0A10 }
+.screen.paper,.screen.dark{ background:var(--bg);color:var(--fg);
+  transition:background-color .32s ease,color .32s ease }
+.tag,.meta.tag{ color:var(--faint) }
+.tagline{ color:var(--dim) }
+.title{ color:var(--fg) }
+.rail{ background:var(--track) }
+.rail-fill{ background:var(--fg) }
+
+/* controls */
+.chip,.paper .chip{ color:var(--fg);border-color:var(--line) }
+.chip:hover,.paper .chip:hover{ background:var(--hover) }
+.chip.solid,.paper .chip.solid{ background:var(--fg);color:var(--bg);border-color:var(--fg) }
+.chip.solid:hover,.paper .chip.solid:hover{ opacity:.88;background:var(--fg) }
+.chip.danger{ color:var(--danger);border-color:var(--danger-line) }
+.seg{ background:var(--track) }
+.seg button{ color:var(--dim) }
+.seg button[aria-pressed=true]{ background:var(--fg);color:var(--bg) }
+.sw{ background:var(--track) }
+.sw::after{ background:var(--fg) }
+.sw[aria-pressed=true]{ background:var(--lime) }
+.sw[aria-pressed=true]::after{ background:#0A0A10 }
+input[type=range]::-webkit-slider-runnable-track{ background:var(--track) }
+input[type=range]::-moz-range-track{ background:var(--track) }
+input[type=range]::-webkit-slider-thumb{ background:var(--fg) }
+input[type=range]::-moz-range-thumb{ background:var(--fg) }
+
+/* panels */
+.panel-title{ color:var(--fg) }
+.set-row{ border-bottom:1px solid var(--line-2) }
+.set-row .lbl span{ color:var(--faint) }
+.set-row output{ color:var(--dim) }
+.demo-desc{ color:var(--dim) }
+.legend div{ color:var(--faint) }
+#demoCv{ border:1px solid var(--line) }
+.cell{ color:var(--fg);border-color:var(--line) }
+.cell.locked{ color:var(--line);border-color:var(--line-2) }
+.cell.done{ background:var(--done-bg);border-color:var(--done-line);color:var(--done) }
+.cell.next{ background:var(--fg);color:var(--bg);border-color:var(--fg) }
+.echo-cell{ border-color:var(--line) }
+.echo-cell span{ color:var(--faint) }
+.echo-cell em{ color:var(--fg) }
+.echo-cell.locked b,.echo-cell.locked em{ color:var(--line) }
+
+/* dialogues sit on a real surface so they read in either theme and never
+   flash the player with a full-screen white wash mid-run */
+#overlay,#langGate{ background:rgba(6,6,10,.72);color:var(--fg) }
+.card,#langGate .gate{ background:var(--surface);border:1px solid var(--line);
+  border-radius:22px;padding:clamp(24px,4vw,34px) clamp(20px,4vw,32px);
+  box-shadow:0 24px 70px rgba(0,0,0,.45) }
+.card .eyebrow,#langGate .eyebrow{ color:var(--faint) }
+.card h2,#langGate h2{ color:var(--fg) }
+.card p,#langGate p{ color:var(--dim) }
+.card .num{ color:var(--fg) }
+
+/* scroll affordance — panels scroll, so say so */
+.col{ position:relative }
+.panel-body{ scrollbar-width:thin;scrollbar-color:var(--thumb) transparent }
+.panel-body::-webkit-scrollbar{ width:6px }
+.panel-body::-webkit-scrollbar-thumb{ background:var(--thumb);border-radius:6px }
+.panel-body::-webkit-scrollbar-track{ background:transparent }
+.col::after{ content:"";position:absolute;left:0;right:6px;bottom:0;height:52px;pointer-events:none;z-index:1;
+  background:linear-gradient(to top,var(--bg) 12%,transparent);opacity:0;transition:opacity .22s }
+.col.more::after{ opacity:1 }
+.scroll-cue{ position:absolute;left:50%;bottom:6px;transform:translateX(-50%);pointer-events:none;z-index:2;
+  font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);
+  opacity:0;transition:opacity .22s;display:flex;align-items:center;gap:6px }
+.col.more .scroll-cue{ opacity:1;animation:cueBob 1.8s ease-in-out infinite }
+@keyframes cueBob{ 0%,100%{transform:translate(-50%,0)} 50%{transform:translate(-50%,3px)} }
+
+/* chaos HUD */
+#chaosBadge{ font-family:var(--mono);font-size:clamp(11px,3vw,14px);letter-spacing:.18em;
+  text-transform:uppercase;color:rgba(237,239,242,.55);white-space:nowrap }
+#chaosBadge b{ color:#EDEFF2;font-weight:400;font-size:1.35em;letter-spacing:-.01em }
+#chaosPhase{ font-family:var(--mono);font-size:9px;letter-spacing:.22em;text-transform:uppercase;
+  color:rgba(237,239,242,.42);margin-top:5px }
+#msBanner{ position:fixed;left:50%;top:16%;transform:translate(-50%,-8px);z-index:12;pointer-events:none;
+  font-family:var(--mono);font-size:clamp(11px,3vw,14px);letter-spacing:.26em;text-transform:uppercase;
+  color:#EDEFF2;opacity:0;text-align:center;text-shadow:0 0 24px rgba(0,0,0,.9) }
+#msBanner.show{ animation:msIn 1.7s cubic-bezier(.2,.8,.2,1) both }
+@keyframes msIn{ 0%{opacity:0;transform:translate(-50%,10px) scale(.94)}
+  18%{opacity:1;transform:translate(-50%,0) scale(1)}
+  76%{opacity:1} 100%{opacity:0;transform:translate(-50%,-8px)} }
+.chain-num{ font-family:var(--mono);font-size:clamp(52px,15vw,96px);line-height:1;letter-spacing:-.05em;
+  color:var(--fg);margin:6px 0 2px }
+.chain-best{ font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--faint) }
+.chain-best b{ color:var(--fg);font-weight:400 }
 </style>
 </head>
 <body>
@@ -215,88 +389,96 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border:none;border-ra
 <div id="wipe"></div>
 
 <section id="splash" class="screen on">
-  <div class="rule"></div>
+  <div class="mid"><div class="rule"></div></div>
   <p class="credit">a game by hiyroscript</p>
 </section>
 
 <section id="home" class="screen paper">
-  <header class="bar">
-    <span class="tag">hiyroscript</span>
-    <nav>
-      <button class="chip" data-go="howto">how to play</button>
-      <button class="chip" data-go="settings">settings</button>
-    </nav>
-  </header>
-  <main>
-    <h1 class="title" id="title"></h1>
-    <p class="tagline">Read the cue. Hit the right one. Don't think.</p>
-    <div class="pulse-wrap">
-      <button class="pulse" id="startOrb" aria-label="Start playing"><i></i><b></b></button>
-      <span class="tag" id="startLbl">hit the pulse to play</span>
-    </div>
-  </main>
-  <footer class="bar">
-    <button class="chip" data-go="levels">levels</button>
-    <div class="rail"><div class="rail-fill" id="railFill" style="width:0%"></div></div>
-    <span class="tag" id="progTag">01 / 30</span>
-  </footer>
+  <div class="col">
+    <header class="bar">
+      <span class="tag">hiyroscript</span>
+      <nav>
+        <button class="chip" data-go="howto" data-t="nav.howto">how to play</button>
+        <button class="chip" data-go="settings" data-t="nav.settings">settings</button>
+      </nav>
+    </header>
+    <main class="mid">
+      <h1 class="title" id="title"></h1>
+      <p class="tagline" id="tagline"></p>
+      <div class="pulse-wrap">
+        <button class="pulse" id="startOrb" aria-label="Play"><i></i><b></b></button>
+      </div>
+      <span class="tag" id="startLbl"></span>
+    </main>
+    <footer class="bar">
+      <button class="chip" data-go="levels" data-t="nav.levels">levels</button>
+      <div class="rail"><div class="rail-fill" id="railFill" style="width:0%"></div></div>
+      <span class="tag" id="progTag">01 / 30</span>
+    </footer>
+  </div>
 </section>
 
 <section id="howto" class="screen dark">
-  <div class="panel-head">
-    <h2 class="panel-title">How to play</h2>
-    <button class="chip" data-go="home">close</button>
-  </div>
-  <div class="panel-body">
-    <div class="demo-shell">
-      <canvas id="demoCv"></canvas>
-      <div>
-        <div class="demo-name" id="demoName">Match</div>
-        <p class="demo-desc" id="demoDesc"></p>
-      </div>
-      <div class="demo-nav">
-        <button class="chip" id="demoPrev">back</button>
-        <button class="chip solid" id="demoNext">next</button>
-        <div class="dot-row" id="demoDots"></div>
-      </div>
+  <div class="col">
+    <div class="panel-head">
+      <h2 class="panel-title" data-t="howto.title">How to play</h2>
+      <button class="chip" data-go="home" data-t="ui.close">close</button>
     </div>
-    <div class="legend" id="legend"></div>
-    <p class="demo-desc" style="margin-top:22px">
-      One cue sits in the middle. It tells you which orb to hit and how. Everything else on
-      screen is weather. Miss three cues and the level restarts.
-    </p>
+    <div class="panel-body">
+      <div class="demo-shell">
+        <canvas id="demoCv"></canvas>
+        <div>
+          <div class="demo-name" id="demoName"></div>
+          <p class="demo-desc" id="demoDesc"></p>
+        </div>
+        <div class="demo-nav">
+          <button class="chip" id="demoPrev" data-t="ui.back">back</button>
+          <button class="chip solid" id="demoNext" data-t="ui.next">next</button>
+          <div class="dot-row" id="demoDots"></div>
+        </div>
+      </div>
+      <div class="legend" id="legend"></div>
+      <p class="demo-desc" id="howtoFoot"></p>
+    </div>
+    <div class="scroll-cue" aria-hidden="true">▾</div>
   </div>
 </section>
 
 <section id="settings" class="screen dark">
-  <div class="panel-head">
-    <h2 class="panel-title">Settings</h2>
-    <button class="chip" data-go="home">close</button>
+  <div class="col">
+    <div class="panel-head">
+      <h2 class="panel-title" data-t="settings.title">Settings</h2>
+      <button class="chip" data-go="home" data-t="ui.close">close</button>
+    </div>
+    <div class="panel-body" id="setBody"></div>
+    <div class="scroll-cue" aria-hidden="true">▾</div>
   </div>
-  <div class="panel-body" id="setBody"></div>
 </section>
 
 <section id="levels" class="screen dark">
-  <div class="panel-head">
-    <h2 class="panel-title">Levels</h2>
-    <button class="chip" data-go="home">close</button>
-  </div>
-  <div class="panel-body">
-    <div class="grid" id="lvGrid"></div>
-    <button class="echo-cell cell" id="echoCell">
-      <div style="text-align:left"><b>Echo</b><span id="echoSub">clear level 30 to unlock</span></div>
-      <span style="font-family:var(--mono);font-size:18px" id="echoVal">—</span>
-    </button>
+  <div class="col">
+    <div class="panel-head">
+      <h2 class="panel-title" data-t="levels.title">Levels</h2>
+      <button class="chip" data-go="home" data-t="ui.close">close</button>
+    </div>
+    <div class="panel-body">
+      <div class="grid" id="lvGrid"></div>
+      <button class="echo-cell cell" id="chaosCell">
+        <span class="ec-l"><b id="chaosName"></b><span id="chaosSub"></span></span>
+        <em id="chaosVal">—</em>
+      </button>
+    </div>
+    <div class="scroll-cue" aria-hidden="true">▾</div>
   </div>
 </section>
 
 <div id="hud">
   <div class="hud-top">
     <div>
-      <div class="meta" id="hudLevel">Level <b>01</b></div>
+      <div class="meta" id="hudLevel"></div>
       <div class="lives" id="hudLives"></div>
     </div>
-    <div style="display:flex;gap:10px;align-items:flex-start">
+    <div class="hud-right">
       <div class="meta echo-hud" id="hudRight"></div>
       <button id="pauseBtn" aria-label="Pause"></button>
     </div>
@@ -304,17 +486,31 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border:none;border-ra
   <div class="hud-bot">
     <div>
       <div id="react">—</div>
-      <div id="reactLbl">reaction</div>
+      <div id="reactLbl"></div>
     </div>
     <div class="meta" id="hudStreak"></div>
   </div>
 </div>
 
+<div id="msBanner"></div>
+
 <div id="overlay"><div class="card" id="card"></div></div>
+
+<div id="langGate">
+  <div class="gate">
+    <p class="eyebrow">Malik</p>
+    <h2>Choose your language<br>Choisis ta langue</h2>
+    <p>English &nbsp;·&nbsp; Français</p>
+    <div class="gate-opts">
+      <button class="chip solid" data-lang="en">English</button>
+      <button class="chip solid" data-lang="fr">Français</button>
+    </div>
+  </div>
+</div>
 
 <div id="orient">
   <div class="ph"></div>
-  <p id="orientMsg">turn your device upright</p>
+  <p id="orientMsg"></p>
 </div>
 
 <script>
@@ -340,8 +536,211 @@ const pad2 = n => (n < 10 ? "0" : "") + n;
 const CK = ["volt", "aqua", "sun", "deep", "lime", "orchid"];
 const COL = { volt:"#FF2D55", aqua:"#00E0D5", sun:"#FFC400", deep:"#3D5AFE", lime:"#3DFF7A", orchid:"#E14BFF" };
 const OPP = { volt:"aqua", aqua:"volt", sun:"deep", deep:"sun", lime:"orchid", orchid:"lime" };
-const NAME = { volt:"Volt", aqua:"Aqua", sun:"Sun", deep:"Deep", lime:"Lime", orchid:"Orchid" };
 const HUSK = "#5A6270";
+
+/* ---------------- language ---------------- */
+const LANG = {
+  en: {
+    "ui.light":"Light", "ui.dark":"Dark",
+    "ui.close":"close", "ui.back":"back", "ui.next":"next", "ui.restartDemo":"start over",
+    "ui.gotit":"got it", "ui.continue":"continue", "ui.home":"home", "ui.again":"again",
+    "ui.resume":"resume", "ui.restart":"restart", "ui.quit":"quit", "ui.begin":"begin", "ui.reset":"reset", "ui.confirm":"tap again", "ui.startNow":"start now",
+    "nav.howto":"how to play", "nav.settings":"settings", "nav.levels":"levels",
+
+    "home.tagline":"Read the cue. Hit the right one. Don't think.",
+    "home.play":"hit the pulse to play",
+    "home.playLevel":"hit the pulse \u2014 level {n}",
+
+    "howto.title":"How to play",
+    "howto.foot":"One cue sits in the middle. It tells you which orb to hit and how. Everything else on screen is weather. Miss three cues and the game restarts from level 01.",
+    "demo.try":"tap the arena to try it", "demo.nice":"nice",
+
+    "cue.MATCH":"Match",   "line.MATCH":"Hit the orb that matches the cue colour.",
+    "cue.INVERT":"Invert", "line.INVERT":"A hollow cue with inward spikes means hit the <b>opposite</b> colour. The pairs never change: Volt\u2013Aqua, Sun\u2013Deep, Lime\u2013Orchid.",
+    "cue.HOLD":"Hold",     "line.HOLD":"The cue has a lock bracket. Press the right orb and stay on it until the ring closes.",
+    "cue.VOID":"Void",     "line.VOID":"A white cross means nothing is the answer. Touch anything and you lose it.",
+    "cue.CHAIN":"Chain",   "line.CHAIN":"Two colours stacked, numbered. Hit them in that order.",
+    "cue.LINK":"Link",     "line.LINK":"Two colours joined by a bar. Press the first orb, drag across, release on the second.",
+    "cue.PHANTOM":"Phantom","line.PHANTOM":"A faded, dashed cue is a lie. Ignore it and it clears itself.",
+    "cue.BURST":"Burst",   "line.BURST":"Three pips under the cue. Hit that one orb three times before the ring empties.",
+
+    "mod.drift":"Drift",     "modline.drift":"The ring starts turning.",
+    "mod.sway":"Sway",       "modline.sway":"Orbs wander off the ring.",
+    "mod.husks":"Husks",     "modline.husks":"Dashed grey orbs are never the answer. Hitting one counts as a miss.",
+    "mod.swap":"Swap",       "modline.swap":"Orbs trade places mid-cue. Track them.",
+    "mod.glare":"Glare",     "modline.glare":"The arena flares. The cue stays readable.",
+    "mod.reverse":"Reverse", "modline.reverse":"The ring changes direction without warning.",
+    "mod.squeeze":"Squeeze", "modline.squeeze":"No new rules. Just less time.",
+
+    "col.volt":"Volt", "col.aqua":"Aqua", "col.sun":"Sun",
+    "col.deep":"Deep", "col.lime":"Lime", "col.orchid":"Orchid",
+
+    "settings.title":"Settings",
+    "set.sfx":"Sound effects",      "setd.sfx":"Hits, misses, cue ticks.",
+    "set.music":"Music",            "setd.music":"A pulse that tightens with the level.",
+    "set.vfx":"Effect density",     "setd.vfx":"Particles, glow, drifting decoys.",
+    "set.shake":"Screen shake",     "setd.shake":"Kick on hits and misses.",
+    "set.reduce":"Reduced motion",  "setd.reduce":"Cuts flashes, trails and shake. Cues stay identical.",
+    "set.symbols":"Colour symbols", "setd.symbols":"Marks every colour with its own shape, on the orbs and the cue.",
+    "set.assist":"Wider hit areas", "setd.assist":"Orbs register from further away. Timing is unchanged.",
+    "set.lang":"Language",          "setd.lang":"Changes every label in the game.",
+    "set.progress":"Progress",
+    "setd.progress":"On level {n}", "setd.progressEcho":"On level {n} \u00b7 echo at {e}ms",
+
+    "levels.title":"Levels",
+
+    "hud.level":"Level", "hud.cue":"Cue", "hud.streak":"Streak", "hud.reaction":"reaction", "hud.miss":"miss",
+
+    "card.newCue":"New cue", "card.newMod":"New pressure",
+    "card.cleared":"Level {n} cleared", "card.next":"Next",
+    "card.doneEyebrow":"Thirty of thirty", "card.doneTitle":"Cleared",
+    "card.overEyebrow":"Fell at level {n}", "card.overTitle":"Game over",
+    "card.overBody":"Three cues missed. The game restarts from level 01.",
+    "card.paused":"Paused",
+
+    "orient.portrait":"turn your device upright",
+    "orient.landscape":"widen the window \u2014 malik plays in landscape here",
+  
+    /* --- update: theme, tries, chaos --- */
+    "set.theme":"Appearance",
+    "setd.theme":"Light or dark for the menus. The arena keeps its own colours.",
+    "hud.try":"Try",
+    "card.firstTry":"First try.",
+    "card.inTries":"Cleared on try {n}.",
+    "ui.enterChaos":"enter chaos",
+    "home.playChaos":"hit the pulse for chaos",
+    "chaos.name":"Chaos",
+    "chaos.sub":"Level 30 · endless",
+    "chaos.locked":"clear level 29 to unlock",
+    "chaos.ready":"endless — one mistake ends the run",
+    "card.chaosIntro":"No level to finish and no lives. Every signal you take raises the chain by one and changes something. It never stops on its own.",
+    "card.chaosEnded":"Chaos ended",
+    "card.chaosBody":"One signal got away. Start again whenever you like — nothing here has to be beaten.",
+    "card.chaosBest":"That is the longest you have held it.",
+    "card.doneChaos":"Twenty-nine levels done. What is left has no end and no lives — only a chain that keeps climbing.",
+    "stats.best":"best",
+    "stats.phase":"phase",
+    "phase.warm":"Warm up",
+    "phase.pressure":"Pressure",
+    "phase.confusion":"Confusion",
+    "phase.overload":"Overload",
+    "phase.instinct":"Instinct",
+    "phase.breakdown":"Breakdown",
+    "phase.beyond":"Phase {n}",
+    "ms.10":"chain 10 · the ring wakes",
+    "ms.25":"chain 25 · new twist",
+    "ms.50":"chain 50 · overdrive",
+    "ms.100":"chain 100 · extreme",
+    "ms.250":"chain 250 · spectrum",
+    "ms.n":"chain {n}",
+    "setd.progressChain":"On level {n} · best chain {e}",
+  },
+
+  fr: {
+    "ui.light":"Clair", "ui.dark":"Sombre",
+    "ui.close":"fermer", "ui.back":"retour", "ui.next":"suivant", "ui.restartDemo":"recommencer",
+    "ui.gotit":"compris", "ui.continue":"continuer", "ui.home":"accueil", "ui.again":"rejouer",
+    "ui.resume":"reprendre", "ui.restart":"recommencer", "ui.quit":"quitter", "ui.begin":"commencer", "ui.reset":"effacer", "ui.confirm":"confirmer", "ui.startNow":"commencer",
+    "nav.howto":"comment jouer", "nav.settings":"r\u00e9glages", "nav.levels":"niveaux",
+
+    "home.tagline":"Lis le signal. Frappe le bon. Ne r\u00e9fl\u00e9chis pas.",
+    "home.play":"frappe le pouls pour jouer",
+    "home.playLevel":"frappe le pouls \u2014 niveau {n}",
+
+    "howto.title":"Comment jouer",
+    "howto.foot":"Un seul signal occupe le centre. Il indique quel orbe frapper et comment. Tout le reste n'est que d\u00e9cor. Trois signaux manqu\u00e9s et la partie repart du niveau 01.",
+    "demo.try":"touche l'ar\u00e8ne pour essayer", "demo.nice":"bien",
+
+    "cue.MATCH":"Accord",   "line.MATCH":"Frappe l'orbe de la m\u00eame couleur que le signal.",
+    "cue.INVERT":"Inverse", "line.INVERT":"Un signal creux h\u00e9riss\u00e9 de pointes vers l'int\u00e9rieur : frappe la couleur <b>oppos\u00e9e</b>. Les paires ne changent jamais : Volt\u2013Aqua, Soleil\u2013Abysse, Lime\u2013Orchid\u00e9e.",
+    "cue.HOLD":"Maintien",  "line.HOLD":"Le signal porte deux crochets. Appuie sur le bon orbe et reste dessus jusqu'\u00e0 ce que l'anneau se referme.",
+    "cue.VOID":"Vide",      "line.VOID":"Une croix blanche : aucune r\u00e9ponse n'est bonne. Touche quoi que ce soit et c'est perdu.",
+    "cue.CHAIN":"Cha\u00eene", "line.CHAIN":"Deux couleurs superpos\u00e9es et num\u00e9rot\u00e9es. Frappe-les dans cet ordre.",
+    "cue.LINK":"Lien",      "line.LINK":"Deux couleurs reli\u00e9es par une barre. Appuie sur le premier orbe, glisse, rel\u00e2che sur le second.",
+    "cue.PHANTOM":"Fant\u00f4me","line.PHANTOM":"Un signal p\u00e2le en pointill\u00e9s est un mensonge. Ignore-le, il s'efface tout seul.",
+    "cue.BURST":"Rafale",   "line.BURST":"Trois points sous le signal. Frappe ce m\u00eame orbe trois fois avant que l'anneau se vide.",
+
+    "mod.drift":"D\u00e9rive",    "modline.drift":"L'anneau se met \u00e0 tourner.",
+    "mod.sway":"Balancement",     "modline.sway":"Les orbes s'\u00e9cartent de l'anneau.",
+    "mod.husks":"Leurres",        "modline.husks":"Les orbes gris en pointill\u00e9s ne sont jamais la r\u00e9ponse. En frapper un compte comme un rat\u00e9.",
+    "mod.swap":"\u00c9change",     "modline.swap":"Les orbes changent de place en plein signal. Suis-les.",
+    "mod.glare":"\u00c9clat",      "modline.glare":"L'ar\u00e8ne s'embrase. Le signal, lui, reste lisible.",
+    "mod.reverse":"Demi-tour",    "modline.reverse":"L'anneau change de sens sans pr\u00e9venir.",
+    "mod.squeeze":"\u00c9tau",     "modline.squeeze":"Aucune nouvelle r\u00e8gle. Juste moins de temps.",
+
+    "col.volt":"Volt", "col.aqua":"Aqua", "col.sun":"Soleil",
+    "col.deep":"Abysse", "col.lime":"Lime", "col.orchid":"Orchid\u00e9e",
+
+    "settings.title":"R\u00e9glages",
+    "set.sfx":"Effets sonores",     "setd.sfx":"Frappes, rat\u00e9s, tics de signal.",
+    "set.music":"Musique",          "setd.music":"Une pulsation qui se resserre avec le niveau.",
+    "set.vfx":"Densit\u00e9 des effets","setd.vfx":"Particules, halos, leurres flottants.",
+    "set.shake":"Secousses",        "setd.shake":"Impact sur les frappes et les rat\u00e9s.",
+    "set.reduce":"Mouvement r\u00e9duit","setd.reduce":"Supprime les flashs, les tra\u00een\u00e9es et les secousses. Les signaux ne changent pas.",
+    "set.symbols":"Symboles de couleur","setd.symbols":"Marque chaque couleur d'une forme, sur les orbes et sur le signal.",
+    "set.assist":"Zones de frappe \u00e9largies","setd.assist":"Les orbes r\u00e9agissent de plus loin. Le tempo ne change pas.",
+    "set.lang":"Langue",            "setd.lang":"Change tous les textes du jeu.",
+    "set.progress":"Progression",
+    "setd.progress":"Au niveau {n}","setd.progressEcho":"Au niveau {n} \u00b7 \u00e9cho \u00e0 {e}ms",
+
+    "levels.title":"Niveaux",
+
+    "hud.level":"Niveau", "hud.cue":"Signal", "hud.streak":"S\u00e9rie", "hud.reaction":"r\u00e9action", "hud.miss":"rat\u00e9",
+
+    "card.newCue":"Nouveau signal", "card.newMod":"Nouvelle pression",
+    "card.cleared":"Niveau {n} r\u00e9ussi", "card.next":"Suivant",
+    "card.doneEyebrow":"Trente sur trente", "card.doneTitle":"Termin\u00e9",
+    "card.overEyebrow":"Tomb\u00e9 au niveau {n}", "card.overTitle":"Perdu",
+    "card.overBody":"Trois signaux manqu\u00e9s. La partie repart du niveau 01.",
+    "card.paused":"Pause",
+
+    "orient.portrait":"tourne ton appareil \u00e0 la verticale",
+    "orient.landscape":"\u00e9largis la fen\u00eatre \u2014 malik se joue en paysage ici",
+  
+    /* --- update: theme, tries, chaos --- */
+    "set.theme":"Apparence",
+    "setd.theme":"Clair ou sombre pour les menus. L'arène garde ses propres couleurs.",
+    "hud.try":"Essai",
+    "card.firstTry":"Du premier coup.",
+    "card.inTries":"Réussi à l'essai {n}.",
+    "ui.enterChaos":"entrer dans le chaos",
+    "home.playChaos":"frappe le pouls pour le chaos",
+    "chaos.name":"Chaos",
+    "chaos.sub":"Niveau 30 · sans fin",
+    "chaos.locked":"termine le niveau 29 pour débloquer",
+    "chaos.ready":"sans fin — une seule erreur et c'est terminé",
+    "card.chaosIntro":"Aucun niveau à finir et aucune vie. Chaque signal pris ajoute un à la chaîne et change quelque chose. Ça ne s'arrête jamais tout seul.",
+    "card.chaosEnded":"Chaos terminé",
+    "card.chaosBody":"Un signal t'a échappé. Recommence quand tu veux — rien ici n'a besoin d'être battu.",
+    "card.chaosBest":"C'est la plus longue que tu aies tenue.",
+    "card.doneChaos":"Vingt-neuf niveaux terminés. Ce qui reste n'a ni fin ni vies — seulement une chaîne qui monte.",
+    "stats.best":"record",
+    "stats.phase":"phase",
+    "phase.warm":"Échauffement",
+    "phase.pressure":"Pression",
+    "phase.confusion":"Confusion",
+    "phase.overload":"Surcharge",
+    "phase.instinct":"Instinct",
+    "phase.breakdown":"Effondrement",
+    "phase.beyond":"Phase {n}",
+    "ms.10":"chaîne 10 · l'anneau s'éveille",
+    "ms.25":"chaîne 25 · nouvelle torsion",
+    "ms.50":"chaîne 50 · surrégime",
+    "ms.100":"chaîne 100 · extrême",
+    "ms.250":"chaîne 250 · spectre",
+    "ms.n":"chaîne {n}",
+    "setd.progressChain":"Au niveau {n} · meilleure chaîne {e}",
+  }
+};
+function t(key, vars) {
+  const dict = LANG[S.lang] || LANG.en;
+  let s = dict[key];
+  if (s === undefined) s = LANG.en[key];
+  if (s === undefined) return key;
+  if (vars) for (const k in vars) s = s.split("{" + k + "}").join(vars[k]);
+  return s;
+}
+function colName(k) { return t("col." + k); }
 
 /* symbol assist glyphs, drawn inside orbs when enabled */
 function drawSymbol(g, k, x, y, r, col) {
@@ -361,19 +760,41 @@ function drawSymbol(g, k, x, y, r, col) {
 }
 
 /* ---------------- storage ---------------- */
+/* Levels 1-29 are authored. Level 30 is Chaos: endless, and not a level at all. */
+const LEVELS = 29;
+const CHAOS_LV = 30;
+
 const KEY = "malik.v1";
 const DEFAULTS = {
   sfx: 0.8, music: 0.3, vfx: 1, reduce: false, shake: true,
-  symbols: false, assist: false, unlocked: 1, echo: null, echoRuns: 0
+  symbols: false, assist: false, lang: null,
+  level: 1, unlocked: 1, seen: {}, theme: "light", bestChain: 0, chaosRuns: 0
 };
 let S = loadState();
+function applyTheme() {
+  document.documentElement.setAttribute("data-theme", S.theme === "dark" ? "dark" : "light");
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", S.theme === "dark" ? "#0B0B12" : "#EDEFF2");
+}
+function setTheme(v) {
+  if (v !== "light" && v !== "dark") return;
+  S.theme = v; saveState(); applyTheme();
+  $$("[data-seg=theme] button").forEach(function (b) {
+    b.setAttribute("aria-pressed", b.dataset.val === v ? "true" : "false");
+  });
+}
+
 function loadState() {
   let raw = null;
   try { raw = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { raw = {}; }
   const out = {};
   for (const k in DEFAULTS) out[k] = (raw && raw[k] !== undefined && raw[k] !== null) ? raw[k] : DEFAULTS[k];
-  if (raw && raw.echo === null) out.echo = null;
-  out.unlocked = clamp(out.unlocked | 0 || 1, 1, 31);
+  out.unlocked = clamp(out.unlocked | 0 || 1, 1, LEVELS + 1);
+  out.level = clamp(out.level | 0 || 1, 1, LEVELS + 1);
+  out.bestChain = Math.max(0, out.bestChain | 0);
+  if (out.theme !== "light" && out.theme !== "dark") out.theme = "light";
+  if (out.lang !== "en" && out.lang !== "fr") out.lang = null;
+  out.seen = (out.seen && typeof out.seen === "object") ? Object.assign({}, out.seen) : {};
   return out;
 }
 function saveState() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
@@ -521,28 +942,18 @@ const SND = {
 
 /* ---------------- level design ---------------- */
 const CUES = {
-  MATCH:   { lv: 1,  name: "Match",   line: "Hit the orb that matches the cue colour." },
-  INVERT:  { lv: 4,  name: "Invert",  line: "A hollow cue with inward spikes means hit the <b>opposite</b> colour. The pairs never change: Volt\u2013Aqua, Sun\u2013Deep, Lime\u2013Orchid." },
-  HOLD:    { lv: 7,  name: "Hold",    line: "The cue has a lock bracket. Press the right orb and stay on it until the ring closes." },
-  VOID:    { lv: 10, name: "Void",    line: "A white cross means nothing is the answer. Touch anything and you lose it." },
-  CHAIN:   { lv: 13, name: "Chain",   line: "Two colours stacked, numbered. Hit them in that order." },
-  LINK:    { lv: 16, name: "Link",    line: "Two colours joined by a bar. Press the first orb, drag across, release on the second." },
-  PHANTOM: { lv: 20, name: "Phantom", line: "A faded, dashed cue is a lie. Ignore it and it clears itself." },
-  BURST:   { lv: 25, name: "Burst",   line: "Three pips under the cue. Hit that one orb three times before the ring empties." }
+  MATCH:{ lv: 1 }, INVERT:{ lv: 4 }, HOLD:{ lv: 7 }, VOID:{ lv: 10 },
+  CHAIN:{ lv: 13 }, LINK:{ lv: 16 }, PHANTOM:{ lv: 20 }, BURST:{ lv: 25 }
 };
 const CUE_KEYS = Object.keys(CUES);
 const MODS = [
-  { lv: 6,  name: "Drift",   line: "The ring starts turning." },
-  { lv: 9,  name: "Sway",    line: "Orbs wander off the ring." },
-  { lv: 12, name: "Husks",   line: "Dashed grey orbs are never the answer. Hitting one counts as a miss." },
-  { lv: 18, name: "Swap",    line: "Orbs trade places mid-cue. Track them." },
-  { lv: 22, name: "Glare",   line: "The arena flares. The cue stays readable." },
-  { lv: 27, name: "Reverse", line: "The ring changes direction without warning." },
-  { lv: 29, name: "Squeeze", line: "No new rules. Just less time." }
+  { lv: 6, key: "drift" }, { lv: 9, key: "sway" }, { lv: 12, key: "husks" },
+  { lv: 18, key: "swap" }, { lv: 22, key: "glare" }, { lv: 27, key: "reverse" },
+  { lv: 29, key: "squeeze" }
 ];
 
 function levelCfg(n) {
-  const t = clamp((n - 1) / 29, 0, 1);
+  const t = clamp((n - 1) / (LEVELS - 1), 0, 1);
   const types = CUE_KEYS.filter(k => n >= CUES[k].lv);
   return {
     n: n, types: types,
@@ -557,16 +968,92 @@ function levelCfg(n) {
     chaos: t, gap: Math.round(lerp(500, 150, t)), lives: 3
   };
 }
-function echoCfg() {
-  return {
-    n: 31, types: CUE_KEYS.slice(), orbs: 6, win: 1400, need: Infinity,
-    spin: 0.9, sway: 1, husks: 3, swap: 1000, glare: true, reverse: true,
-    chaos: 1, gap: 120, lives: 1
-  };
+/* how many attempts the player has spent on the level they are on */
+function tryCount() { return (G.tryMap && G.tryMap[G.lv]) || 1; }
+
+/* one signal taken: raise the chain, then re-derive every dial from it */
+function advanceChaos() {
+  const chain = G.chain;
+  const wasPhase = G.phase;
+  const ph = phaseAt(chain);
+  if (ph !== wasPhase) {
+    G.phase = ph;
+    G.twists = rollTwists(ph);
+    SND.levelUp();
+    flashScreen("#EDEFF2", 0.16);
+    ripple(A.cx, A.cy, "#EDEFF2", A.R * 2.1, 3, 34);
+    banner(phaseName(ph));
+  }
+  const key = milestoneKey(chain);
+  if (key) {
+    if (chain >= 250) G.msBoost = 1.5;
+    else if (chain >= 100) G.msBoost = 1.35;
+    else if (chain >= 50) G.msBoost = 1.2;
+    else if (chain >= 25) G.msBoost = 1.1;
+    if (chain === 25) { const extra = pick(TWISTS); if (G.twists.indexOf(extra) < 0) G.twists.push(extra); }
+    banner(t(key, { n: chain }));
+    SND.boom(); SND.levelUp();
+    for (let i = 0; i < (chain >= 100 ? 10 : 6); i++) setTimeout(function () {
+      if (G.state !== "live" && G.state !== "beat") return;
+      ripple(A.cx, A.cy, COL[pick(CK)], A.R * (1.6 + Math.random()), 3, 32);
+      spark(A.cx, A.cy, COL[pick(CK)], 14, 9);
+    }, i * 60);
+    if (G.shakeOK()) G.shake = 11;
+  }
+
+  const prevOrbs = G.cfg.orbs, prevHusks = G.cfg.husks;
+  const cfg = chaosCfg(chain);
+  cfg.twists = G.twists;
+  G.cfg = cfg;
+  if (cfg.orbs !== prevOrbs || cfg.husks !== prevHusks) {
+    rebuildRing(cfg);
+  } else {
+    sizeOrbs();
+  }
+  if (chain % 12 === 0) seedDrift(cfg);
+  SND.setIntensity(clamp(cfg.chaos, 0, 1));
+}
+
+/* grow the ring without teleporting what is already there */
+function rebuildRing(cfg) {
+  const keepReal = G.orbs.filter(function (o) { return !o.husk; });
+  const cols = CK.slice();
+  for (let i = cols.length - 1; i > 0; i--) { const j = irnd(0, i); const x = cols[i]; cols[i] = cols[j]; cols[j] = x; }
+  const used = keepReal.map(function (o) { return o.k; });
+  while (keepReal.length < cfg.orbs) {
+    const free = cols.filter(function (c) { return used.indexOf(c) < 0; });
+    if (!free.length) break;
+    const k = free[0]; used.push(k);
+    keepReal.push({ k: k, husk: false, slot: 0, ang: rnd(0, TAU), x: A.cx, y: A.cy,
+      pop: 1, mark: false, num: 0, ph: rnd(0, TAU), ph2: rnd(0, TAU), flick: 0 });
+  }
+  while (keepReal.length > cfg.orbs) keepReal.pop();
+  const list = keepReal.slice();
+  for (let i = 0; i < cfg.husks; i++) {
+    list.push({ k: null, husk: true, slot: 0, ang: rnd(0, TAU), x: A.cx, y: A.cy,
+      pop: 0, mark: false, num: 0, ph: rnd(0, TAU), ph2: rnd(0, TAU), flick: 0 });
+  }
+  const off = rnd(0, TAU);
+  for (let i = list.length - 1; i > 0; i--) { const j = irnd(0, i); const x = list[i]; list[i] = list[j]; list[j] = x; }
+  list.forEach(function (o, i) { o.slot = i; o.ang = off + (i / list.length) * TAU; });
+  G.orbs = list;
+  sizeOrbs();
+  ripple(A.cx, A.cy, "#EDEFF2", A.R * 1.25, 2, 24);
+}
+
+/* milestone / phase banner */
+let bannerT = 0;
+function banner(text) {
+  const el = $("#msBanner");
+  if (!el) return;
+  el.textContent = text;
+  el.classList.remove("show"); void el.offsetWidth; el.classList.add("show");
+  clearTimeout(bannerT);
+  bannerT = setTimeout(function () { el.classList.remove("show"); }, 1800);
 }
 function newAt(n) {
-  for (const k in CUES) if (CUES[k].lv === n) return { kind: "cue", key: k, name: CUES[k].name, line: CUES[k].line };
-  for (const m of MODS) if (m.lv === n) return { kind: "mod", name: m.name, line: m.line };
+  for (const k in CUES) if (CUES[k].lv === n) return { kind: "cue", id: "c." + k, key: k, name: t("cue." + k), line: t("line." + k) };
+  for (const m of MODS) if (m.lv === n) return { kind: "mod", id: "m." + m.key, name: t("mod." + m.key), line: t("modline." + m.key) };
   return null;
 }
 
@@ -595,7 +1082,8 @@ function sizeOrbs() {
   const m = Math.min(A.w, A.h);
   const base = clamp(m * 0.071, 18, 62);
   const n = Math.max(3, G.orbs ? G.orbs.length : 4);
-  A.orbR = Math.max(13, Math.min(base, (TAU * A.R / n) * 0.40));
+  const sc = (G.cfg && G.cfg.orbScale) ? G.cfg.orbScale : 1;
+  A.orbR = Math.max(13, Math.min(base, (TAU * A.R / n) * 0.40) * sc);
 }
 const IS_MOBILE = (function () {
   return (navigator.maxTouchPoints > 1 && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent))
@@ -839,23 +1327,96 @@ function drawCue(ctx, cue, cx, cy, R, alpha, progress, tNow) {
 
 /* ---------------- game state ---------------- */
 const HOLD_MS = 430;
-const CALIB_CUES = 12;
 const BURST_TAPS = 3;
-/* Echo tuning. The target is the pace you PROVED you can hold, not your single
-   best flick — calibrating to a lucky reaction makes the next run unsurvivable. */
-const ECHO = {
-  slack: 1.08,    /* cushion over the slowest cue you cleared while calibrating */
-  ratchet: 0.9975,/* how much the target tightens per cue held */
-  cushion: 1.04,  /* stored just above the deepest target you held, so a run is a ladder, not a cliff */
-  floor: 150, min: 170, max: 1400
-};
-/* the pace to beat = the slowest cue you still cleared, plus a little air */
-function calibrateFrom(samples) {
-  if (!samples.length) return null;
-  const s = samples.slice().sort(function (a, b) { return a - b; });
-  const held = s[s.length - 1];
-  return clamp(Math.round(held * ECHO.slack), ECHO.min, ECHO.max);
+/* ============================================================
+   LEVEL 30 — CHAOS
+   Endless. The chain rises by one on every signal taken and the run
+   ends on the first one dropped. Difficulty is a set of independent
+   dials, not a single speed slider: phases decide WHICH dials get
+   pushed, the chain decides how hard. Every dial has a floor, so the
+   arena can get overwhelming to watch but never stops being readable.
+   ============================================================ */
+const PHASES = [
+  { key: "warm",      at: 0,  types: ["MATCH", "INVERT"] },
+  { key: "pressure",  at: 8,  types: ["MATCH", "INVERT", "HOLD", "BURST"] },
+  { key: "confusion", at: 20, types: ["MATCH", "INVERT", "HOLD", "BURST", "CHAIN"] },
+  { key: "overload",  at: 36, types: ["MATCH", "INVERT", "HOLD", "BURST", "CHAIN", "LINK"] },
+  { key: "instinct",  at: 56, types: ["MATCH", "INVERT", "HOLD", "BURST", "CHAIN", "LINK", "VOID", "PHANTOM"] },
+  { key: "breakdown", at: 80, types: ["MATCH", "INVERT", "HOLD", "BURST", "CHAIN", "LINK", "VOID", "PHANTOM"] }
+];
+const PHASE_EVERY = 40;          /* past Breakdown, a fresh combination every 40 */
+const TWISTS = ["spinstorm", "wideSway", "swapRush", "huskFlood", "blink", "breathe", "reverse"];
+
+function phaseAt(chain) {
+  if (chain < PHASES[PHASES.length - 1].at) {
+    let i = 0;
+    for (let k = 0; k < PHASES.length; k++) if (chain >= PHASES[k].at) i = k;
+    return i;
+  }
+  return PHASES.length - 1 + Math.floor((chain - PHASES[PHASES.length - 1].at) / PHASE_EVERY);
 }
+function phaseName(i) {
+  return i < PHASES.length ? t("phase." + PHASES[i].key) : t("phase.beyond", { n: i + 1 });
+}
+/* past the authored phases, roll a fresh set of twists so no two runs repeat */
+function rollTwists(phase) {
+  if (phase < PHASES.length) {
+    const base = [];
+    if (phase >= 1) base.push("spinstorm");
+    if (phase >= 2) base.push("wideSway", "huskFlood");
+    if (phase >= 3) base.push("swapRush");
+    if (phase >= 4) base.push("blink");
+    if (phase >= 5) base.push("breathe", "reverse");
+    return base;
+  }
+  const pool = TWISTS.slice();
+  const out = ["spinstorm", "huskFlood"];
+  const extra = 2 + (phase % 3);
+  for (let i = 0; i < extra && pool.length; i++) {
+    const k = irnd(0, pool.length - 1);
+    if (out.indexOf(pool[k]) < 0) out.push(pool[k]);
+    pool.splice(k, 1);
+  }
+  return out;
+}
+function has(tw, k) { return tw.indexOf(k) >= 0; }
+
+/* Everything below is clamped. The floors are the fairness contract. */
+function chaosCfg(chain) {
+  const ph = phaseAt(chain);
+  const tw = G.twists && G.twists.length ? G.twists : rollTwists(ph);
+  const heat = clamp(chain / 120, 0, 1);          /* 0..1 across the first 120 */
+  const deep = Math.max(0, chain - 120) / 200;    /* keeps creeping after that */
+  const types = ph < PHASES.length ? PHASES[ph].types.slice() : PHASES[PHASES.length - 1].types.slice();
+  return {
+    n: CHAOS_LV, chaosMode: true, chain: chain, phase: ph, twists: tw, types: types,
+    /* asymptotic window: fast, but never below something a person can see */
+    win: Math.round(430 + 1120 * Math.pow(0.968, chain)),
+    orbs: clamp(3 + Math.floor(chain / 9), 3, 6),
+    husks: has(tw, "huskFlood") ? clamp(Math.floor((chain - 14) / 11), 0, 5) : 0,
+    orbScale: clamp(1 - chain * 0.0035, 0.66, 1),
+    spin: has(tw, "spinstorm") ? clamp(0.2 + heat * 1.1 + deep * 0.5, 0, 2.2) : 0,
+    sway: has(tw, "wideSway") ? clamp(0.3 + heat * 1.2, 0, 1.8) : 0,
+    swap: has(tw, "swapRush") ? Math.max(520, 2600 - chain * 16) : 0,
+    reverse: has(tw, "reverse"),
+    blink: has(tw, "blink"),
+    breathe: has(tw, "breathe"),
+    glare: chain >= 36,
+    need: Infinity, lives: 1,
+    gap: Math.round(clamp(480 - chain * 3.4, 120, 480)),
+    chaos: clamp(0.25 + chain / 90, 0, 1) * (G.msBoost || 1)
+  };
+}
+/* milestones never cap the run — they only make it louder */
+const MILESTONES = [10, 25, 50, 100, 250];
+function milestoneKey(n) {
+  if (MILESTONES.indexOf(n) >= 0) return "ms." + n;
+  if (n > 250 && n % 100 === 0) return "ms.250";
+  if (n > 25 && n % 50 === 0) return "ms.n";
+  return null;
+}
+/* the pace to beat = the slowest cue you still cleared, plus a little air */
+
 const WIN_SCALE = { MATCH: 1, INVERT: 1.16, HOLD: 1.06, VOID: 1, PHANTOM: 1, CHAIN: 1.18, LINK: 1.24, BURST: 1.14 };
 const BURST_MS = 800;
 
@@ -868,7 +1429,7 @@ const G = {
   shake: 0, shakeA: 0, glareT: 0, heat: 0, streak: 0, best: 0,
   trail: [], drift: [], ptr: { x: 0, y: 0, down: false },
   react: 0, lastReact: 0, lastType: null, prevType: null,
-  echoTarget: 0, echoDeep: 0, echoSamples: [], calibrating: false
+  chain: 0, bestSeen: 0, twists: [], msBoost: 1, phase: 0, tryMap: {}
 };
 
 function buildOrbs(cfg) {
@@ -933,9 +1494,9 @@ function makeCue() {
     const t = pick(reals); c.tA = t; c.colA = t.k;
   }
 
-  let base = G.mode === "echo" ? (G.calibrating ? 1150 : G.echoTarget) : cfg.win;
-  /* a run that dies on the opening cue teaches nothing — give the first two a little air */
-  if (G.mode === "echo" && !G.calibrating && G.done < 2) base *= 1.22;
+  let base = cfg.win;
+  /* a run that dies on the opening signal teaches nothing — give the first two a little air */
+  if (G.mode === "chaos" && G.chain < 2) base *= 1.25;
   c.scale = WIN_SCALE[type];
   c.base = Math.round(base * c.scale);
   c.win = c.base;
@@ -963,15 +1524,11 @@ function success(x, y, col) {
   const c = G.cue;
   const timed = c.type !== "VOID" && c.type !== "PHANTOM";
   const raw = c.firstAt !== undefined ? (c.firstAt - c.born) : elapsed();
-  if (G.mode === "echo" && !G.calibrating && timed && raw > c.limit) {
-    setReact(Math.round(raw), false);
-    miss("slow", x, y); return;
-  }
   const norm = raw / (c.scale || 1);
   G.streak++; G.done++;
   G.heat = clamp(G.heat + 0.16, 0, 1);
   if (timed) { G.lastReact = Math.round(raw); setReact(Math.round(raw), false); }
-  const fast = timed && norm < (G.mode === "echo" ? G.echoTarget * 0.7 : G.cfg.win * 0.34);
+  const fast = timed && norm < G.cfg.win * 0.34;
   SND.hit(G.streak, G.heat > 0.55);
   if (fast) SND.perfect();
 
@@ -984,25 +1541,10 @@ function success(x, y, col) {
   if (G.shakeOK()) G.shake = Math.max(G.shake, 2 + G.heat * 3.5);
   flashScreen(cc, 0.05 + G.heat * 0.07);
 
-  if (G.mode === "echo") {
-    if (timed) {
-      G.echoSamples.push(norm);
-      if (G.calibrating && G.done >= CALIB_CUES) { G.cue = null; paintHud(); finishCalibration(); return; }
-      if (!G.calibrating) {
-        G.echoTarget = Math.max(ECHO.floor, G.echoTarget * ECHO.ratchet);
-        G.echoDeep = Math.min(G.echoDeep || G.echoTarget, G.echoTarget);
-        G.cfg.spin = Math.min(2.4, G.cfg.spin * 1.014);
-        G.cfg.sway = Math.min(2.2, G.cfg.sway * 1.01);
-        G.cfg.swap = Math.max(380, G.cfg.swap * 0.984);
-        if (G.done % 8 === 0 && G.orbs.length < 13) {
-          G.orbs.push({ k: null, husk: true, slot: G.orbs.length, ang: rnd(0, TAU),
-            x: A.cx, y: A.cy, pop: 0, mark: false, num: 0, ph: rnd(0, TAU), ph2: rnd(0, TAU), flick: 0 });
-          sizeOrbs();
-          ripple(A.cx, A.cy, HUSK, A.R * 1.3, 2, 26);
-        }
-        SND.echoBeat();
-      }
-    }
+  if (G.mode === "chaos") {
+    G.chain++;
+    if (G.chain > G.bestSeen) G.bestSeen = G.chain;
+    advanceChaos();
     G.cue = null; paintHud(); nextCue();
     return;
   }
@@ -1026,7 +1568,7 @@ function miss(reason, x, y) {
   flashScreen("#FF2D55", 0.2);
   paintHud();
   if (G.lives <= 0) {
-    if (G.mode === "echo") { echoOver(reason === "slow"); } else { levelFail(); }
+    if (G.mode === "chaos") { chaosOver(); } else { levelFail(); }
     return;
   }
   nextCue(Math.max(320, G.cfg.gap));
@@ -1156,7 +1698,8 @@ function update(dt) {
   const swayAmp = cfg.sway * A.R * 0.13;
   for (const o of G.orbs) {
     const ang = o.ang + G.spin;
-    const rad = A.R + Math.sin(G.t / 620 + o.ph) * swayAmp;
+    const breathe = cfg.breathe ? Math.sin(G.t / 880) * A.R * 0.11 : 0;
+    const rad = A.R + Math.sin(G.t / 620 + o.ph) * swayAmp + breathe;
     const tang = Math.sin(G.t / 480 + o.ph2) * cfg.sway * 0.13;
     o.x = A.cx + Math.cos(ang + tang) * rad;
     o.y = A.cy + Math.sin(ang + tang) * rad;
@@ -1339,15 +1882,6 @@ function render() {
     g.fillStyle = vg; g.fillRect(0, 0, A.w, A.h);
   }
 
-  /* the echo target draining in real time */
-  if (G.mode === "echo" && !G.calibrating) {
-    if (!G.ebar || !G.ebar.isConnected) G.ebar = document.getElementById("ebar");
-    if (G.ebar) {
-      const p = c ? clamp(1 - elapsed() / c.win, 0, 1) : 1;
-      G.ebar.style.transform = "scaleX(" + p.toFixed(3) + ")";
-      G.ebar.style.background = p < 0.28 ? "#FF2D55" : "#00E0D5";
-    }
-  }
 }
 
 /* ---------------- HUD ---------------- */
@@ -1355,7 +1889,7 @@ const hud = { root: $("#hud"), lvl: $("#hudLevel"), lives: $("#hudLives"), right
 let reactTimer = 0;
 function setReact(ms, bad) {
   const el = $("#react");
-  if (bad) { el.textContent = "miss"; el.style.color = "#FF2D55"; }
+  if (bad) { el.textContent = t("hud.miss"); el.style.color = "#FF2D55"; }
   else {
     el.textContent = ms + "";
     el.style.color = ms < 260 ? "#3DFF7A" : ms < 460 ? "#EDEFF2" : "#FFC400";
@@ -1364,48 +1898,49 @@ function setReact(ms, bad) {
   reactTimer = setTimeout(function () { el.style.color = "rgba(237,239,242,.85)"; }, 700);
 }
 function paintHud() {
-  if (G.mode === "echo") {
-    hud.lvl.innerHTML = "<b>Echo</b>";
-    let lv = "";
-    for (let i = 0; i < 1; i++) lv += "<i" + (G.lives > i ? "" : " class='gone'") + "></i>";
-    hud.lives.innerHTML = lv;
-    hud.right.innerHTML = G.calibrating
-      ? "Calibrating"
-      : "Target <b>" + Math.round(G.echoTarget) + "ms</b>";
-    hud.streak.innerHTML = "Streak <b>" + G.done + "</b>";
+  if (G.mode === "chaos") {
+    hud.lvl.innerHTML = '<span id="chaosBadge">' + t("chaos.name") + " <b>\u00d7" + G.chain + "</b></span>"
+      + '<div id="chaosPhase">' + phaseName(G.phase) + "</div>";
+    hud.lives.innerHTML = "";
+    hud.right.innerHTML = S.bestChain > 0 ? t("stats.best") + " <b>" + S.bestChain + "</b>" : "";
+    hud.streak.innerHTML = "";
   } else {
-    hud.lvl.innerHTML = "Level <b>" + pad2(G.lv) + "</b>";
+    hud.lvl.innerHTML = t("hud.level") + " <b>" + pad2(G.lv) + "</b>";
     let lv = "";
     for (let i = 0; i < G.cfg.lives; i++) lv += "<i" + (G.lives > i ? "" : " class='gone'") + "></i>";
     hud.lives.innerHTML = lv;
-    hud.right.innerHTML = "Cue <b>" + pad2(Math.min(G.done + 1, G.cfg.need)) + " / " + G.cfg.need + "</b>";
-    hud.streak.innerHTML = G.streak > 2 ? "Streak <b>" + G.streak + "</b>" : "";
+    hud.right.innerHTML = t("hud.cue") + " <b>" + pad2(Math.min(G.done + 1, G.cfg.need)) + " / " + G.cfg.need + "</b>"
+      + (tryCount() > 1 ? '<div id="chaosPhase">' + t("hud.try") + " " + pad2(tryCount()) + "</div>" : "");
+    hud.streak.innerHTML = G.streak > 2 ? t("hud.streak") + " <b>" + G.streak + "</b>" : "";
   }
 }
 
 /* ---------------- flow ---------------- */
-function startLevel(n) {
+function startLevel(n, freshRun) {
   G.mode = "level"; G.lv = n; G.cfg = levelCfg(n);
+  if (!G.tryMap) G.tryMap = {};
+  /* replaying a cleared level from the level list is a separate run */
+  if (freshRun) G.tryMap[n] = 1; else G.tryMap[n] = G.tryMap[n] || 1;
   resetRun();
   const nu = newAt(n);
-  if (nu) showNewCard(nu, function () { beginRun(); });
-  else beginRun();
+  if (nu && !S.seen[nu.id]) {
+    S.seen[nu.id] = 1; saveState();
+    showNewCard(nu, function () { beginRun(); });
+  } else beginRun();
 }
-function startEcho() {
-  G.mode = "echo"; G.lv = 31; G.cfg = echoCfg();
+function startChaos() {
+  G.mode = "chaos"; G.lv = CHAOS_LV;
+  G.chain = 0; G.phase = 0; G.msBoost = 1; G.bestSeen = 0;
+  G.twists = rollTwists(0);
+  G.cfg = chaosCfg(0);
   resetRun();
-  G.calibrating = S.echo === null;
-  G.echoTarget = G.calibrating ? 1150 : S.echo;
-  G.echoDeep = G.echoTarget;
-  G.echoSamples = [];
   showCard({
-    eyebrow: "Level 30 cleared",
-    title: G.calibrating ? "Echo" : "Echo",
-    body: G.calibrating
-      ? "No levels now, and no second chances. Hold twelve cues and the pace you keep becomes your echo."
-      : "Your echo reacts in <b>" + Math.round(S.echo) + "ms</b>. Every cue, you have to be at least that fast, and the echo gets faster each time you match it.",
-    acts: [{ t: "begin", solid: true, fn: function () { hideCard(); beginRun(); } },
-           { t: "back", fn: function () { hideCard(); exitToHome(); } }]
+    eyebrow: t("chaos.sub"),
+    title: t("chaos.name"),
+    body: t("card.chaosIntro"),
+    note: S.bestChain > 0 ? t("stats.best") + " <b>" + S.bestChain + "</b>" : "",
+    acts: [{ t: t("ui.begin"), solid: true, fn: function () { hideCard(); beginRun(); } },
+           { t: t("ui.back"), fn: function () { hideCard(); exitToHome(); } }]
   });
 }
 function resetRun() {
@@ -1446,24 +1981,29 @@ function levelClear() {
     spark(A.cx, A.cy, COL[pick(CK)], 16, 9);
     ripple(A.cx, A.cy, COL[pick(CK)], A.R * 1.8, 3, 30);
   }, i * 70);
-  if (S.unlocked < G.lv + 1) { S.unlocked = Math.min(31, G.lv + 1); saveState(); }
+  S.level = Math.min(CHAOS_LV, G.lv + 1);
+  if (S.unlocked < S.level) S.unlocked = S.level;
+  saveState();
   const nxt = G.lv + 1;
   setTimeout(function () {
-    if (G.lv >= 30) {
+    const tries = tryCount();
+    const howLong = tries > 1 ? t("card.inTries", { n: tries }) : t("card.firstTry");
+    if (G.lv >= LEVELS) {
       showCard({
-        eyebrow: "Thirty of thirty",
-        title: "Cleared",
-        body: "The levels are done. What comes next has no levels and no lives \u2014 only your own pace to beat.",
-        acts: [{ t: "enter echo", solid: true, fn: function () { hideCard(); startEcho(); } },
-               { t: "home", fn: function () { hideCard(); exitToHome(); } }]
+        eyebrow: t("card.doneEyebrow"),
+        title: t("card.doneTitle"),
+        body: t("card.doneChaos"),
+        acts: [{ t: t("ui.enterChaos"), solid: true, fn: function () { hideCard(); startChaos(); } },
+               { t: t("ui.home"), fn: function () { hideCard(); exitToHome(); } }]
       });
     } else {
       showCard({
-        eyebrow: "Level " + pad2(G.lv) + " cleared",
-        title: "Next",
+        eyebrow: t("card.cleared", { n: pad2(G.lv) }),
+        title: t("card.next"),
         num: pad2(nxt),
-        acts: [{ t: "continue", solid: true, fn: function () { hideCard(); startLevel(nxt); } },
-               { t: "home", fn: function () { hideCard(); exitToHome(); } }]
+        body: howLong,
+        acts: [{ t: t("ui.continue"), solid: true, fn: function () { hideCard(); startLevel(nxt); } },
+               { t: t("ui.home"), fn: function () { hideCard(); exitToHome(); } }]
       });
     }
   }, 620);
@@ -1471,58 +2011,55 @@ function levelClear() {
 function levelFail() {
   G.state = "over"; G.cue = null; SND.stopMusic();
   SND.fail();
+  const fellAt = G.lv;
+  if (!G.tryMap) G.tryMap = {};
+  G.tryMap[fellAt] = (G.tryMap[fellAt] || 1) + 1;   /* this level cost another try */
+  S.level = 1; saveState();          /* losing sends the game back to the start */
+  const wait = 2800;
+  let taken = false;
+  const go = function (fn) {
+    return function () { if (taken) return; taken = true; clearTimeout(G.overT); hideCard(); fn(); };
+  };
   showCard({
-    eyebrow: "Level " + pad2(G.lv),
-    title: "Restart",
-    body: "Three cues away. The level starts over from the top.",
-    acts: [{ t: "again", solid: true, fn: function () { hideCard(); startLevel(G.lv); } },
-           { t: "home", fn: function () { hideCard(); exitToHome(); } }]
+    eyebrow: t("card.overEyebrow", { n: pad2(fellAt) }),
+    title: t("card.overTitle"),
+    body: t("card.overBody"),
+    countdown: wait,
+    acts: [{ t: t("ui.startNow"), solid: true, fn: go(function () { startLevel(1); }) },
+           { t: t("ui.home"), fn: go(exitToHome) }]
   });
+  G.overT = setTimeout(go(function () { startLevel(1); }), wait);
 }
-function finishCalibration() {
-  G.state = "over"; G.cue = null; SND.stopMusic(); SND.levelUp();
-  S.echo = calibrateFrom(G.echoSamples) || 600; saveState();
-  showCard({
-    eyebrow: "Calibrated",
-    title: S.echo + "ms",
-    body: "That is your echo. From here it plays you back \u2014 every cue has to land inside it, and it tightens each time you match it.",
-    acts: [{ t: "face it", solid: true, fn: function () { hideCard(); startEcho(); } },
-           { t: "home", fn: function () { hideCard(); exitToHome(); } }]
-  });
-}
-function echoOver(tooSlow) {
+function chaosOver() {
   G.state = "over"; G.cue = null; SND.stopMusic();
   SND.echoBreak();
-  let msg, eyebrow = "Echo";
-  if (G.calibrating) {
-    if (G.echoSamples.length >= 3) {
-      S.echo = calibrateFrom(G.echoSamples); saveState();
-      msg = "Short, but readable. Your echo is set at <b>" + S.echo + "ms</b>.";
-      eyebrow = "Calibrated";
-    } else { msg = "Too few clean cues to read a pace. Run it again."; }
-  } else {
-    const hold = Math.round(G.echoDeep * ECHO.cushion);
-    const improved = hold < S.echo - 0.5;
-    if (improved) {
-      S.echo = clamp(hold, ECHO.min, ECHO.max); saveState();
-      msg = "You outran it. The echo tightens to <b>" + S.echo + "ms</b>.";
-      eyebrow = "Sharpened";
-    } else {
-      msg = tooSlow
-        ? "The echo got there first. It stays at <b>" + Math.round(S.echo) + "ms</b>."
-        : "A dropped cue ends the run. The echo stays at <b>" + Math.round(S.echo) + "ms</b>.";
-    }
-  }
-  S.echoRuns++; saveState();
-  showCard({
-    eyebrow: eyebrow, title: "Run over", body: msg,
-    stats: [["" + G.done, "cues held"], [G.lastReact ? G.lastReact + "ms" : "\u2014", "last"], [Math.round(G.echoDeep) + "ms", "deepest"]],
-    acts: [{ t: "again", solid: true, fn: function () { hideCard(); startEcho(); } },
-           { t: "home", fn: function () { hideCard(); exitToHome(); } }]
-  });
+  const chain = G.chain;
+  const isBest = chain > 0 && chain > S.bestChain;
+  if (isBest) S.bestChain = chain;
+  S.chaosRuns++; saveState();
+  /* the run collapses rather than just stopping */
+  for (let i = 0; i < 7; i++) setTimeout(function () {
+    if (G.state !== "over") return;
+    shards(A.cx, A.cy, COL[pick(CK)], 9, 7);
+    ripple(A.cx, A.cy, "#FF2D55", A.R * (1.2 + Math.random() * 1.4), 3, 30);
+  }, i * 55);
+  setTimeout(function () {
+    showCard({
+      eyebrow: t("chaos.sub"),
+      title: t("card.chaosEnded"),
+      chain: chain,
+      note: t("stats.best") + " <b>" + S.bestChain + "</b>",
+      body: isBest ? t("card.chaosBest") : t("card.chaosBody"),
+      stats: [[phaseName(G.phase), t("stats.phase")]],
+      acts: [{ t: t("ui.again"), solid: true, fn: function () { hideCard(); startChaos(); } },
+             { t: t("ui.home"), fn: function () { hideCard(); exitToHome(); } }]
+    });
+  }, 520);
 }
+
 function exitToHome() {
   stopRun();
+  G.tryMap = {};
   G.orbs.length = 0; G.cue = null;
   paintProgress();
   show("home");
@@ -1541,7 +2078,22 @@ function show(id) {
   if (el && id !== "splash") { void el.offsetWidth; el.classList.add("enter"); }
   if (id === "howto") Demo.start(); else Demo.stop();
   if (id === "levels") paintLevels();
+  refreshScrollCue();
 }
+
+/* Panels scroll, but with no scrollbar on touch and a flush bottom edge the
+   remaining rows read as if they do not exist. Show that there is more. */
+function refreshScrollCue() {
+  $$(".screen .col").forEach(function (col) {
+    const body = col.querySelector(".panel-body");
+    if (!body) return;
+    const more = body.scrollHeight - body.scrollTop - body.clientHeight > 6;
+    col.classList.toggle("more", more);
+  });
+}
+$$(".panel-body").forEach(function (el) {
+  el.addEventListener("scroll", refreshScrollCue, { passive: true });
+});
 
 /* ---------------- overlay cards ---------------- */
 const overlay = $("#overlay"), cardEl = $("#card");
@@ -1551,12 +2103,15 @@ function showCard(o) {
   if (o.eyebrow) html += '<div class="eyebrow">' + o.eyebrow + "</div>";
   if (o.title) html += "<h2>" + o.title + "</h2>";
   if (o.num) html += '<div class="num">' + o.num + "</div>";
+  if (o.chain !== undefined) html += '<div class="chain-num">' + o.chain + "</div>";
+  if (o.note) html += '<div class="chain-best">' + o.note + "</div>";
   if (o.body) html += "<p>" + o.body + "</p>";
   if (o.stats) {
     html += '<div class="stat-row">';
     o.stats.forEach(function (s) { html += "<div><b>" + s[0] + "</b><span>" + s[1] + "</span></div>"; });
     html += "</div>";
   }
+  if (o.countdown) html += '<div class="countdown" style="--ms:' + o.countdown + 'ms"><i></i></div>';
   html += '<div class="acts">';
   (o.acts || []).forEach(function (a, i) {
     html += '<button class="chip' + (a.solid ? " solid" : "") + '" data-act="' + i + '">' + a.t + "</button>";
@@ -1579,10 +2134,10 @@ overlay.addEventListener("click", function (e) {
 function showNewCard(nu, done) {
   const isCue = nu.kind === "cue";
   showCard({
-    eyebrow: isCue ? "New cue" : "New pressure",
+    eyebrow: isCue ? t("card.newCue") : t("card.newMod"),
     title: nu.name,
     body: nu.line,
-    acts: [{ t: "got it", solid: true, fn: function () { hideCard(); done(); } }]
+    acts: [{ t: t("ui.gotit"), solid: true, fn: function () { hideCard(); done(); } }]
   });
   if (isCue) {
     const holder = document.createElement("canvas");
@@ -1607,12 +2162,12 @@ function pauseGame() {
   if (!G.running || G.paused) return;
   G.paused = true; SND.stopMusic();
   showCard({
-    eyebrow: G.mode === "echo" ? "Echo" : "Level " + pad2(G.lv),
-    title: "Paused",
+    eyebrow: G.mode === "chaos" ? t("chaos.name") + " \u00d7" + G.chain : t("hud.level") + " " + pad2(G.lv),
+    title: t("card.paused"),
     acts: [
-      { t: "resume", solid: true, fn: resumeGame },
-      { t: "restart", fn: function () { hideCard(); G.paused = false; if (G.mode === "echo") startEcho(); else startLevel(G.lv); } },
-      { t: "quit", fn: function () { hideCard(); G.paused = false; exitToHome(); } }
+      { t: t("ui.resume"), solid: true, fn: resumeGame },
+      { t: t("ui.restart"), fn: function () { hideCard(); G.paused = false; if (G.mode === "chaos") startChaos(); else startLevel(G.lv, true); } },
+      { t: t("ui.quit"), fn: function () { hideCard(); G.paused = false; exitToHome(); } }
     ]
   });
 }
@@ -1630,11 +2185,11 @@ window.addEventListener("keydown", function (e) {
 
 /* ---------------- home + progress ---------------- */
 function paintProgress() {
-  const u = clamp(S.unlocked, 1, 31);
-  const donePct = clamp((u - 1) / 30, 0, 1) * 100;
-  $("#railFill").style.width = donePct + "%";
-  $("#progTag").textContent = u > 30 ? "echo" : pad2(u) + " / 30";
-  $("#startLbl").textContent = u > 30 ? "hit the pulse for echo" : (u > 1 ? "hit the pulse \u2014 level " + pad2(u) : "hit the pulse to play");
+  const u = clamp(S.level, 1, CHAOS_LV);
+  $("#railFill").style.width = (clamp((u - 1) / LEVELS, 0, 1) * 100) + "%";
+  $("#progTag").textContent = u > LEVELS ? t("chaos.name") : pad2(u) + " / " + LEVELS;
+  $("#startLbl").textContent = u > LEVELS ? t("home.playChaos")
+    : (u > 1 ? t("home.playLevel", { n: pad2(u) }) : t("home.play"));
 }
 function launchFromPulse(ev) {
   SND.resume(); SND.boom();
@@ -1647,8 +2202,8 @@ function launchFromPulse(ev) {
   w.classList.remove("go"); void w.offsetWidth; w.classList.add("go");
   setTimeout(function () {
     show("");
-    const u = clamp(S.unlocked, 1, 31);
-    if (u > 30) startEcho(); else startLevel(u);
+    const u = clamp(S.level, 1, CHAOS_LV);
+    if (u > LEVELS) startChaos(); else startLevel(u);
     setTimeout(function () { w.classList.remove("go"); }, 260);
   }, 480);
 }
@@ -1658,88 +2213,117 @@ $("#startOrb").addEventListener("click", launchFromPulse);
 function paintLevels() {
   const grid = $("#lvGrid");
   let html = "";
-  for (let i = 1; i <= 30; i++) {
-    const st = i < S.unlocked ? "done" : i === S.unlocked ? "next" : "locked";
+  for (let i = 1; i <= LEVELS; i++) {
+    const st = i < S.unlocked ? (i === S.level ? "next" : "done") : i === S.unlocked ? "next" : "locked";
     html += '<button class="cell ' + st + '"' + (st === "locked" ? " disabled" : "") + ' data-lv="' + i + '">' + pad2(i) + "</button>";
   }
   grid.innerHTML = html;
-  const unlocked = S.unlocked > 30;
-  $("#echoCell").classList.toggle("locked", !unlocked);
-  $("#echoCell").disabled = !unlocked;
-  $("#echoSub").textContent = unlocked
-    ? (S.echo === null ? "not calibrated yet" : "beat your own pace or it ends")
-    : "clear level 30 to unlock";
-  $("#echoVal").textContent = unlocked && S.echo !== null ? Math.round(S.echo) + "ms" : "\u2014";
+  const unlocked = S.unlocked > LEVELS;
+  $("#chaosCell").classList.toggle("locked", !unlocked);
+  $("#chaosCell").disabled = !unlocked;
+  $("#chaosName").textContent = t("chaos.name") + " \u00b7 " + CHAOS_LV;
+  $("#chaosSub").textContent = unlocked ? t("chaos.ready") : t("chaos.locked");
+  $("#chaosVal").textContent = S.bestChain > 0 ? "\u00d7" + S.bestChain : "\u2014";
 }
 $("#lvGrid").addEventListener("click", function (e) {
   const b = e.target.closest("[data-lv]");
   if (!b || b.disabled) return;
   SND.ui(); SND.resume();
-  show(""); startLevel(+b.dataset.lv);
+  S.level = +b.dataset.lv; saveState(); paintProgress();
+  show(""); startLevel(S.level, true);
 });
-$("#echoCell").addEventListener("click", function () {
-  if ($("#echoCell").disabled) return;
-  SND.ui(); SND.resume(); show(""); startEcho();
+$("#chaosCell").addEventListener("click", function () {
+  if ($("#chaosCell").disabled) return;
+  SND.ui(); SND.resume(); show(""); startChaos();
 });
 
 /* ---------------- settings ---------------- */
 const SET_DEFS = [
-  { k: "sfx", t: "range", n: "Sound effects", d: "Hits, misses, cue ticks." },
-  { k: "music", t: "range", n: "Music", d: "A pulse that tightens with the level." },
-  { k: "vfx", t: "range", n: "Effect density", d: "Particles, glow, drifting decoys." },
-  { k: "shake", t: "sw", n: "Screen shake", d: "Kick on hits and misses." },
-  { k: "reduce", t: "sw", n: "Reduced motion", d: "Cuts flashes, trails and shake. Cues stay identical." },
-  { k: "symbols", t: "sw", n: "Colour symbols", d: "Marks every colour with its own shape, on the orbs and the cue." },
-  { k: "assist", t: "sw", n: "Wider hit areas", d: "Orbs register from further away. Timing is unchanged." }
+  { k: "lang",    t: "seg",   opts: [["en", "English"], ["fr", "Fran\u00e7ais"]] },
+  { k: "theme",   t: "seg",   opts: [["light", "ui.light"], ["dark", "ui.dark"]] },
+  { k: "sfx",     t: "range" },
+  { k: "music",   t: "range" },
+  { k: "vfx",     t: "range" },
+  { k: "shake",   t: "sw" },
+  { k: "reduce",  t: "sw" },
+  { k: "symbols", t: "sw" },
+  { k: "assist",  t: "sw" }
 ];
 function buildSettings() {
   const body = $("#setBody");
   let html = "";
-  SET_DEFS.forEach(function (s) {
-    html += '<div class="set-row"><div class="lbl"><b>' + s.n + "</b><span>" + s.d + "</span></div>";
-    if (s.t === "range") {
-      html += '<input type="range" min="0" max="100" value="' + Math.round(S[s.k] * 100) + '" data-set="' + s.k + '">'
-        + "<output>" + Math.round(S[s.k] * 100) + "</output>";
+  SET_DEFS.forEach(function (d) {
+    html += '<div class="set-row"><div class="lbl"><b>' + t("set." + d.k) + "</b><span>"
+      + t("setd." + d.k) + '</span></div><div class="set-ctl">';
+    if (d.t === "range") {
+      html += '<input type="range" min="0" max="100" value="' + Math.round(S[d.k] * 100)
+        + '" data-set="' + d.k + '" aria-label="' + t("set." + d.k) + '">'
+        + "<output>" + Math.round(S[d.k] * 100) + "</output>";
+    } else if (d.t === "seg") {
+      html += '<div class="seg" data-seg="' + d.k + '">' + d.opts.map(function (o) {
+        const label = o[1].indexOf(".") > 0 ? t(o[1]) : o[1];
+        return '<button data-seg-btn="' + d.k + '" data-val="' + o[0] + '" aria-pressed="'
+          + (S[d.k] === o[0] ? "true" : "false") + '">' + label + "</button>";
+      }).join("") + "</div>";
     } else {
-      html += '<button class="sw" role="switch" aria-pressed="' + (S[s.k] ? "true" : "false") + '" data-sw="' + s.k + '"></button>';
+      html += '<button class="sw" role="switch" aria-label="' + t("set." + d.k) + '" aria-pressed="'
+        + (S[d.k] ? "true" : "false") + '" data-sw="' + d.k + '"></button>';
     }
-    html += "</div>";
+    html += "</div></div>";
   });
-  html += '<div class="set-row" style="border:0"><div class="lbl"><b>Progress</b><span id="resetSub"></span></div>'
-    + '<button class="chip danger" id="resetBtn">reset</button></div>';
+  html += '<div class="set-row" style="border:0"><div class="lbl"><b>' + t("set.progress")
+    + '</b><span id="resetSub"></span></div><div class="set-ctl">'
+    + '<button class="chip danger" id="resetBtn">' + t("ui.reset") + "</button></div></div>";
   body.innerHTML = html;
   paintResetSub();
+}
+function bindSettings() {
+  const body = $("#setBody");
   body.addEventListener("input", function (e) {
     const r = e.target.closest("[data-set]"); if (!r) return;
     S[r.dataset.set] = (+r.value) / 100;
-    r.nextElementSibling.textContent = r.value;
+    const out = r.parentNode.querySelector("output"); if (out) out.textContent = r.value;
     SND.vol(); saveState();
-    if (r.dataset.set === "music") { if (S.music <= 0) SND.stopMusic(); else if (G.running && !G.paused) SND.startMusic(G.cfg.chaos); }
+    if (r.dataset.set === "music") {
+      if (S.music <= 0) SND.stopMusic();
+      else if (G.running && !G.paused) SND.startMusic(G.cfg.chaos);
+    }
   });
   body.addEventListener("click", function (e) {
+    const sg = e.target.closest("[data-seg-btn]");
+    if (sg) {
+      if (sg.dataset.segBtn === "lang") setLang(sg.dataset.val);
+      else if (sg.dataset.segBtn === "theme") { SND.ui(); setTheme(sg.dataset.val); }
+      return;
+    }
     const sw = e.target.closest("[data-sw]");
     if (sw) {
       const k = sw.dataset.sw; S[k] = !S[k];
       sw.setAttribute("aria-pressed", S[k] ? "true" : "false");
       SND.ui(); saveState(); return;
     }
-    if (e.target.closest("#resetBtn")) {
-      const b = e.target.closest("#resetBtn");
+    const b = e.target.closest("#resetBtn");
+    if (b) {
       if (b.dataset.arm) {
-        S.unlocked = 1; S.echo = null; S.echoRuns = 0; saveState();
-        b.textContent = "reset"; delete b.dataset.arm;
-        paintProgress(); paintResetSub(); SND.fail();
+        S.level = 1; S.unlocked = 1; S.seen = {}; S.bestChain = 0; S.chaosRuns = 0;
+        G.tryMap = {}; saveState();
+        b.textContent = t("ui.reset"); delete b.dataset.arm;
+        paintProgress(); paintResetSub(); paintLevels(); SND.fail();
       } else {
-        b.dataset.arm = "1"; b.textContent = "tap again";
-        setTimeout(function () { if (b.dataset.arm) { b.textContent = "reset"; delete b.dataset.arm; } }, 3200);
+        b.dataset.arm = "1"; b.textContent = t("ui.confirm");
+        setTimeout(function () {
+          if (b.dataset.arm) { b.textContent = t("ui.reset"); delete b.dataset.arm; }
+        }, 3200);
       }
     }
   });
 }
 function paintResetSub() {
   const el = $("#resetSub"); if (!el) return;
-  el.textContent = "Level " + pad2(clamp(S.unlocked, 1, 30)) + " unlocked"
-    + (S.echo !== null ? " \u00b7 echo at " + Math.round(S.echo) + "ms" : "");
+  const n = pad2(clamp(S.level, 1, 30));
+  el.textContent = S.bestChain > 0
+    ? t("setd.progressChain", { n: n, e: S.bestChain })
+    : t("setd.progress", { n: n });
 }
 
 /* ---------------- how to play: live demo ---------------- */
@@ -1821,11 +2405,11 @@ const Demo = {
   },
   paintText() {
     const key = DEMO_ORDER[this.i];
-    $("#demoName").textContent = CUES[key].name;
-    $("#demoDesc").innerHTML = CUES[key].line;
+    $("#demoName").textContent = t("cue." + key);
+    $("#demoDesc").innerHTML = t("line." + key);
     $$("#demoDots i").forEach(function (d, n) { d.classList.toggle("on", n === Demo.i); });
-    $("#demoPrev").style.visibility = this.i === 0 ? "hidden" : "visible";
-    $("#demoNext").textContent = this.i === DEMO_ORDER.length - 1 ? "start over" : "next";
+    $("#demoPrev").style.display = this.i === 0 ? "none" : "";
+    $("#demoNext").textContent = this.i === DEMO_ORDER.length - 1 ? t("ui.restartDemo") : t("ui.next");
   },
   reset() {
     const key = DEMO_ORDER[this.i], sc = DEMO_SCENE[key];
@@ -2000,7 +2584,7 @@ const Demo = {
       cg.fillStyle = "rgba(237,239,242,.5)";
       cg.font = "500 11px ui-monospace,monospace";
       cg.textAlign = "center";
-      cg.fillText(this.taken ? "nice" : "tap the arena to try it", this.cx, this.h - 12);
+      cg.fillText(this.taken ? t("demo.nice") : t("demo.try"), this.cx, this.h - 12);
     }
   }
 };
@@ -2013,18 +2597,47 @@ const Demo = {
   }).join("");
 })();
 
-(function buildLegend() {
-  const el = $("#legend");
-  el.style.gridTemplateColumns = "repeat(auto-fit,minmax(148px,1fr))";
+function buildLegend() {
   const pairs = [["volt", "aqua"], ["sun", "deep"], ["lime", "orchid"]];
-  el.innerHTML = pairs.map(function (p) {
+  $("#legend").innerHTML = pairs.map(function (p) {
     return '<div><s style="background:' + COL[p[0]] + '"></s><s style="background:' + COL[p[1]]
-      + '"></s><span>' + NAME[p[0]] + " \u2194 " + NAME[p[1]] + "</span></div>";
+      + '"></s><span>' + colName(p[0]) + " \u2194 " + colName(p[1]) + "</span></div>";
   }).join("");
-})();
+}
 
-buildSettings();
-paintProgress();
+/* ---------------- language ---------------- */
+function applyLang() {
+  document.documentElement.lang = S.lang || "en";
+  $$("[data-t]").forEach(function (el) { el.textContent = t(el.dataset.t); });
+  $("#tagline").textContent = t("home.tagline");
+  $("#howtoFoot").textContent = t("howto.foot");
+  $("#reactLbl").textContent = t("hud.reaction");
+  $("#orientMsg").textContent = "";
+  buildLegend();
+  buildSettings();
+  paintProgress();
+  paintLevels();
+  if (Demo.cv && Demo.orbs.length) Demo.paintText();
+  if (G.cfg) paintHud();
+  checkOrient();
+}
+function setLang(code) {
+  if (code !== "en" && code !== "fr") return;
+  S.lang = code; saveState();
+  SND.resume(); SND.ui();
+  applyLang();
+}
+$("#langGate").addEventListener("click", function (e) {
+  const b = e.target.closest("[data-lang]");
+  if (!b) return;
+  setLang(b.dataset.lang);
+  $("#langGate").classList.remove("on");
+  show("home");
+});
+
+applyTheme();
+bindSettings();
+applyLang();
 Demo.init();
 
 /* navigation */
@@ -2052,8 +2665,8 @@ document.addEventListener("pointerdown", function () { SND.resume(); }, { captur
 function checkOrient() {
   const land = window.innerWidth > window.innerHeight;
   let bad = false, msg = "";
-  if (IS_MOBILE && land) { bad = true; msg = "turn your device upright"; }
-  else if (!IS_MOBILE && !land) { bad = true; msg = "widen the window \u2014 malik plays in landscape here"; }
+  if (IS_MOBILE && land) { bad = true; msg = t("orient.portrait"); }
+  else if (!IS_MOBILE && !land) { bad = true; msg = t("orient.landscape"); }
   const el = $("#orient");
   el.classList.toggle("on", bad);
   $("#orientMsg").textContent = msg;
@@ -2081,10 +2694,14 @@ function leaveSplash() {
   splashDone = true;
   const sp = $("#splash");
   sp.classList.add("out");
-  setTimeout(function () { show("home"); }, 440);
+  setTimeout(function () {
+    show("home");
+    if (!S.lang) $("#langGate").classList.add("on");
+  }, 440);
 }
 setTimeout(leaveSplash, 1900);
 $("#splash").addEventListener("pointerdown", function () { SND.resume(); leaveSplash(); });
+
 
 </script>
 </body>
