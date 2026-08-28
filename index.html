@@ -237,11 +237,6 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border:none;border-ra
 .stat-row b{font-family:var(--mono);font-size:19px;font-weight:400;display:block}
 .stat-row span{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;
   color:var(--mute)}
-.countdown{margin-top:18px;height:2px;width:min(200px,60%);background:rgba(237,239,242,.16);
-  border-radius:2px;margin-inline:auto;overflow:hidden}
-.countdown i{display:block;height:100%;background:var(--paper);width:100%;
-  animation:drain var(--ms,1800ms) linear forwards;transform-origin:left}
-@keyframes drain{to{transform:scaleX(0)}}
 
 /* ---------- language gate ---------- */
 #langGate{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;
@@ -345,8 +340,6 @@ input[type=range]::-moz-range-thumb{ background:var(--fg) }
 .card h2,#langGate h2{ color:var(--fg) }
 .card p,#langGate p{ color:var(--dim) }
 .card .num{ color:var(--fg) }
-.countdown{ background:var(--track) }
-.countdown i{ background:var(--fg) }
 
 /* scroll affordance — panels scroll, so say so */
 .col{ position:relative }
@@ -762,7 +755,7 @@ const KEY = "malik.v1";
 const DEFAULTS = {
   sfx: 0.8, music: 0.3, vfx: 1, reduce: false, shake: true,
   symbols: false, assist: false, lang: null,
-  level: 1, unlocked: 1, seen: {}, theme: "light", bestChain: 0, chaosRuns: 0
+  level: 1, unlocked: 1, theme: "light", bestChain: 0, chaosRuns: 0
 };
 let S = loadState();
 function applyTheme() {
@@ -788,7 +781,6 @@ function loadState() {
   out.bestChain = Math.max(0, out.bestChain | 0);
   if (out.theme !== "light" && out.theme !== "dark") out.theme = "light";
   if (out.lang !== "en" && out.lang !== "fr") out.lang = null;
-  out.seen = (out.seen && typeof out.seen === "object") ? Object.assign({}, out.seen) : {};
   return out;
 }
 function saveState() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
@@ -1920,11 +1912,10 @@ function startLevel(n) {
   G.mode = "level"; G.lv = n; G.cfg = levelCfg(n);
   S.level = clamp(n, 1, CHAOS_LV); saveState();   /* progress survives a reload */
   resetRun();
+  /* the level that introduces something always explains it first */
   const nu = newAt(n);
-  if (nu && !S.seen[nu.id]) {
-    S.seen[nu.id] = 1; saveState();
-    showNewCard(nu, function () { beginRun(); });
-  } else beginRun();
+  if (nu) showNewCard(nu, function () { beginRun(); });
+  else beginRun();
 }
 function startChaos() {
   G.mode = "chaos"; G.lv = CHAOS_LV;
@@ -2008,20 +1999,13 @@ function levelFail() {
   SND.fail();
   const fellAt = G.lv;
   S.level = fellAt; saveState();     /* progress is kept — only the level restarts */
-  const wait = 2800;
-  let taken = false;
-  const go = function (fn) {
-    return function () { if (taken) return; taken = true; clearTimeout(G.overT); hideCard(); fn(); };
-  };
   showCard({
     eyebrow: t("card.overEyebrow", { n: pad2(fellAt) }),
     title: t("card.overTitle"),
     body: t("card.overBody"),
-    countdown: wait,
-    acts: [{ t: t("ui.again"), solid: true, fn: go(function () { startLevel(fellAt); }) },
-           { t: t("ui.home"), fn: go(exitToHome) }]
+    acts: [{ t: t("ui.again"), solid: true, fn: function () { hideCard(); startLevel(fellAt); } },
+           { t: t("ui.home"), fn: function () { hideCard(); exitToHome(); } }]
   });
-  G.overT = setTimeout(go(function () { startLevel(fellAt); }), wait);
 }
 function chaosOver() {
   G.state = "over"; G.cue = null; SND.stopMusic();
@@ -2103,7 +2087,6 @@ function showCard(o) {
     o.stats.forEach(function (s) { html += "<div><b>" + s[0] + "</b><span>" + s[1] + "</span></div>"; });
     html += "</div>";
   }
-  if (o.countdown) html += '<div class="countdown" style="--ms:' + o.countdown + 'ms"><i></i></div>';
   html += '<div class="acts">';
   (o.acts || []).forEach(function (a, i) {
     html += '<button class="chip' + (a.solid ? " solid" : "") + '" data-act="' + i + '">' + a.t + "</button>";
@@ -2297,7 +2280,7 @@ function bindSettings() {
     const b = e.target.closest("#resetBtn");
     if (b) {
       if (b.dataset.arm) {
-        S.level = 1; S.unlocked = 1; S.seen = {}; S.bestChain = 0; S.chaosRuns = 0;
+        S.level = 1; S.unlocked = 1; S.bestChain = 0; S.chaosRuns = 0;
         saveState();
         b.textContent = t("ui.reset"); delete b.dataset.arm;
         paintProgress(); paintResetSub(); paintLevels(); SND.fail();
