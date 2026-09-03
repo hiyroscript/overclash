@@ -1412,7 +1412,7 @@ const G = {
   shake: 0, shakeA: 0, glareT: 0, heat: 0, streak: 0, best: 0,
   trail: [], drift: [], ptr: { x: 0, y: 0, down: false },
   react: 0, lastReact: 0, lastType: null, prevType: null,
-  chain: 0, bestSeen: 0, twists: [], msBoost: 1, phase: 0
+  chain: 0, bestSeen: 0, twists: [], msBoost: 1, phase: 0, owed: []
 };
 
 function buildOrbs(cfg) {
@@ -1443,22 +1443,53 @@ function realOrbs() { return G.orbs.filter(o => !o.husk); }
 function orbByColor(k) { for (const o of G.orbs) if (o.k === k) return o; return null; }
 
 const CUE_W = { MATCH: 3, INVERT: 3, HOLD: 1.6, VOID: 1.1, CHAIN: 1.8, LINK: 1.6, PHANTOM: 1.1, BURST: 1.6 };
-function pickType(types) {
+/* Can the cues still owed be fitted into the slots that remain, given that two
+   do-nothing cues may never touch? If this holds after every pick, the level
+   cannot end owing the player a mechanic. */
+function owedFits(owed, left, last) {
+  if (!owed.length) return true;
+  const isIdle = t => t === "VOID" || t === "PHANTOM";
+  let idleN = 0;
+  for (const t of owed) if (isIdle(t)) idleN++;
+  const solidN = owed.length - idleN;
+  const gaps = Math.max(0, idleN - 1 + (isIdle(last) ? 1 : 0));
+  return idleN + Math.max(solidN, gaps) <= left;
+}
+function pickType(types, owed) {
+  if (!types.length) return "MATCH";
   let sum = 0;
-  for (const t of types) sum += CUE_W[t];
+  const w = types.map(function (t) {
+    const k = CUE_W[t] * (owed && owed.indexOf(t) >= 0 ? 2.4 : 1);
+    sum += k; return k;
+  });
   let r = Math.random() * sum;
-  for (const t of types) { r -= CUE_W[t]; if (r <= 0) return t; }
+  for (let i = 0; i < types.length; i++) { r -= w[i]; if (r <= 0) return types[i]; }
   return types[types.length - 1];
 }
 function makeCue() {
   const cfg = G.cfg, reals = realOrbs();
-  let type = pickType(cfg.types);
   const idle = t => t === "VOID" || t === "PHANTOM";
-  /* never two do-nothing cues back to back, and never three of anything */
-  if (idle(type) && idle(G.lastType)) type = "MATCH";
-  if (type === G.lastType && type === G.prevType) type = pickType(cfg.types.filter(t => t !== type)) || type;
-  if ((type === "CHAIN" || type === "LINK") && reals.length < 2) type = "MATCH";
+  const playable = t => !((t === "CHAIN" || t === "LINK") && reals.length < 2);
+  const left = G.mode === "level" ? Math.max(1, cfg.need - G.done) : Infinity;
+
+  /* Candidates that respect the pacing rules: no two do-nothing cues back to
+     back, and never three of the same in a row. */
+  let cand = cfg.types.filter(t => playable(t)
+    && !(idle(t) && idle(G.lastType))
+    && !(t === G.lastType && t === G.prevType));
+  if (!cand.length) cand = cfg.types.filter(playable);
+  if (!cand.length) cand = ["MATCH"];
+
+  /* ...and that still leave room for every cue this level owes the player.
+     Playing one now must not strand the rest: a do-nothing cue late on would
+     block the only slot left for another one, so it is simply not a candidate. */
+  let fit = cand.filter(t => owedFits(G.owed.filter(x => x !== t), left - 1, t));
+  if (!fit.length) fit = cand;
+
+  const type = pickType(fit, G.owed);
   G.prevType = G.lastType; G.lastType = type;
+  const owedAt = G.owed.indexOf(type);
+  if (owedAt >= 0) G.owed.splice(owedAt, 1);
 
   const c = { type: type, colA: null, colB: null, tA: null, tB: null, step: 0, hits: 0, holdP: 0, born: 0, win: 0, pressed: false, dead: false };
   if (type === "VOID" || type === "PHANTOM") {
@@ -1933,6 +1964,9 @@ function startChaos() {
   });
 }
 function resetRun() {
+  /* chaos runs on phase type-sets, so the per-level promise only applies to levels */
+  G.owed = G.mode === "level" ? G.cfg.types.slice() : [];
+  G.lastType = null; G.prevType = null;
   G.orbs = buildOrbs(G.cfg);
   sizeOrbs();
   G.lives = G.cfg.lives; G.done = 0; G.streak = 0; G.heat = 0;
